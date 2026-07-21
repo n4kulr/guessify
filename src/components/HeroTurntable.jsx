@@ -30,6 +30,7 @@ export default function HeroTurntable() {
   const ioRef = useRef(null);
   const [armOn, setArmOn] = useState(false);
   const [coverIdx, setCoverIdx] = useState(0);
+  const [themePulse, setThemePulse] = useState(false);
 
   function dropNeedle() {
     if (hasDropped.current) return;
@@ -82,11 +83,26 @@ export default function HeroTurntable() {
     return () => clearInterval(id);
   }, []);
 
+  useEffect(() => {
+    let timer = 0;
+    function onThemePicked() {
+      if (prefersReducedMotion()) return;
+      clearTimeout(timer);
+      setThemePulse(true);
+      timer = window.setTimeout(() => setThemePulse(false), 650);
+    }
+    window.addEventListener("guessify:theme-picked", onThemePicked);
+    return () => {
+      window.removeEventListener("guessify:theme-picked", onThemePicked);
+      clearTimeout(timer);
+    };
+  }, []);
+
   const cover = HERO_COVERS[coverIdx];
 
   return (
     <div
-      className="hero-turntable"
+      className={`hero-turntable${themePulse ? " hero-turntable--theme-pulse" : ""}`}
       ref={rootRef}
       onPointerDownCapture={dropNeedle}
     >

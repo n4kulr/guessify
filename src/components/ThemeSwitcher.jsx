@@ -1,9 +1,12 @@
 import { useEffect, useRef, useState } from "react";
 import { THEMES, applyTheme } from "../themes.js";
+import ThemeNudge from "./ThemeNudge.jsx";
 
 export default function ThemeSwitcher({ current, onChange }) {
   const [open, setOpen] = useState(false);
+  const [flash, setFlash] = useState(false);
   const ref = useRef(null);
+  const flashTimer = useRef(0);
 
   useEffect(() => {
     function onDoc(e) {
@@ -13,18 +16,27 @@ export default function ThemeSwitcher({ current, onChange }) {
     return () => document.removeEventListener("mousedown", onDoc);
   }, []);
 
+  useEffect(() => () => clearTimeout(flashTimer.current), []);
+
   function pick(key) {
     applyTheme(key);
     onChange(key);
     setOpen(false);
+
+    // One-shot reaction: switcher pulse + hero vinyl hub flash
+    clearTimeout(flashTimer.current);
+    setFlash(true);
+    window.dispatchEvent(new CustomEvent("guessify:theme-picked"));
+    flashTimer.current = window.setTimeout(() => setFlash(false), 700);
   }
 
   return (
-    <div className="theme-switcher" ref={ref}>
+    <div className={`theme-switcher${flash ? " theme-switcher--flash" : ""}`} ref={ref}>
       <button className="theme-btn" onClick={() => setOpen((o) => !o)} title="change theme">
         <span className="theme-dot" style={{ background: "var(--main-color)" }} />
         {THEMES[current]?.name || "theme"}
       </button>
+      {!open && <ThemeNudge />}
       {open && (
         <div className="theme-menu">
           {Object.entries(THEMES).map(([key, t]) => (
