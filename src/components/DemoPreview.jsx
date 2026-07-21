@@ -1,5 +1,4 @@
 import { useEffect, useState } from "react";
-import ScrubbableVinyl from "./ScrubbableVinyl.jsx";
 
 // A self-playing fake game loop so people see the vibe before logging in.
 const SCRIPT = [
@@ -47,15 +46,28 @@ export default function DemoPreview() {
           </span>
         </div>
 
-        <div className="demo-stage">
-          <ScrubbableVinyl
-            className="demo-vinyl"
-            spin={done ? "slow" : "fast"}
-            title="drag to scrub"
+        <div className="demo-stage demo-stage--cassette">
+          <div
+            className={`demo-cassette ${done ? "demo-cassette--slow" : "demo-cassette--play"}`}
+            aria-hidden="true"
           >
-            <div className="vinyl-label vinyl-label--mystery">{done ? "♪" : "?"}</div>
-          </ScrubbableVinyl>
-          <div className={`tonearm ${!done ? "tonearm--on" : ""}`} />
+            <div className="demo-cassette-shell">
+              <div className="demo-cassette-label">
+                {done ? "♪ nailed" : "??? side a"}
+              </div>
+              <div className="demo-cassette-window">
+                <span className={`demo-reel ${done ? "spin-slow" : "spin-fast"}`} />
+                <span className="demo-tape" />
+                <span className={`demo-reel ${done ? "spin-slow" : "spin-fast"}`} />
+              </div>
+              <div className="demo-cassette-sprockets">
+                <span />
+                <span />
+                <span />
+                <span />
+              </div>
+            </div>
+          </div>
         </div>
 
         <div className="demo-progress">
