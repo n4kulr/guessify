@@ -313,14 +313,23 @@ button { font-family: var(--font); }
 
 .guess-rows { display: flex; flex-direction: column; gap: 6px; margin-bottom: 16px; }
 .guess-row {
-  min-height: 36px; display: flex; align-items: center; padding: 7px 13px;
+  min-height: 36px; display: flex; align-items: center; gap: 8px; padding: 7px 13px;
   border-radius: 8px; background: var(--bg-color); font-size: 14px; color: var(--sub-color);
 }
 .guess-row.active { outline: 2px dashed var(--sub-color); outline-offset: -2px; color: var(--sub-color); }
 .guess-row.correct { background: var(--main-color); color: var(--bg-color); font-weight: 600; }
-.guess-row.wrong { color: var(--error-color); text-decoration: line-through; }
+.guess-row.correct .gr-field, .guess-row.correct .gr-sep { color: var(--bg-color); }
+.guess-row.wrong { background: var(--bg-color); }
+.gr-field { max-width: 42%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.gr-field.ok { color: var(--main-color); }
+.gr-field.ok::before { content: "✓ "; }
+.gr-field.no { color: var(--error-color); text-decoration: line-through; }
+.gr-sep { color: var(--sub-color); font-size: 12px; }
+.gr-skip { color: var(--sub-color); }
 
 .guess-input-wrap { position: relative; }
+.guess-fields { display: flex; gap: 8px; }
+.guess-fields .guess-input { flex: 1; min-width: 0; }
 .guess-input {
   width: 100%; font-family: var(--font); font-size: 15px; padding: 13px 15px;
   border: 2px solid transparent; border-radius: var(--radius);

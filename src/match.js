@@ -26,13 +26,22 @@ function editDistance(a, b) {
   return dp[m][n];
 }
 
-// Is `guess` close enough to the real `title`?
-export function isCorrect(guess, title) {
+// Is `guess` close enough to the real `answer`?
+// Forgiving: exact match, substring match (helps with long titles / partial
+// artist names), or within a typo tolerance scaled to length.
+export function isCorrect(guess, answer) {
   const g = normalize(guess);
-  const t = normalize(title);
-  if (!g) return false;
+  const t = normalize(answer);
+  if (!g || !t) return false;
   if (g === t) return true;
-  // allow a couple of typos, scaled to length
-  const tolerance = Math.max(1, Math.floor(t.length * 0.15));
+  // "close by" answers: allow a substring either way once it's a few chars long
+  if (g.length >= 4 && (t.includes(g) || g.includes(t))) return true;
+  // allow typos, scaled to length (min 2 so short answers still forgive one slip)
+  const tolerance = Math.max(2, Math.floor(t.length * 0.25));
   return editDistance(g, t) <= tolerance;
+}
+
+// Does the guess match ANY of the track's artists (fuzzy)?
+export function matchesAnyArtist(guess, artists = []) {
+  return artists.some((a) => isCorrect(guess, a));
 }

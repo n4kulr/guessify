@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { isCorrect, normalize } from "../match.js";
+import { isCorrect, matchesAnyArtist } from "../match.js";
 import { useSpotifyPlayer } from "../useSpotifyPlayer.js";
 import { getToken } from "../spotify.js";
 
@@ -22,18 +22,16 @@ export default function Game({ playlist, onExit }) {
     () => shuffle(playlist.tracks).slice(0, Math.min(ROUND_COUNT, playlist.tracks.length)),
     [playlist]
   );
-  const titles = useMemo(
-    () => [...new Set(playlist.tracks.map((t) => t.name))].sort(),
-    [playlist]
-  );
 
   const [roundIdx, setRoundIdx] = useState(0);
   const [guessNum, setGuessNum] = useState(0);
-  const [guesses, setGuesses] = useState([]); // {text, correct}
+  const [guesses, setGuesses] = useState([]); // {title, artist, titleOk, artistOk, win, skip}
   const [phase, setPhase] = useState("play"); // play | result | over
   const [outcome, setOutcome] = useState(null); // win | lose
   const [score, setScore] = useState(0);
-  const [query, setQuery] = useState("");
+  const [bonus, setBonus] = useState(0); // +1 if artist also nailed on the winning guess
+  const [titleGuess, setTitleGuess] = useState("");
+  const [artistGuess, setArtistGuess] = useState("");
   const [playing, setPlaying] = useState(false);
 
   const { deviceId, status: playerStatus, errorMsg, player } = useSpotifyPlayer();
@@ -77,50 +75,50 @@ export default function Game({ playlist, onExit }) {
     }
   }
 
-  const suggestions = useMemo(() => {
-    const q = normalize(query);
-    if (!q) return [];
-    return titles.filter((t) => normalize(t).includes(q)).slice(0, 6);
-  }, [query, titles]);
-
-  function submitGuess(text) {
-    if (phase !== "play") return;
-    const correct = isCorrect(text, track.name);
-    const nextGuesses = [...guesses, { text, correct }];
-    setGuesses(nextGuesses);
-    setQuery("");
-    stopAudio();
-
-    if (correct) {
-      setOutcome("win");
-      setScore((s) => s + (MAX_GUESSES - guessNum));
-      setPhase("result");
-      return;
-    }
+  // Advance to the next attempt, or lose the round if out of guesses.
+  function consumeGuess() {
     const nextNum = guessNum + 1;
     if (nextNum >= MAX_GUESSES) {
       setOutcome("lose");
       setPhase("result");
     } else {
       setGuessNum(nextNum);
+    }
+  }
+
+  function submitGuess() {
+    if (phase !== "play") return;
+    const title = titleGuess.trim();
+    const artist = artistGuess.trim();
+    if (!title && !artist) return; // nothing entered
+
+    const titleOk = title ? isCorrect(title, track.name) : false;
+    const artistOk = artist ? matchesAnyArtist(artist, track.artists) : false;
+    const win = titleOk; // getting the title identifies the song
+
+    setGuesses([...guesses, { title, artist, titleOk, artistOk, win }]);
+    setTitleGuess("");
+    setArtistGuess("");
+    stopAudio();
+
+    if (win) {
+      const earned = MAX_GUESSES - guessNum + (artistOk ? 1 : 0);
+      setBonus(artistOk ? 1 : 0);
+      setScore((s) => s + earned);
+      setOutcome("win");
+      setPhase("result");
+    } else {
+      consumeGuess();
     }
   }
 
   function skip() {
-    submitGuessRaw("⏭ skipped");
-  }
-  function submitGuessRaw(label) {
     if (phase !== "play") return;
-    const nextGuesses = [...guesses, { text: label, correct: false }];
-    setGuesses(nextGuesses);
+    setGuesses([...guesses, { skip: true }]);
+    setTitleGuess("");
+    setArtistGuess("");
     stopAudio();
-    const nextNum = guessNum + 1;
-    if (nextNum >= MAX_GUESSES) {
-      setOutcome("lose");
-      setPhase("result");
-    } else {
-      setGuessNum(nextNum);
-    }
+    consumeGuess();
   }
 
   function nextRound() {
@@ -132,7 +130,9 @@ export default function Game({ playlist, onExit }) {
     setGuessNum(0);
     setGuesses([]);
     setOutcome(null);
-    setQuery("");
+    setBonus(0);
+    setTitleGuess("");
+    setArtistGuess("");
     setPhase("play");
   }
 
@@ -217,46 +217,61 @@ export default function Game({ playlist, onExit }) {
             {Array.from({ length: MAX_GUESSES }).map((_, i) => {
               const g = guesses[i];
               const active = i === guessNum;
+              let cls = "guess-row";
+              if (g?.win) cls += " correct";
+              else if (g) cls += " wrong";
+              if (active) cls += " active";
               return (
-                <div
-                  key={i}
-                  className={`guess-row ${g ? (g.correct ? "correct" : "wrong") : ""} ${
-                    active ? "active" : ""
-                  }`}
-                >
-                  {g ? g.text : active ? "◉ your guess…" : ""}
+                <div key={i} className={cls}>
+                  {g ? (
+                    g.skip ? (
+                      <span className="gr-skip">⏭ skipped</span>
+                    ) : (
+                      <>
+                        <span className={`gr-field ${g.titleOk ? "ok" : "no"}`}>
+                          {g.title || "—"}
+                        </span>
+                        <span className="gr-sep">by</span>
+                        <span className={`gr-field ${g.artistOk ? "ok" : "no"}`}>
+                          {g.artist || "—"}
+                        </span>
+                      </>
+                    )
+                  ) : active ? (
+                    "◉ your guess…"
+                  ) : (
+                    ""
+                  )}
                 </div>
               );
             })}
           </div>
 
           <div className="guess-input-wrap">
-            <input
-              className="guess-input"
-              placeholder="type a song title from this playlist…"
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter" && suggestions[0]) submitGuess(suggestions[0]);
-              }}
-            />
-            {suggestions.length > 0 && (
-              <div className="suggestions">
-                {suggestions.map((s) => (
-                  <button key={s} className="suggestion" onClick={() => submitGuess(s)}>
-                    {s}
-                  </button>
-                ))}
-              </div>
-            )}
+            <div className="guess-fields">
+              <input
+                className="guess-input"
+                placeholder="song title…"
+                value={titleGuess}
+                onChange={(e) => setTitleGuess(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && submitGuess()}
+              />
+              <input
+                className="guess-input"
+                placeholder="artist…"
+                value={artistGuess}
+                onChange={(e) => setArtistGuess(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && submitGuess()}
+              />
+            </div>
             <div className="guess-actions">
               <button className="btn btn-ghost" onClick={skip}>
                 skip (+audio)
               </button>
               <button
                 className="btn"
-                onClick={() => query && submitGuess(query)}
-                disabled={!query}
+                onClick={submitGuess}
+                disabled={!titleGuess.trim() && !artistGuess.trim()}
               >
                 guess
               </button>
@@ -277,7 +292,8 @@ export default function Game({ playlist, onExit }) {
               <span className="reveal-artist">{track.artists.join(", ")}</span>
               {outcome === "win" && (
                 <span className="reveal-points">
-                  +{MAX_GUESSES - guessNum} pts
+                  +{MAX_GUESSES - guessNum + bonus} pts
+                  {bonus ? " (artist bonus!)" : ""}
                 </span>
               )}
             </div>
