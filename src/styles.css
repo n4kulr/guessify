@@ -266,7 +266,8 @@ button { font-family: var(--font); }
 .subtitle { font-size: 15px; line-height: 1.6; margin: 0 auto 22px; max-width: 46ch; color: var(--sub-color); }
 
 /* ---------------- playlist picker ---------------- */
-.picker { width: min(var(--maxw), 100%); }
+.picker { width: min(var(--maxw), 100%); position: relative; }
+.picker-back { position: absolute; top: 0; left: 0; }
 .section-title { font-size: 26px; font-weight: 700; text-align: center; margin: 4px 0; }
 .section-sub { text-align: center; color: var(--sub-color); margin-bottom: 26px; font-size: 14px; }
 
@@ -356,7 +357,77 @@ button { font-family: var(--font); }
   border: none; background: none; color: var(--text-color); cursor: pointer; font-size: 14px;
 }
 .suggestion:hover { background: var(--main-color); color: var(--bg-color); }
-.guess-actions { display: flex; justify-content: space-between; gap: 10px; margin-top: 14px; }
+.guess-actions { display: flex; justify-content: space-between; gap: 12px; margin-top: 16px; }
+.guess-actions .btn {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  font-size: 16px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  padding: 14px 18px 12px;
+  border-radius: 10px;
+  border: none;
+  transition: transform 0.08s ease, box-shadow 0.08s ease, filter 0.15s ease, background 0.15s ease, color 0.15s ease;
+}
+.guess-actions .btn .btn-label { line-height: 1.1; }
+.guess-actions .btn .btn-hint {
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  opacity: 0.7;
+  text-transform: uppercase;
+}
+
+.btn-skip {
+  background: var(--bg-color);
+  color: var(--text-color);
+  box-shadow: 0 4px 0 var(--sub-color);
+}
+.btn-skip:hover {
+  background: var(--bg-color);
+  color: var(--text-color);
+  filter: brightness(1.12);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 0 var(--sub-color);
+}
+.btn-skip:active {
+  transform: translateY(3px);
+  box-shadow: 0 1px 0 var(--sub-color);
+}
+
+.btn-guess {
+  background: var(--main-color);
+  color: var(--bg-color);
+  box-shadow: 0 4px 0 color-mix(in srgb, var(--main-color) 55%, #000);
+}
+.btn-guess:hover {
+  background: var(--main-color);
+  color: var(--bg-color);
+  filter: brightness(1.08);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 0 color-mix(in srgb, var(--main-color) 55%, #000);
+}
+.btn-guess:active:not(:disabled) {
+  transform: translateY(3px);
+  box-shadow: 0 1px 0 color-mix(in srgb, var(--main-color) 55%, #000);
+}
+.btn-guess:disabled {
+  opacity: 0.45;
+  filter: grayscale(0.25);
+  transform: none;
+  box-shadow: 0 4px 0 color-mix(in srgb, var(--main-color) 55%, #000);
+}
+.btn-guess:disabled:hover {
+  background: var(--main-color);
+  color: var(--bg-color);
+  filter: grayscale(0.25);
+  transform: none;
+  box-shadow: 0 4px 0 color-mix(in srgb, var(--main-color) 55%, #000);
+}
 
 /* result */
 .result { text-align: center; }

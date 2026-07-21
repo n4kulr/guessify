@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 
-export default function PlaylistPicker({ onPick }) {
+export default function PlaylistPicker({ onPick, onBack }) {
   const [data, setData] = useState(null); // { playlists, liked }
   const [error, setError] = useState(null);
   const [loadingId, setLoadingId] = useState(null);
@@ -60,6 +60,11 @@ export default function PlaylistPicker({ onPick }) {
 
   return (
     <div className="picker">
+      {onBack && (
+        <button className="btn btn-mini picker-back" onClick={onBack}>
+          ← home
+        </button>
+      )}
       <h2 className="section-title">Pick a record</h2>
       <p className="section-sub">
         Play from your own playlists or Liked Songs. Others' playlists are locked —

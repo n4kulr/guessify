@@ -265,15 +265,17 @@ export default function Game({ playlist, onExit }) {
               />
             </div>
             <div className="guess-actions">
-              <button className="btn btn-ghost" onClick={skip}>
-                skip (+audio)
+              <button className="btn btn-skip" onClick={skip}>
+                <span className="btn-label">skip</span>
+                <span className="btn-hint">+audio</span>
               </button>
               <button
-                className="btn"
+                className="btn btn-guess"
                 onClick={submitGuess}
                 disabled={!titleGuess.trim() && !artistGuess.trim()}
               >
-                guess
+                <span className="btn-label">guess</span>
+                <span className="btn-hint">↵ enter</span>
               </button>
             </div>
           </div>

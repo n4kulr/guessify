@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import Login from "./components/Login.jsx";
+import Home from "./components/Home.jsx";
 import PlaylistPicker from "./components/PlaylistPicker.jsx";
 import Game from "./components/Game.jsx";
 import ThemeSwitcher from "./components/ThemeSwitcher.jsx";
@@ -9,6 +10,7 @@ export default function App() {
   const [status, setStatus] = useState("checking"); // checking | loggedOut | loggedIn
   const [me, setMe] = useState(null);
   const [playlist, setPlaylist] = useState(null); // full playlist w/ tracks -> game
+  const [picking, setPicking] = useState(false); // true → show playlist picker
   const [authError, setAuthError] = useState(null);
   const [theme, setTheme] = useState("serika_dark");
   const [homeNonce, setHomeNonce] = useState(0); // bump to force a fresh picker
@@ -42,13 +44,22 @@ export default function App() {
     await fetch("/api/logout", { method: "POST", credentials: "include" });
     setMe(null);
     setPlaylist(null);
+    setPicking(false);
     setStatus("loggedOut");
   }
 
-  // Clicking the logo returns to a fresh home screen (playlist picker / login).
+  // Logo → branded home (not straight into the crate).
   function goHome() {
     setPlaylist(null);
-    setHomeNonce((n) => n + 1); // remounts the picker so any error note clears
+    setPicking(false);
+    setHomeNonce((n) => n + 1);
+  }
+
+  // Leave a game back at the picker so they can swap crates quickly.
+  function leaveGame() {
+    setPlaylist(null);
+    setPicking(true);
+    setHomeNonce((n) => n + 1);
   }
 
   return (
@@ -80,12 +91,20 @@ export default function App() {
 
         {status === "loggedOut" && <Login error={authError} />}
 
-        {status === "loggedIn" && !playlist && (
-          <PlaylistPicker key={homeNonce} onPick={setPlaylist} />
+        {status === "loggedIn" && !playlist && !picking && (
+          <Home me={me} onStart={() => setPicking(true)} />
+        )}
+
+        {status === "loggedIn" && !playlist && picking && (
+          <PlaylistPicker
+            key={homeNonce}
+            onPick={setPlaylist}
+            onBack={goHome}
+          />
         )}
 
         {status === "loggedIn" && playlist && (
-          <Game playlist={playlist} onExit={() => setPlaylist(null)} />
+          <Game playlist={playlist} onExit={leaveGame} />
         )}
       </main>
 
