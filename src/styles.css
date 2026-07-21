@@ -224,62 +224,6 @@ button { font-family: var(--font); }
 
 .hero-turntable { position: relative; width: 132px; height: 132px; margin: 0 0 28px; }
 
-/* ---------------- curved nudge arrows ---------------- */
-.nudge {
-  position: absolute;
-  pointer-events: none;
-  z-index: 4;
-  display: flex;
-  align-items: center;
-  gap: 2px;
-  color: var(--main-color);
-  animation: nudge-bob 2.4s ease-in-out infinite;
-}
-.nudge-label {
-  font-size: 13px;
-  font-weight: 700;
-  letter-spacing: 0.02em;
-  white-space: nowrap;
-  transform: rotate(-8deg);
-  text-shadow: 0 1px 0 color-mix(in srgb, var(--bg-color) 70%, transparent);
-}
-.nudge-stroke {
-  stroke: var(--main-color);
-}
-.nudge--drag {
-  left: calc(100% - 8px);
-  top: 18px;
-  flex-direction: column;
-  align-items: flex-start;
-}
-.nudge--drag .nudge-label {
-  margin-left: 36px;
-  margin-top: -6px;
-  transform: rotate(10deg);
-}
-.nudge--press {
-  left: -10px;
-  top: 145px;
-  flex-direction: column;
-  align-items: flex-start;
-  transform: none;
-  animation-name: nudge-bob-up;
-  z-index: 5;
-}
-.nudge--press .nudge-label {
-  transform: rotate(-12deg);
-  margin: -8px 0 0 4px;
-}
-.nudge-svg { display: block; overflow: visible; }
-@keyframes nudge-bob {
-  0%, 100% { transform: translate(0, 0); }
-  50% { transform: translate(3px, -4px); }
-}
-@keyframes nudge-bob-up {
-  0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-5px); }
-}
-
 .steps { list-style: none; padding: 0; margin: 0 0 26px; display: flex; flex-direction: column; gap: 10px; font-size: 15px; }
 .steps li { display: flex; align-items: center; gap: 12px; color: var(--sub-color); }
 .steps b {

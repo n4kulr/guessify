@@ -1,5 +1,4 @@
 import { useEffect, useState } from "react";
-import CurvedNudge from "./CurvedNudge.jsx";
 
 // Self-playing fake rounds so people see the vibe before logging in.
 const ROUNDS = [
@@ -189,8 +188,6 @@ export default function DemoPreview() {
             </div>
           </div>
         </div>
-
-        <CurvedNudge variant="press" />
 
         <div className="demo-progress">
           <div className="progress-track demo-track">
