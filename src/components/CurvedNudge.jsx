@@ -8,7 +8,6 @@ export default function CurvedNudge({ variant = "drag", label }) {
   if (variant === "press") {
     return (
       <div className="nudge nudge--press" aria-hidden="true">
-        <span className="nudge-label">{text}</span>
         <svg
           className="nudge-svg"
           viewBox="0 0 100 130"
@@ -31,6 +30,7 @@ export default function CurvedNudge({ variant = "drag", label }) {
             strokeLinejoin="round"
           />
         </svg>
+        <span className="nudge-label">{text}</span>
       </div>
     );
   }

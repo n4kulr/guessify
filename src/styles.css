@@ -258,8 +258,8 @@ button { font-family: var(--font); }
   transform: rotate(10deg);
 }
 .nudge--press {
-  left: -6px;
-  top: 168px;
+  left: -10px;
+  top: 145px;
   flex-direction: column;
   align-items: flex-start;
   transform: none;
@@ -267,9 +267,8 @@ button { font-family: var(--font); }
   z-index: 5;
 }
 .nudge--press .nudge-label {
-  transform: rotate(-14deg);
-  margin: 0 0 2px 8px;
-  order: 0;
+  transform: rotate(-12deg);
+  margin: -8px 0 0 4px;
 }
 .nudge-svg { display: block; overflow: visible; }
 @keyframes nudge-bob {
@@ -306,6 +305,7 @@ button { font-family: var(--font); }
 
 .demo-screen {
   background: var(--sub-alt-color); border-radius: 16px; padding: 24px 20px 20px;
+  overflow: visible; position: relative;
 }
 .demo-head { display: flex; justify-content: space-between; align-items: center; font-size: 12px; color: var(--sub-color); margin-bottom: 14px; }
 .demo-playlist { color: var(--text-color); }
