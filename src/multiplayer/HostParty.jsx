@@ -177,7 +177,7 @@ export default function HostParty({ code, playlist, me, onExit }) {
             </button>
           </div>
           <div className="mp-lobby-side">
-            <h3 className="mp-side-title">crate · {playlist.name}</h3>
+            <h3 className="mp-side-title">playlist · {playlist.name}</h3>
             <div className="mp-lobby-edit">
               <p className="profile-label">your look</p>
               <ProfileEditor
@@ -202,7 +202,7 @@ export default function HostParty({ code, playlist, me, onExit }) {
               onClick={() => send({ type: "start" })}
             >
               <span className="btn-disc" aria-hidden="true" />
-              {canStart ? "start race" : "waiting for players…"}
+              {canStart ? "start game" : "waiting for players…"}
             </button>
           </div>
         </div>

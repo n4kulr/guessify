@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import PlayerAvatar from "./PlayerAvatar.jsx";
 import {
   PLAYER_COLORS,
@@ -7,7 +7,7 @@ import {
 } from "./constants.js";
 
 /**
- * Compact nickname + accent + randomize peep.
+ * Compact nickname + randomize + accent dropdown.
  * Calls onChange({ name, avatar }) whenever something updates.
  */
 export default function ProfileEditor({
@@ -20,6 +20,8 @@ export default function ProfileEditor({
   const [avatar, setAvatar] = useState(() =>
     normalizeAvatar(avatarProp || randomAvatar())
   );
+  const [accentOpen, setAccentOpen] = useState(false);
+  const accentRef = useRef(null);
 
   useEffect(() => {
     if (nameProp && nameProp !== name) setName(nameProp);
@@ -30,6 +32,15 @@ export default function ProfileEditor({
     if (avatarProp) setAvatar(normalizeAvatar(avatarProp));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [avatarProp?.peep, avatarProp?.color]);
+
+  useEffect(() => {
+    if (!accentOpen) return;
+    function onDoc(e) {
+      if (!accentRef.current?.contains(e.target)) setAccentOpen(false);
+    }
+    document.addEventListener("pointerdown", onDoc);
+    return () => document.removeEventListener("pointerdown", onDoc);
+  }, [accentOpen]);
 
   function emit(nextName, nextAvatar) {
     onChange?.({
@@ -57,33 +68,56 @@ export default function ProfileEditor({
 
   return (
     <div className="profile-editor">
-      <PlayerAvatar avatar={avatar} size={64} />
+      <PlayerAvatar avatar={avatar} size={56} />
       <div className="profile-fields">
-        <div className="profile-name-row">
-          <input
-            className="guess-input profile-name"
-            placeholder="nickname…"
-            value={name}
-            maxLength={16}
-            onChange={(e) => onName(e.target.value)}
-          />
+        <input
+          className="guess-input profile-name"
+          placeholder="nickname…"
+          value={name}
+          maxLength={16}
+          onChange={(e) => onName(e.target.value)}
+        />
+        <div className="profile-actions">
           {showRandom && (
             <button type="button" className="btn btn-mini" onClick={randomize}>
               randomize
             </button>
           )}
-        </div>
-        <div className="profile-swatches" role="group" aria-label="accent">
-          {PLAYER_COLORS.map((c) => (
+          <div className="profile-accent" ref={accentRef}>
             <button
-              key={c}
               type="button"
-              className={`profile-swatch ${avatar.color === c ? "active" : ""}`}
-              style={{ background: c }}
-              onClick={() => patchAvatar({ color: c })}
-              aria-label={`color ${c}`}
-            />
-          ))}
+              className={`btn btn-mini profile-accent-btn ${accentOpen ? "open" : ""}`}
+              onClick={() => setAccentOpen((o) => !o)}
+              aria-expanded={accentOpen}
+              aria-haspopup="true"
+            >
+              <span
+                className="profile-accent-dot"
+                style={{ background: avatar.color }}
+                aria-hidden="true"
+              />
+              accent
+            </button>
+            {accentOpen && (
+              <div className="profile-accent-menu" role="listbox" aria-label="accent colors">
+                {PLAYER_COLORS.map((c) => (
+                  <button
+                    key={c}
+                    type="button"
+                    role="option"
+                    aria-selected={avatar.color === c}
+                    className={`profile-swatch ${avatar.color === c ? "active" : ""}`}
+                    style={{ background: c }}
+                    onClick={() => {
+                      patchAvatar({ color: c });
+                      setAccentOpen(false);
+                    }}
+                    aria-label={`color ${c}`}
+                  />
+                ))}
+              </div>
+            )}
+          </div>
         </div>
       </div>
     </div>
