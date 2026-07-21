@@ -45,7 +45,7 @@ export default function PlayerRail({ players = [], winnerId, pulseId }) {
           >
             <PlayerAvatar
               avatar={p.avatar || { peep: 1, color: p.color }}
-              size={40}
+              size={44}
             />
             <span className="mp-player-name">
               {p.name}
