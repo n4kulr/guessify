@@ -9,6 +9,7 @@ import HostParty from "./multiplayer/HostParty.jsx";
 import GuestApp from "./multiplayer/GuestApp.jsx";
 import { makeRoomCode } from "./multiplayer/constants.js";
 import { loadTheme } from "./themes.js";
+import { attachKeyboardSounds } from "./keyboardSounds.js";
 
 function joinCodeFromPath() {
   const m = window.location.pathname.match(/^\/join\/([A-Za-z0-9]+)/i);
@@ -26,6 +27,8 @@ export default function App() {
   const [authError, setAuthError] = useState(null);
   const [theme, setTheme] = useState("serika_dark");
   const [homeNonce, setHomeNonce] = useState(0);
+
+  useEffect(() => attachKeyboardSounds(), []);
 
   useEffect(() => {
     setTheme(loadTheme());
