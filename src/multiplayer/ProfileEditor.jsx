@@ -7,7 +7,7 @@ import {
 } from "./constants.js";
 
 /**
- * Nickname + accent + randomize peep (no manual peep picker).
+ * Compact nickname + accent + randomize peep.
  * Calls onChange({ name, avatar }) whenever something updates.
  */
 export default function ProfileEditor({
@@ -57,26 +57,23 @@ export default function ProfileEditor({
 
   return (
     <div className="profile-editor">
-      <div className="profile-preview">
-        <PlayerAvatar avatar={avatar} size={96} />
-        {showRandom && (
-          <button type="button" className="btn btn-mini" onClick={randomize}>
-            randomize
-          </button>
-        )}
-      </div>
-
-      <input
-        className="guess-input"
-        placeholder="nickname…"
-        value={name}
-        maxLength={16}
-        onChange={(e) => onName(e.target.value)}
-      />
-
-      <div className="profile-section">
-        <span className="profile-label">accent</span>
-        <div className="profile-swatches">
+      <PlayerAvatar avatar={avatar} size={64} />
+      <div className="profile-fields">
+        <div className="profile-name-row">
+          <input
+            className="guess-input profile-name"
+            placeholder="nickname…"
+            value={name}
+            maxLength={16}
+            onChange={(e) => onName(e.target.value)}
+          />
+          {showRandom && (
+            <button type="button" className="btn btn-mini" onClick={randomize}>
+              randomize
+            </button>
+          )}
+        </div>
+        <div className="profile-swatches" role="group" aria-label="accent">
           {PLAYER_COLORS.map((c) => (
             <button
               key={c}
