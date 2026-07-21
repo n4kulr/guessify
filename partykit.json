@@ -1,0 +1,5 @@
+{
+  "name": "guessify",
+  "main": "party/room.js",
+  "compatibilityDate": "2024-11-01"
+}

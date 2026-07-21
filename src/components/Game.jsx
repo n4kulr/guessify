@@ -2,13 +2,12 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { isCorrect, matchesAnyArtist } from "../match.js";
 import { useSpotifyPlayer } from "../useSpotifyPlayer.js";
 import { getToken } from "../spotify.js";
-import { createScratchEngine, pointerAngle } from "../vinylScratch.js";
+import ScrubbableVinyl from "./ScrubbableVinyl.jsx";
 
 const STEPS = [1, 2, 4, 7, 11, 16]; // cumulative unlocked seconds per guess
 const MAX_GUESSES = STEPS.length;
 const TOTAL = STEPS[STEPS.length - 1];
 const ROUND_COUNT = 5;
-const SCRUB_THRESHOLD = 0.08; // radians before a drag counts as scrubbing
 
 function shuffle(arr) {
   const a = [...arr];
@@ -36,34 +35,23 @@ export default function Game({ playlist, onExit }) {
   const [titleGuess, setTitleGuess] = useState("");
   const [artistGuess, setArtistGuess] = useState("");
   const [playing, setPlaying] = useState(false);
+  const [playBusy, setPlayBusy] = useState(false); // lock while Spotify request is in flight
   const [celebrate, setCelebrate] = useState(false);
   const [scrubbing, setScrubbing] = useState(false);
-  const [vinylRot, setVinylRot] = useState(0);
 
   const { deviceId, status: playerStatus, errorMsg, player } = useSpotifyPlayer();
   const stopTimer = useRef(null);
-  const vinylRef = useRef(null);
-  const scratchRef = useRef(null);
-  const scrubRef = useRef(null); // pointer scrub session
 
   const track = rounds[roundIdx];
   const unlocked = STEPS[Math.min(guessNum, MAX_GUESSES - 1)];
   const resolved = outcome !== null;
   const canControl = playerStatus === "ready" && !!deviceId && !!track;
 
-  useEffect(() => {
-    scratchRef.current = createScratchEngine();
-    return () => {
-      scratchRef.current?.dispose();
-      scratchRef.current = null;
-    };
-  }, []);
-
   // Stop playback whenever the track changes (and on unmount).
   useEffect(() => {
     stopAudio();
     setScrubbing(false);
-    setVinylRot(0);
+    setPlayBusy(false);
     return stopAudio;
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [roundIdx]);
@@ -72,6 +60,7 @@ export default function Game({ playlist, onExit }) {
     clearTimeout(stopTimer.current);
     if (player.current) player.current.pause().catch(() => {});
     setPlaying(false);
+    setPlayBusy(false);
   }
 
   function armStopTimer(seconds) {
@@ -83,7 +72,8 @@ export default function Game({ playlist, onExit }) {
   }
 
   async function playSnippet(seconds) {
-    if (!canControl) return;
+    if (!canControl || playBusy || playing) return;
+    setPlayBusy(true);
     clearTimeout(stopTimer.current);
     try {
       const token = await getToken();
@@ -96,17 +86,31 @@ export default function Game({ playlist, onExit }) {
       armStopTimer(seconds);
     } catch {
       setPlaying(false);
+    } finally {
+      setPlayBusy(false);
     }
   }
 
   async function togglePlay() {
-    if (!canControl || phase !== "play") return;
+    if (!canControl || phase !== "play" || playBusy) return;
     if (playing) {
       stopAudio();
       return;
     }
     const secs = resolved ? Math.max(unlocked, 8) : unlocked;
     await playSnippet(secs);
+  }
+
+  function onVinylScrubStart() {
+    setScrubbing(true);
+    clearTimeout(stopTimer.current);
+    if (player.current) player.current.pause().catch(() => {});
+    setPlaying(false);
+    setPlayBusy(false);
+  }
+
+  function onVinylScrubEnd() {
+    setScrubbing(false);
   }
 
   // Advance to the next attempt, or lose the round if out of guesses.
@@ -178,84 +182,11 @@ export default function Game({ playlist, onExit }) {
     onExit();
   }
 
-  function onVinylPointerDown(e) {
-    if (!canControl || phase !== "play") return;
-    e.preventDefault();
-    const el = vinylRef.current;
-    if (!el) return;
-    el.setPointerCapture?.(e.pointerId);
-
-    const angle = pointerAngle(el, e.clientX, e.clientY);
-    scrubRef.current = {
-      pointerId: e.pointerId,
-      startAngle: angle,
-      lastAngle: angle,
-      lastTime: performance.now(),
-      baseRot: vinylRot,
-      moved: false,
-      scrubbing: false,
-    };
-  }
-
-  function onVinylPointerMove(e) {
-    const s = scrubRef.current;
-    if (!s || s.pointerId !== e.pointerId) return;
-    const el = vinylRef.current;
-    if (!el) return;
-
-    const angle = pointerAngle(el, e.clientX, e.clientY);
-    let delta = angle - s.lastAngle;
-    // unwrap across ±π
-    if (delta > Math.PI) delta -= Math.PI * 2;
-    if (delta < -Math.PI) delta += Math.PI * 2;
-
-    const total = angle - s.startAngle;
-    let totalUnwrapped = total;
-    if (totalUnwrapped > Math.PI) totalUnwrapped -= Math.PI * 2;
-    if (totalUnwrapped < -Math.PI) totalUnwrapped += Math.PI * 2;
-
-    if (!s.moved && Math.abs(totalUnwrapped) > SCRUB_THRESHOLD) {
-      s.moved = true;
-      s.scrubbing = true;
-      setScrubbing(true);
-      // Duck the track while scratching.
-      clearTimeout(stopTimer.current);
-      if (player.current) player.current.pause().catch(() => {});
-      setPlaying(false);
-    }
-
-    if (s.scrubbing) {
-      const now = performance.now();
-      const dt = Math.max(1, now - s.lastTime);
-      const speed = delta / dt; // rad/ms
-      scratchRef.current?.setSpeed(speed);
-
-      const degDelta = ((angle - s.startAngle) * 180) / Math.PI;
-      setVinylRot(s.baseRot + degDelta);
-    }
-
-    s.lastAngle = angle;
-    s.lastTime = performance.now();
-  }
-
-  function endVinylPointer(e) {
-    const s = scrubRef.current;
-    if (!s || (e && s.pointerId !== e.pointerId)) return;
-    scrubRef.current = null;
-    scratchRef.current?.stop();
-
-    if (s.scrubbing) {
-      setScrubbing(false);
-      // Stay paused after a scrub — click again to keep playing.
-      return;
-    }
-
-    // Pure click → play / pause.
-    togglePlay();
-  }
-
   const maxScore = rounds.length * MAX_GUESSES;
   const spinning = (playing || celebrate) && !scrubbing;
+  // Play button: only start a snippet — greyed out while playing / busy.
+  // Pause lives on the vinyl (click).
+  const playDisabled = !canControl || playing || playBusy;
 
   return (
     <div className={`game ${outcome === "win" ? "game--win" : ""} ${outcome === "lose" ? "game--lose" : ""}`}>
@@ -293,26 +224,20 @@ export default function Game({ playlist, onExit }) {
                 <span className="win-ring win-ring--3" aria-hidden="true" />
               </>
             )}
-            <div
-              ref={vinylRef}
-              role="button"
-              tabIndex={canControl ? 0 : -1}
-              aria-label={playing ? "pause snippet" : "play snippet"}
-              title={canControl ? (playing ? "pause" : "play · drag to scrub") : undefined}
-              className={`vinyl vinyl--interactive ${spinning ? "spin-fast" : ""} ${
-                resolved ? "vinyl--revealed" : ""
-              } ${scrubbing ? "vinyl--scrubbing" : ""}`}
-              style={scrubbing ? { "--vinyl-rot": `${vinylRot}deg` } : undefined}
-              onPointerDown={onVinylPointerDown}
-              onPointerMove={onVinylPointerMove}
-              onPointerUp={endVinylPointer}
-              onPointerCancel={endVinylPointer}
-              onKeyDown={(e) => {
-                if (e.key === "Enter" || e.key === " ") {
-                  e.preventDefault();
-                  togglePlay();
-                }
-              }}
+            <ScrubbableVinyl
+              className={resolved ? "vinyl--revealed" : ""}
+              spin={spinning ? "fast" : false}
+              enabled={canControl}
+              title={
+                canControl
+                  ? playing
+                    ? "click to pause · drag to scrub"
+                    : "click to play · drag to scrub"
+                  : undefined
+              }
+              onClick={togglePlay}
+              onScrubStart={onVinylScrubStart}
+              onScrubEnd={onVinylScrubEnd}
             >
               {resolved && track.cover ? (
                 <img src={track.cover} alt="" className="vinyl-cover" draggable={false} />
@@ -321,7 +246,7 @@ export default function Game({ playlist, onExit }) {
                   {outcome === "lose" ? "✗" : "?"}
                 </div>
               )}
-            </div>
+            </ScrubbableVinyl>
             <div className={`tonearm ${spinning ? "tonearm--on" : ""}`} />
           </div>
 
@@ -367,14 +292,16 @@ export default function Game({ playlist, onExit }) {
               ) : (
                 <button
                   className="btn btn-big btn-play"
-                  onClick={togglePlay}
-                  disabled={!canControl}
+                  onClick={() => playSnippet(unlocked)}
+                  disabled={playDisabled}
                 >
                   <span className="btn-disc" aria-hidden="true" />
                   {!canControl
                     ? "connecting to spotify…"
+                    : playBusy
+                    ? "starting…"
                     : playing
-                    ? "pause"
+                    ? "playing…"
                     : `play ${unlocked}s`}
                 </button>
               )}
@@ -477,12 +404,12 @@ export default function Game({ playlist, onExit }) {
       {phase === "over" && (
         <div className="gameover">
           <div className="turntable">
-            <div className="vinyl spin-slow">
+            <ScrubbableVinyl spin="slow" title="drag to scrub">
               <div className="vinyl-label">
                 <span>{score}</span>
                 <span>pts</span>
               </div>
-            </div>
+            </ScrubbableVinyl>
           </div>
           <h2 className="title">That's a wrap!</h2>
           <p className="subtitle">

@@ -73,7 +73,12 @@ button { font-family: var(--font); }
   justify-content: center;
   padding: 24px 20px 48px;
 }
-.footer { text-align: center; padding: 16px; font-size: 12px; color: var(--sub-color); }
+.footer {
+  text-align: left;
+  padding: 16px 26px;
+  font-size: 12px;
+  color: var(--sub-color);
+}
 .footer-heart { color: var(--main-color); margin: 0 2px; }
 .loader { color: var(--sub-color); font-size: 15px; }
 
@@ -529,16 +534,97 @@ button { font-family: var(--font); }
   border-radius: var(--radius); padding: 12px 16px; font-size: 13px; margin: 4px 0 16px;
 }
 
+/* ---------------- multiplayer ---------------- */
+.home-actions { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 4px; }
+.btn-multi {
+  background: var(--bg-color);
+  color: var(--text-color);
+  font-weight: 600;
+  border: 2px solid var(--main-color);
+}
+.btn-multi:hover {
+  background: var(--main-color);
+  color: var(--bg-color);
+}
+
+.mp-lobby { width: min(var(--maxw), 100%); position: relative; }
+.mp-back { position: absolute; top: 0; left: 0; }
+.mp-lobby-grid {
+  display: grid;
+  grid-template-columns: minmax(220px, 280px) 1fr;
+  gap: 28px;
+  align-items: start;
+  margin-top: 10px;
+}
+.mp-qr-card {
+  background: var(--sub-alt-color);
+  border-radius: 16px;
+  padding: 20px;
+  text-align: center;
+}
+.mp-qr { width: 100%; max-width: 240px; border-radius: 10px; display: block; margin: 0 auto; }
+.mp-code {
+  margin-top: 14px;
+  font-size: 28px;
+  font-weight: 700;
+  letter-spacing: 0.2em;
+  color: var(--main-color);
+}
+.mp-join-url { font-size: 11px; color: var(--sub-color); word-break: break-all; margin-top: 8px; }
+.mp-lobby-side { display: flex; flex-direction: column; gap: 14px; }
+.mp-side-title { font-size: 14px; color: var(--sub-color); margin: 0; }
+
+.mp-rail { display: flex; flex-wrap: wrap; gap: 10px; margin: 8px 0 16px; }
+.mp-empty { color: var(--sub-color); font-size: 13px; margin: 8px 0 16px; }
+.mp-player {
+  display: flex; align-items: center; gap: 10px;
+  background: var(--bg-color); border-radius: 12px; padding: 8px 12px 8px 8px;
+  min-width: 130px;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+.mp-player.offline { opacity: 0.45; }
+.mp-player.winner { box-shadow: 0 0 0 2px var(--main-color); }
+.mp-player.pulse { animation: mp-pulse 0.45s ease; }
+@keyframes mp-pulse {
+  0% { transform: scale(1); }
+  40% { transform: scale(1.06); }
+  100% { transform: scale(1); }
+}
+.mp-mini-vinyl {
+  width: 36px; height: 36px; border-radius: 50%; flex: none;
+  background:
+    radial-gradient(circle, var(--mp-color, var(--main-color)) 0 5px, transparent 6px),
+    repeating-radial-gradient(circle, #111 0 1.5px, #262626 1.5px 3px);
+  border: 2px solid color-mix(in srgb, var(--mp-color, var(--main-color)) 50%, #444);
+}
+.mp-player-meta { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.mp-player-name { font-size: 13px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.mp-player-score { font-size: 11px; color: var(--sub-color); }
+
+.mp-guess-who {
+  font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em;
+  color: var(--sub-color); margin-right: 6px; flex: none;
+}
+.mp-guess-feed .guess-row { gap: 6px; }
+.mp-host-hint { text-align: center; margin-top: 12px; }
+.mp-guest { width: min(480px, 100%); margin: 0 auto; }
+.mp-guest .guess-input { margin-top: 8px; }
+.mp-guest-game { width: min(560px, 100%); }
+.mp-over { width: min(560px, 100%); margin: 0 auto; text-align: center; }
+
 /* ---------------- responsive ---------------- */
 @media (max-width: 820px) {
   .hero { grid-template-columns: 1fr; gap: 30px; }
   .hero-right { order: -1; }
   .hero-turntable { display: none; }
   .hero-title { font-size: clamp(48px, 16vw, 80px); }
+  .mp-lobby-grid { grid-template-columns: 1fr; }
 }
 @media (max-width: 520px) {
   .topbar { padding: 14px 16px; flex-wrap: wrap; }
   .game { padding: 18px; }
   .user-name { display: none; }
   .guess-fields { flex-direction: column; }
+  .home-actions { flex-direction: column; width: 100%; }
+  .home-actions .btn { width: 100%; justify-content: center; }
 }

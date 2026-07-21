@@ -1,13 +1,12 @@
 import DemoPreview from "./DemoPreview.jsx";
+import ScrubbableVinyl from "./ScrubbableVinyl.jsx";
 
-export default function Home({ me, onStart }) {
+export default function Home({ me, onStartSolo, onStartMulti }) {
   const name = me?.displayName?.split(" ")[0] || "there";
 
   return (
     <div className="hero">
       <div className="hero-left">
-        <div className="sticker">ready when you are</div>
-
         <h1 className="hero-title">
           guess<span className="hero-title-accent">ify</span>
         </h1>
@@ -17,12 +16,12 @@ export default function Home({ me, onStart }) {
         </p>
 
         <div className="hero-turntable">
-          <div className="vinyl spin-fast">
+          <ScrubbableVinyl spin="fast" title="drag to scrub">
             <div className="vinyl-label">
               <span>45</span>
               <span>RPM</span>
             </div>
-          </div>
+          </ScrubbableVinyl>
           <div className="tonearm tonearm--on" />
         </div>
 
@@ -32,13 +31,18 @@ export default function Home({ me, onStart }) {
           <li><b>3</b> type the title + artist</li>
         </ol>
 
-        <button className="btn btn-big btn-play" onClick={onStart}>
-          <span className="btn-disc" aria-hidden="true" />
-          pick a playlist
-        </button>
+        <div className="home-actions">
+          <button className="btn btn-big btn-play" onClick={onStartSolo}>
+            <span className="btn-disc" aria-hidden="true" />
+            play solo
+          </button>
+          <button className="btn btn-big btn-multi" onClick={onStartMulti}>
+            multiplayer
+          </button>
+        </div>
 
         <p className="fineprint">
-          only your own playlists are playable · needs Premium to stream
+          multiplayer: you DJ on this device · friends race on their phones
         </p>
       </div>
 

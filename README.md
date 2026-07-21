@@ -79,4 +79,38 @@ For local login, also register `http://localhost:3000/api/callback` (the port
 
 Each round gives you 6 guesses. You start with a 1-second snippet; every wrong guess or
 skip unlocks more audio (1 → 2 → 4 → 7 → 11 → 16s). Guessing on your first try is worth
-6 points, down to 1 point on your last.
+6 points, down to 1 point on your last. Nailing the artist too adds a +1 bonus.
+
+## Multiplayer
+
+Host (Spotify login) creates a party, shows a QR, and DJs audio on their device. Friends
+scan the QR, pick a nickname (no Spotify), and race on their phones — first correct title
+wins the round.
+
+Realtime rooms use [PartyKit](https://www.partykit.io/).
+
+### Local
+
+```bash
+# terminal 1 — Spotify API + Vite (or vercel dev)
+npm run dev
+
+# terminal 2 — PartyKit room server
+npm run dev:party
+```
+
+`VITE_PARTYKIT_HOST` defaults to `127.0.0.1:1999` for local PartyKit.
+
+### Production
+
+```bash
+npx partykit login
+npm run deploy:party
+```
+
+Then set in Vercel (and rebuild):
+
+| Name | Value |
+| --- | --- |
+| `VITE_PARTYKIT_HOST` | your PartyKit host, e.g. `guessify.<you>.partykit.dev` |
+

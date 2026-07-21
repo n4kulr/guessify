@@ -4,27 +4,41 @@ import Home from "./components/Home.jsx";
 import PlaylistPicker from "./components/PlaylistPicker.jsx";
 import Game from "./components/Game.jsx";
 import ThemeSwitcher from "./components/ThemeSwitcher.jsx";
+import HostParty from "./multiplayer/HostParty.jsx";
+import GuestApp from "./multiplayer/GuestApp.jsx";
+import { makeRoomCode } from "./multiplayer/constants.js";
 import { loadTheme } from "./themes.js";
 
+function joinCodeFromPath() {
+  const m = window.location.pathname.match(/^\/join\/([A-Za-z0-9]+)/i);
+  return m ? m[1].toUpperCase() : null;
+}
+
 export default function App() {
-  const [status, setStatus] = useState("checking"); // checking | loggedOut | loggedIn
+  const [status, setStatus] = useState("checking"); // checking | loggedOut | loggedIn | guest
   const [me, setMe] = useState(null);
-  const [playlist, setPlaylist] = useState(null); // full playlist w/ tracks -> game
-  const [picking, setPicking] = useState(false); // true → show playlist picker
+  const [playlist, setPlaylist] = useState(null);
+  const [picking, setPicking] = useState(false);
+  const [mode, setMode] = useState("solo"); // solo | multi
+  const [roomCode, setRoomCode] = useState(null);
+  const [joinCode] = useState(() => joinCodeFromPath());
   const [authError, setAuthError] = useState(null);
   const [theme, setTheme] = useState("serika_dark");
-  const [homeNonce, setHomeNonce] = useState(0); // bump to force a fresh picker
+  const [homeNonce, setHomeNonce] = useState(0);
 
   useEffect(() => {
     setTheme(loadTheme());
-    // Surface any ?error= from the OAuth redirect.
     const params = new URLSearchParams(window.location.search);
     if (params.get("error")) {
       setAuthError(params.get("error"));
       window.history.replaceState({}, "", window.location.pathname);
     }
+    if (joinCode) {
+      setStatus("guest");
+      return;
+    }
     checkMe();
-  }, []);
+  }, [joinCode]);
 
   async function checkMe() {
     try {
@@ -45,21 +59,45 @@ export default function App() {
     setMe(null);
     setPlaylist(null);
     setPicking(false);
+    setRoomCode(null);
+    setMode("solo");
     setStatus("loggedOut");
   }
 
-  // Logo → branded home (not straight into the crate).
   function goHome() {
+    if (joinCode) {
+      window.location.href = "/";
+      return;
+    }
     setPlaylist(null);
     setPicking(false);
+    setRoomCode(null);
+    setMode("solo");
     setHomeNonce((n) => n + 1);
   }
 
-  // Leave a game back at the picker so they can swap crates quickly.
   function leaveGame() {
     setPlaylist(null);
     setPicking(true);
+    setMode("solo");
+    setRoomCode(null);
     setHomeNonce((n) => n + 1);
+  }
+
+  function startSolo() {
+    setMode("solo");
+    setPicking(true);
+  }
+
+  function startMulti() {
+    setMode("multi");
+    setPicking(true);
+  }
+
+  function onPlaylistPicked(pl) {
+    setPlaylist(pl);
+    setPicking(false);
+    if (mode === "multi") setRoomCode(makeRoomCode());
   }
 
   return (
@@ -89,22 +127,24 @@ export default function App() {
       <main className="stage">
         {status === "checking" && <div className="loader">loading…</div>}
 
-        {status === "loggedOut" && <Login error={authError} />}
+        {status === "guest" && joinCode && <GuestApp code={joinCode} />}
+
+        {status === "loggedOut" && !joinCode && <Login error={authError} />}
 
         {status === "loggedIn" && !playlist && !picking && (
-          <Home me={me} onStart={() => setPicking(true)} />
+          <Home me={me} onStartSolo={startSolo} onStartMulti={startMulti} />
         )}
 
-        {status === "loggedIn" && !playlist && picking && (
-          <PlaylistPicker
-            key={homeNonce}
-            onPick={setPlaylist}
-            onBack={goHome}
-          />
+        {status === "loggedIn" && picking && (
+          <PlaylistPicker key={homeNonce} onPick={onPlaylistPicked} onBack={goHome} />
         )}
 
-        {status === "loggedIn" && playlist && (
+        {status === "loggedIn" && mode === "solo" && playlist && (
           <Game playlist={playlist} onExit={leaveGame} />
+        )}
+
+        {status === "loggedIn" && mode === "multi" && playlist && roomCode && (
+          <HostParty code={roomCode} playlist={playlist} me={me} onExit={goHome} />
         )}
       </main>
 

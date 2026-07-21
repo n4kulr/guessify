@@ -1,9 +1,9 @@
 import DemoPreview from "./DemoPreview.jsx";
+import ScrubbableVinyl from "./ScrubbableVinyl.jsx";
 
 export default function Login({ error }) {
   return (
     <div className="hero">
-      {/* LEFT — pitch + login */}
       <div className="hero-left">
         <div className="sticker">now spinning</div>
 
@@ -15,12 +15,12 @@ export default function Login({ error }) {
         </p>
 
         <div className="hero-turntable">
-          <div className="vinyl spin-fast">
+          <ScrubbableVinyl spin="fast" title="drag to scrub">
             <div className="vinyl-label">
               <span>45</span>
               <span>RPM</span>
             </div>
-          </div>
+          </ScrubbableVinyl>
           <div className="tonearm tonearm--on" />
         </div>
 
@@ -46,7 +46,6 @@ export default function Login({ error }) {
         </p>
       </div>
 
-      {/* RIGHT — live self-playing demo */}
       <div className="hero-right">
         <DemoPreview />
       </div>
