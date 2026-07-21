@@ -56,7 +56,7 @@ export default function PlaylistPicker({ onPick, onBack }) {
   }
 
   if (error) return <div className="panel">{error}</div>;
-  if (!data) return <div className="loader">loading your crates…</div>;
+  if (!data) return <div className="loader">loading your playlists…</div>;
 
   return (
     <div className="picker">
@@ -73,7 +73,7 @@ export default function PlaylistPicker({ onPick, onBack }) {
 
       {note && <div className="error-banner">{note}</div>}
 
-      <div className="crate">
+      <div className="playlists">
         {cards.map((p) => (
           <button
             key={p.id}

@@ -177,7 +177,7 @@ export default function HostParty({ code, playlist, me, onExit }) {
             </button>
           </div>
           <div className="mp-lobby-side">
-            <h3 className="mp-side-title">playlist · {playlist.name}</h3>
+            <h3 className="mp-side-title">playlists · {playlist.name}</h3>
             <div className="mp-lobby-edit">
               <p className="profile-label">your look</p>
               <ProfileEditor

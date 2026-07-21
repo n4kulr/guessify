@@ -392,7 +392,7 @@ button { font-family: var(--font); }
 .section-title { font-size: 26px; font-weight: 700; text-align: center; margin: 4px 0; }
 .section-sub { text-align: center; color: var(--sub-color); margin-bottom: 26px; font-size: 14px; }
 
-.crate { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 14px; }
+.playlists { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 14px; }
 .record-card {
   position: relative; display: flex; align-items: center; gap: 14px; text-align: left;
   background: var(--sub-alt-color); border: none; border-radius: 12px;
