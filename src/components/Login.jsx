@@ -48,7 +48,7 @@ export default function Login({ error }) {
         </a>
 
         <p className="fineprint">
-          we only read your playlists to build the game · nothing is stored
+          needs Spotify Premium to play tracks · nothing is stored
         </p>
       </div>
 

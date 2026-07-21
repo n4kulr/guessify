@@ -34,15 +34,16 @@ export default async function handler(req, res) {
       next = page.next;
     }
 
-    const playable = tracks.filter((t) => t.previewUrl);
+    // Every track is playable now — the Web Playback SDK streams full tracks,
+    // so we no longer depend on Spotify's (now-null) preview_url.
     res.status(200).json({
       id,
       name: meta.name,
       owner: meta.owner?.display_name || "",
       cover: meta.images?.[0]?.url || null,
       total: tracks.length,
-      playableCount: playable.length,
-      tracks: playable,
+      playableCount: tracks.length,
+      tracks,
     });
   } catch (e) {
     console.error(e);

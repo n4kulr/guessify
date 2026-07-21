@@ -1,5 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { isCorrect, normalize } from "../match.js";
+import { useSpotifyPlayer } from "../useSpotifyPlayer.js";
+import { getToken } from "../spotify.js";
 
 const STEPS = [1, 2, 4, 7, 11, 16]; // cumulative unlocked seconds per guess
 const MAX_GUESSES = STEPS.length;
@@ -34,46 +36,45 @@ export default function Game({ playlist, onExit }) {
   const [query, setQuery] = useState("");
   const [playing, setPlaying] = useState(false);
 
-  const audioRef = useRef(null);
+  const { deviceId, status: playerStatus, errorMsg, player } = useSpotifyPlayer();
   const stopTimer = useRef(null);
 
   const track = rounds[roundIdx];
   const unlocked = STEPS[Math.min(guessNum, MAX_GUESSES - 1)];
 
-  // Reset audio when the track changes.
+  // Stop playback whenever the track changes (and on unmount).
   useEffect(() => {
     stopAudio();
-    if (audioRef.current) {
-      audioRef.current.src = track?.previewUrl || "";
-      audioRef.current.load();
-    }
     return stopAudio;
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [roundIdx]);
 
   function stopAudio() {
     clearTimeout(stopTimer.current);
-    if (audioRef.current) {
-      audioRef.current.pause();
-    }
+    if (player.current) player.current.pause().catch(() => {});
     setPlaying(false);
   }
 
-  function playSnippet(seconds) {
-    const audio = audioRef.current;
-    if (!audio) return;
+  async function playSnippet(seconds) {
+    if (playerStatus !== "ready" || !deviceId || !track) return;
     clearTimeout(stopTimer.current);
-    audio.currentTime = 0;
-    audio
-      .play()
-      .then(() => {
-        setPlaying(true);
-        stopTimer.current = setTimeout(() => {
-          audio.pause();
-          setPlaying(false);
-        }, seconds * 1000);
-      })
-      .catch(() => setPlaying(false));
+    try {
+      const token = await getToken();
+      // Start the real track from the top on our in-browser device...
+      await fetch(`https://api.spotify.com/v1/me/player/play?device_id=${deviceId}`, {
+        method: "PUT",
+        headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+        body: JSON.stringify({ uris: [`spotify:track:${track.id}`], position_ms: 0 }),
+      });
+      setPlaying(true);
+      // ...then pause after the unlocked number of seconds.
+      stopTimer.current = setTimeout(() => {
+        if (player.current) player.current.pause().catch(() => {});
+        setPlaying(false);
+      }, seconds * 1000);
+    } catch {
+      setPlaying(false);
+    }
   }
 
   const suggestions = useMemo(() => {
@@ -143,8 +144,6 @@ export default function Game({ playlist, onExit }) {
 
   return (
     <div className="game">
-      <audio ref={audioRef} preload="auto" />
-
       <div className="game-head">
         <button className="btn btn-mini" onClick={onExit}>
           ← change playlist
@@ -196,10 +195,22 @@ export default function Game({ playlist, onExit }) {
           </div>
 
           <div className="controls">
-            <button className="btn btn-big btn-play" onClick={() => playSnippet(unlocked)}>
-              <span className="btn-disc" aria-hidden="true" />
-              {playing ? "playing…" : `play ${unlocked}s`}
-            </button>
+            {playerStatus === "error" ? (
+              <div className="error-banner">{errorMsg}</div>
+            ) : (
+              <button
+                className="btn btn-big btn-play"
+                onClick={() => playSnippet(unlocked)}
+                disabled={playerStatus !== "ready"}
+              >
+                <span className="btn-disc" aria-hidden="true" />
+                {playerStatus !== "ready"
+                  ? "connecting to spotify…"
+                  : playing
+                  ? "playing…"
+                  : `play ${unlocked}s`}
+              </button>
+            )}
           </div>
 
           <div className="guess-rows">

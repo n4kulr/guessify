@@ -9,6 +9,12 @@ export const SCOPES = [
   "playlist-read-private",
   "playlist-read-collaborative",
   "user-library-read",
+  // Web Playback SDK (stream full tracks in-browser) — requires Premium.
+  "streaming",
+  "user-read-email",
+  "user-read-private",
+  "user-modify-playback-state",
+  "user-read-playback-state",
 ].join(" ");
 
 function key() {
