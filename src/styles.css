@@ -256,62 +256,67 @@ button { font-family: var(--font); }
 .demo-score b { color: var(--main-color); }
 .demo-stage { position: relative; width: 118px; height: 118px; margin: 4px auto 16px; }
 .demo-stage--cassette {
-  width: 160px;
-  height: 110px;
-  display: grid;
-  place-items: center;
+  width: 100%;
+  max-width: 100%;
+  height: auto;
+  min-height: 0;
+  margin: 8px 0 18px;
+  display: block;
 }
 .demo-cassette {
-  width: 148px;
+  width: 100%;
   transform-origin: center center;
 }
 .demo-cassette--play { animation: cassette-bob 1.8s ease-in-out infinite; }
 .demo-cassette--slow { animation: cassette-bob 3.2s ease-in-out infinite; }
 @keyframes cassette-bob {
-  0%, 100% { transform: translateY(0) rotate(-1.5deg); }
-  50% { transform: translateY(-4px) rotate(1.5deg); }
+  0%, 100% { transform: translateY(0) rotate(-0.8deg); }
+  50% { transform: translateY(-3px) rotate(0.8deg); }
 }
 .demo-cassette-shell {
   background:
     linear-gradient(180deg, color-mix(in srgb, var(--text-color) 12%, var(--bg-color)) 0%, var(--bg-color) 100%);
   border: 2px solid color-mix(in srgb, var(--text-color) 35%, transparent);
-  border-radius: 8px;
-  padding: 8px 10px 10px;
+  border-radius: 12px;
+  padding: 14px 16px 16px;
+  width: 100%;
+  box-sizing: border-box;
   box-shadow:
     inset 0 1px 0 color-mix(in srgb, var(--text-color) 18%, transparent),
     0 8px 18px color-mix(in srgb, #000 28%, transparent);
   position: relative;
 }
 .demo-cassette-label {
-  font-size: 10px;
-  letter-spacing: 0.08em;
+  font-size: 12px;
+  letter-spacing: 0.1em;
   text-transform: uppercase;
   text-align: center;
   color: var(--bg-color);
   background: var(--main-color);
-  border-radius: 3px;
-  padding: 4px 6px;
-  margin-bottom: 8px;
+  border-radius: 5px;
+  padding: 8px 10px;
+  margin-bottom: 12px;
   font-weight: 700;
 }
 .demo-cassette-window {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 8px;
+  gap: 14px;
   background: color-mix(in srgb, var(--text-color) 8%, var(--sub-alt-color));
   border: 1px solid color-mix(in srgb, var(--text-color) 22%, transparent);
-  border-radius: 4px;
-  padding: 8px 10px;
-  margin-bottom: 8px;
+  border-radius: 6px;
+  padding: 14px 16px;
+  margin-bottom: 12px;
+  min-height: 64px;
 }
 .demo-reel {
-  width: 28px;
-  height: 28px;
+  width: 42px;
+  height: 42px;
   border-radius: 50%;
   flex: none;
   background:
-    radial-gradient(circle, var(--bg-color) 0 4px, transparent 5px),
+    radial-gradient(circle, var(--bg-color) 0 6px, transparent 7px),
     repeating-conic-gradient(
       from 0deg,
       var(--main-color) 0 12deg,
@@ -323,8 +328,8 @@ button { font-family: var(--font); }
 .demo-reel.spin-slow { animation: spin 2.8s linear infinite; }
 .demo-tape {
   flex: 1;
-  height: 6px;
-  border-radius: 3px;
+  height: 8px;
+  border-radius: 4px;
   background: linear-gradient(
     90deg,
     transparent,
@@ -342,13 +347,13 @@ button { font-family: var(--font); }
 .demo-cassette-sprockets {
   display: flex;
   justify-content: space-between;
-  gap: 6px;
-  padding: 0 4px;
+  gap: 8px;
+  padding: 0 2px;
 }
 .demo-cassette-sprockets span {
   flex: 1;
-  height: 7px;
-  border-radius: 2px;
+  height: 10px;
+  border-radius: 3px;
   background: color-mix(in srgb, var(--text-color) 22%, transparent);
   border: 1px solid color-mix(in srgb, var(--text-color) 18%, transparent);
 }
