@@ -47,35 +47,22 @@ export default function DemoPreview() {
         </div>
 
         <div className="demo-stage demo-stage--cassette">
-          <div
-            className={`demo-cassette ${done ? "is-done" : "is-playing"}`}
-            aria-hidden="true"
-          >
+          <div className="demo-cassette" aria-hidden="true">
             <div className="demo-cassette-shell">
-              <span className="demo-screw tl" />
-              <span className="demo-screw tr" />
-              <span className="demo-screw bl" />
-              <span className="demo-screw br" />
-
               <div className="demo-cassette-label">
-                <span className="demo-cassette-side">{done ? "A" : "?"}</span>
-                <div className="demo-cassette-meta">
-                  <span className="demo-cassette-title">
-                    {done ? "Blinding Lights" : "unknown track"}
-                  </span>
-                  <span className="demo-cassette-artist">
-                    {done ? "The Weeknd" : "guess the tape"}
-                  </span>
-                </div>
+                {done ? "♪ correct" : "??? side a"}
               </div>
-
               <div className="demo-cassette-window">
                 <span className={`demo-reel ${done ? "spin-slow" : "spin-fast"}`} />
-                <span className="demo-tape-path" />
+                <span className="demo-tape" />
                 <span className={`demo-reel ${done ? "spin-slow" : "spin-fast"}`} />
               </div>
-
-              <div className="demo-cassette-teeth" />
+              <div className="demo-cassette-sprockets">
+                <span />
+                <span />
+                <span />
+                <span />
+              </div>
             </div>
           </div>
         </div>

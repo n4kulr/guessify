@@ -1,10 +1,9 @@
 import { peepSrc } from "./constants.js";
 
-/** Peep face on a mini vinyl disc. */
+/** Open Peeps bust filling a colored circle. */
 export default function PlayerAvatar({ avatar, size = 40, className = "" }) {
   const peep = avatar?.peep || 1;
   const color = avatar?.color || "#e2b714";
-  const label = Math.round(size * 0.48);
 
   return (
     <span
@@ -12,13 +11,10 @@ export default function PlayerAvatar({ avatar, size = 40, className = "" }) {
       style={{
         width: size,
         height: size,
-        "--mp-label": color,
-        "--mp-label-size": `${label}px`,
+        background: color,
       }}
     >
-      <span className="mp-avatar-label">
-        <img src={peepSrc(peep)} alt="" draggable={false} />
-      </span>
+      <img src={peepSrc(peep)} alt="" draggable={false} />
     </span>
   );
 }
