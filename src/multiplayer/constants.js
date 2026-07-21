@@ -4,6 +4,16 @@ export const MAX_GUESSES = STEPS.length;
 export const TOTAL = STEPS[STEPS.length - 1];
 export const ROUND_COUNT = 5;
 
+// Exaggerated arcade scoring (thousands over a full game).
+// Guess 1 → 1000 … guess 6 → 200; correct artist → +200 once per round.
+export const TITLE_POINTS = [1000, 800, 600, 400, 300, 200];
+export const ARTIST_BONUS = 200;
+
+export function titlePointsForGuess(guessNum) {
+  const i = Math.min(Math.max(0, Number(guessNum) || 0), TITLE_POINTS.length - 1);
+  return TITLE_POINTS[i];
+}
+
 // Open Peeps bust presets live in /public/peeps/peep-1.svg … peep-105.svg
 export const PEEP_COUNT = 105;
 

@@ -227,7 +227,7 @@ export default function HostParty({ code, playlist, me, onExit }) {
 
   // ---- game over ----
   if (phase === "over") {
-    const ranked = [...state.players].sort((a, b) => b.score - a.score || b.wins - a.wins);
+    const ranked = [...state.players].sort((a, b) => b.score - a.score);
     return (
       <div className="mp-over">
         <h2 className="title">That's a wrap!</h2>

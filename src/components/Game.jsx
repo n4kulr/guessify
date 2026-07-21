@@ -3,11 +3,15 @@ import { isCorrect, matchesAnyArtist } from "../match.js";
 import { useSpotifyPlayer } from "../useSpotifyPlayer.js";
 import { getToken } from "../spotify.js";
 import ScrubbableVinyl from "./ScrubbableVinyl.jsx";
-
-const STEPS = [1, 2, 4, 7, 11, 16]; // cumulative unlocked seconds per guess
-const MAX_GUESSES = STEPS.length;
-const TOTAL = STEPS[STEPS.length - 1];
-const ROUND_COUNT = 5;
+import {
+  STEPS,
+  MAX_GUESSES,
+  TOTAL,
+  ROUND_COUNT,
+  titlePointsForGuess,
+  ARTIST_BONUS,
+  TITLE_POINTS,
+} from "../multiplayer/constants.js";
 
 function shuffle(arr) {
   const a = [...arr];
@@ -141,14 +145,14 @@ export default function Game({ playlist, onExit }) {
 
     let artistPts = 0;
     if (artistOk && !artistBonusTaken) {
-      artistPts = 1;
+      artistPts = ARTIST_BONUS;
       setArtistBonusTaken(true);
-      setBonus(1);
-      setScore((s) => s + 1);
+      setBonus(artistPts);
+      setScore((s) => s + artistPts);
     }
 
     if (win) {
-      const titlePts = MAX_GUESSES - guessNum;
+      const titlePts = titlePointsForGuess(guessNum);
       const earned = titlePts + artistPts;
       setEarnedPts(earned);
       setScore((s) => s + titlePts);
@@ -193,7 +197,7 @@ export default function Game({ playlist, onExit }) {
     onExit();
   }
 
-  const maxScore = rounds.length * MAX_GUESSES;
+  const maxScore = rounds.length * (TITLE_POINTS[0] + ARTIST_BONUS);
   const spinning = (playing || celebrate) && !scrubbing;
   // Play button: only start a snippet — greyed out while playing / busy.
   // Pause lives on the vinyl (click).

@@ -18,15 +18,11 @@ export default function PlayerRail({ players = [], winnerId, pulseId }) {
             avatar={p.avatar || { peep: 1, color: p.color }}
             size={40}
           />
-          <div className="mp-player-meta">
-            <span className="mp-player-name">
-              {p.name}
-              {p.isHost ? " · dj" : ""}
-            </span>
-            <span className="mp-player-score">
-              {p.wins}W · {p.score}pts
-            </span>
-          </div>
+          <span className="mp-player-name">
+            {p.name}
+            {p.isHost ? " · dj" : ""}
+          </span>
+          <span className="mp-player-score">{p.score ?? 0}</span>
         </div>
       ))}
     </div>

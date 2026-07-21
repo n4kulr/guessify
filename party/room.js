@@ -8,6 +8,8 @@ import {
   shuffle,
   normalizeAvatar,
   randomAvatar,
+  titlePointsForGuess,
+  ARTIST_BONUS,
 } from "../src/multiplayer/constants.js";
 
 /**
@@ -301,13 +303,13 @@ export class Room extends Server {
     const artistOk = artist ? matchesAnyArtist(artist, track.artists) : false;
     const win = titleOk;
 
-    // Artist bonus is +1 once per player per round, even without a title win.
+    // Artist bonus once per player per round, even without a title win.
     let artistPts = 0;
     if (artistOk && !this.state.artistBonusClaimed?.[player.id]) {
       if (!this.state.artistBonusClaimed) this.state.artistBonusClaimed = {};
       this.state.artistBonusClaimed[player.id] = true;
-      artistPts = 1;
-      player.score += 1;
+      artistPts = ARTIST_BONUS;
+      player.score += artistPts;
     }
 
     this.state.guesses.push({
@@ -324,7 +326,7 @@ export class Room extends Server {
     });
 
     if (win) {
-      const titlePts = MAX_GUESSES - this.state.guessNum;
+      const titlePts = titlePointsForGuess(this.state.guessNum);
       const earned = titlePts + artistPts;
       this.state.bonus = artistPts;
       this.state.earnedPts = earned;
@@ -336,7 +338,7 @@ export class Room extends Server {
       player.wins += 1;
     } else {
       if (artistPts) {
-        this.state.bonus = 1;
+        this.state.bonus = artistPts;
         this.state.earnedPts = artistPts;
       }
       this.consumeGuess();

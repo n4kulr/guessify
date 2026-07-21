@@ -42,7 +42,7 @@ export default function DemoPreview() {
         <div className="demo-head">
           <span className="demo-playlist">▶ your-liked-songs</span>
           <span className="demo-score">
-            SCORE <b>1400</b>
+            SCORE <b>4200</b>
           </span>
         </div>
 

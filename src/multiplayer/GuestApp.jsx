@@ -113,14 +113,13 @@ export default function GuestApp({ code }) {
   }
 
   if (state.phase === "over") {
-    const ranked = [...state.players].sort((a, b) => b.score - a.score || b.wins - a.wins);
+    const ranked = [...state.players].sort((a, b) => b.score - a.score);
     const mine = ranked.find((p) => p.id === playerId);
     return (
       <div className="mp-guest mp-over">
         <h2 className="title">That's a wrap!</h2>
         <p className="subtitle">
-          You finished with <strong>{mine?.score ?? 0}</strong> pts
-          {mine?.wins ? ` · ${mine.wins} wins` : ""}.
+          You finished with <strong>{mine?.score ?? 0}</strong> pts.
         </p>
         <PlayerRail players={ranked} winnerId={ranked[0]?.id} />
       </div>
