@@ -14,6 +14,7 @@ import PlayerRail from "./PlayerRail.jsx";
 export default function HostParty({ code, playlist, me, onExit }) {
   const { state, status, error, send } = usePartyRoom(code);
   const [qr, setQr] = useState(null);
+  const [copied, setCopied] = useState(false);
   const { deviceId, status: playerStatus, errorMsg, player } = useSpotifyPlayer();
   const [playBusy, setPlayBusy] = useState(false);
   const [localPlaying, setLocalPlaying] = useState(false);
@@ -116,6 +117,17 @@ export default function HostParty({ code, playlist, me, onExit }) {
     playSnippet(phase === "reveal" ? Math.max(unlocked, 8) : unlocked);
   }
 
+  async function copyLink() {
+    try {
+      await navigator.clipboard.writeText(joinUrl);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1800);
+    } catch {
+      // Fallback for older browsers / insecure contexts
+      window.prompt("Copy this join link:", joinUrl);
+    }
+  }
+
   // ---- lobby ----
   if (!state || phase === "lobby" || phase === "empty") {
     const players = state?.players || [];
@@ -127,8 +139,8 @@ export default function HostParty({ code, playlist, me, onExit }) {
         </button>
         <h2 className="section-title">Party lobby</h2>
         <p className="section-sub">
-          Friends scan the QR (or type the code) on their phones. You keep the music
-          here — they race to guess.
+          Friends scan the QR, or open guessify and type the code below. You keep the
+          music here — they race to guess.
         </p>
         <div className="mp-lobby-grid">
           <div className="mp-qr-card">
@@ -138,7 +150,9 @@ export default function HostParty({ code, playlist, me, onExit }) {
               <div className="loader">…</div>
             )}
             <div className="mp-code">{code}</div>
-            <p className="mp-join-url">{joinUrl}</p>
+            <button className="btn btn-mini mp-copy-link" type="button" onClick={copyLink}>
+              {copied ? "copied!" : "copy join link"}
+            </button>
           </div>
           <div className="mp-lobby-side">
             <h3 className="mp-side-title">crate · {playlist.name}</h3>

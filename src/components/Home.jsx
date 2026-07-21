@@ -1,5 +1,6 @@
 import DemoPreview from "./DemoPreview.jsx";
 import ScrubbableVinyl from "./ScrubbableVinyl.jsx";
+import JoinCodeForm from "../multiplayer/JoinCodeForm.jsx";
 
 export default function Home({ me, onStartSolo, onStartMulti }) {
   const name = me?.displayName?.split(" ")[0] || "there";
@@ -41,8 +42,10 @@ export default function Home({ me, onStartSolo, onStartMulti }) {
           </button>
         </div>
 
+        <JoinCodeForm />
+
         <p className="fineprint">
-          multiplayer: you DJ on this device · friends race on their phones
+          multiplayer: you DJ here · friends join with the code (no Spotify needed)
         </p>
       </div>
 

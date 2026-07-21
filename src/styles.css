@@ -570,7 +570,16 @@ button { font-family: var(--font); }
   letter-spacing: 0.2em;
   color: var(--main-color);
 }
+.mp-copy-link { margin-top: 12px; }
 .mp-join-url { font-size: 11px; color: var(--sub-color); word-break: break-all; margin-top: 8px; }
+
+.join-code-form { margin-top: 18px; width: min(100%, 340px); }
+.join-code-label { font-size: 13px; color: var(--sub-color); margin: 0 0 8px; }
+.join-code-row { display: flex; gap: 8px; }
+.join-code-input {
+  flex: 1; min-width: 0;
+  letter-spacing: 0.14em; font-weight: 600; text-transform: uppercase;
+}
 .mp-lobby-side { display: flex; flex-direction: column; gap: 14px; }
 .mp-side-title { font-size: 14px; color: var(--sub-color); margin: 0; }
 

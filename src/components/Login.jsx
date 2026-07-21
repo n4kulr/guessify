@@ -1,5 +1,6 @@
 import DemoPreview from "./DemoPreview.jsx";
 import ScrubbableVinyl from "./ScrubbableVinyl.jsx";
+import JoinCodeForm from "../multiplayer/JoinCodeForm.jsx";
 
 export default function Login({ error }) {
   return (
@@ -41,8 +42,10 @@ export default function Login({ error }) {
           Log in with Spotify
         </a>
 
+        <JoinCodeForm />
+
         <p className="fineprint">
-          needs Spotify Premium to play tracks · nothing is stored
+          needs Spotify Premium to host · guests just need a party code
         </p>
       </div>
 
