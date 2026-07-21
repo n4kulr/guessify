@@ -30,8 +30,8 @@ export default function PlaylistPicker({ onPick }) {
         return;
       }
       onPick(data);
-    } catch {
-      setNote("Couldn't load that playlist. Try another.");
+    } catch (err) {
+      setNote(err.message || "Couldn't load that playlist. Try another.");
       setLoadingId(null);
     }
   }

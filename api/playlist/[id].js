@@ -11,15 +11,17 @@ export default async function handler(req, res) {
       auth.access
     );
 
+    // Feb 2026 API migration: GET /playlists/{id}/tracks was removed in favour
+    // of /items, and each entry's `track` field was renamed to `item`.
     const tracks = [];
     let next =
-      `https://api.spotify.com/v1/playlists/${id}/tracks` +
-      `?fields=next,items(track(id,name,preview_url,artists(name),album(images)))&limit=100`;
+      `https://api.spotify.com/v1/playlists/${id}/items` +
+      `?fields=next,items(item(id,name,preview_url,artists(name),album(images)))&limit=100`;
 
     while (next) {
       const page = await spotifyGet(next, auth.access);
-      for (const item of page.items || []) {
-        const t = item.track;
+      for (const entry of page.items || []) {
+        const t = entry.item;
         if (!t) continue;
         tracks.push({
           id: t.id,
@@ -44,11 +46,12 @@ export default async function handler(req, res) {
     });
   } catch (e) {
     console.error(e);
-    const status = e.status === 404 ? 404 : 500;
-    res.status(status).json({
-      error: status === 404 ? "Playlist not found." : "Failed to load playlist.",
-      detail: e.message,
-      spotifyStatus: e.status || null,
-    });
+    let error = "Failed to load playlist.";
+    if (e.status === 404) error = "Playlist not found.";
+    else if (e.status === 403) {
+      // Since the Feb 2026 API change, track access is limited to your own playlists.
+      error = "Spotify only lets apps read tracks from playlists you created. Pick one you own.";
+    }
+    res.status(e.status || 500).json({ error, spotifyStatus: e.status || null });
   }
 }

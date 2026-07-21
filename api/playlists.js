@@ -15,7 +15,8 @@ export default async function handler(req, res) {
           name: p.name,
           owner: p.owner?.display_name || "",
           cover: p.images?.[0]?.url || null,
-          total: p.tracks?.total || 0,
+          // Feb 2026 API: playlist object's track-count moved tracks -> items
+          total: p.items?.total ?? p.tracks?.total ?? 0,
         });
       }
       next = page.next;
