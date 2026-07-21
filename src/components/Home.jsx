@@ -1,5 +1,6 @@
 import DemoPreview from "./DemoPreview.jsx";
 import ScrubbableVinyl from "./ScrubbableVinyl.jsx";
+import CurvedNudge from "./CurvedNudge.jsx";
 import JoinCodeForm from "../multiplayer/JoinCodeForm.jsx";
 
 export default function Home({ me, onStartSolo, onStartMulti }) {
@@ -24,6 +25,7 @@ export default function Home({ me, onStartSolo, onStartMulti }) {
             </div>
           </ScrubbableVinyl>
           <div className="tonearm tonearm--on" />
+          <CurvedNudge variant="drag" />
         </div>
 
         <ol className="steps">
