@@ -72,9 +72,12 @@ export default function GuestApp({ code }) {
     return (
       <div className="mp-guest panel">
         <div className="sticker">room {upper}</div>
-        <h2 className="title">make your look</h2>
-        <p className="subtitle">Nickname, accent, and a random peep.</p>
-        <ProfileEditor name={name} avatar={avatar} onChange={updateProfile} />
+        <h2 className="title">join the party</h2>
+        <p className="subtitle">Pick a look, then jump in — no Spotify needed.</p>
+        <div className="mp-lobby-edit">
+          <p className="profile-label">your look</p>
+          <ProfileEditor name={name} avatar={avatar} onChange={updateProfile} />
+        </div>
         {error && <div className="error-banner">{error}</div>}
         <button
           className="btn btn-big btn-play"

@@ -684,7 +684,7 @@ button { font-family: var(--font); }
 .profile-swatch.active { border-color: var(--text-color); transform: scale(1.12); }
 .mp-host-hint { text-align: center; margin-top: 12px; }
 .mp-guest { width: min(480px, 100%); margin: 0 auto; }
-.mp-guest .guess-input { margin-top: 8px; }
+.mp-guest .profile-name { margin-top: 0; }
 .mp-guest-game { width: min(560px, 100%); }
 .mp-over { width: min(560px, 100%); margin: 0 auto; text-align: center; }
 
