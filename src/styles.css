@@ -343,12 +343,54 @@ button { font-family: var(--font); }
   gap: 8px;
   padding: 0 2px;
 }
-.demo-cassette-sprockets span {
+.demo-tooth {
   flex: 1;
-  height: 10px;
+  height: 12px;
   border-radius: 3px;
+  padding: 0;
+  cursor: pointer;
   background: color-mix(in srgb, var(--text-color) 22%, transparent);
   border: 1px solid color-mix(in srgb, var(--text-color) 18%, transparent);
+  transition: transform 0.12s ease, background 0.12s ease, box-shadow 0.12s ease;
+  box-shadow: 0 2px 0 color-mix(in srgb, var(--text-color) 18%, transparent);
+}
+.demo-tooth:hover {
+  background: color-mix(in srgb, var(--main-color) 35%, var(--bg-color));
+}
+.demo-tooth:active,
+.demo-tooth.is-pressed {
+  transform: translateY(2px);
+  box-shadow: none;
+  background: var(--main-color);
+}
+
+.demo-cassette-label--marquee {
+  overflow: hidden;
+  display: block;
+  padding: 8px 0;
+  text-align: left;
+}
+.demo-marquee {
+  overflow: hidden;
+  width: 100%;
+  mask-image: linear-gradient(90deg, transparent, #000 8%, #000 92%, transparent);
+}
+.demo-marquee-track {
+  display: inline-flex;
+  gap: 2.5rem;
+  white-space: nowrap;
+  width: max-content;
+  animation: demo-marquee 9s linear infinite;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--bg-color);
+}
+.demo-marquee-track span { flex: none; }
+@keyframes demo-marquee {
+  from { transform: translateX(0); }
+  to { transform: translateX(calc(-50% - 1.25rem)); }
 }
 
 .demo-progress { margin-bottom: 14px; }
@@ -365,8 +407,8 @@ button { font-family: var(--font); }
 .demo-win { text-align: center; padding: 8px 0 4px; }
 .demo-win-badge {
   display: inline-block; font-size: 12px; letter-spacing: 1px; text-transform: uppercase;
-  color: var(--bg-color); background: var(--main-color); border-radius: 6px;
-  padding: 6px 12px; margin-bottom: 12px;
+  color: var(--main-color); background: none; border-radius: 0;
+  padding: 0; margin-bottom: 12px; font-weight: 800;
 }
 .demo-win-title { display: block; font-weight: 600; font-size: 16px; }
 .demo-win-artist { display: block; font-size: 13px; color: var(--sub-color); }

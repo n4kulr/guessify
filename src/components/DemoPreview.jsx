@@ -3,15 +3,17 @@ import { useEffect, useState } from "react";
 // A self-playing fake game loop so people see the vibe before logging in.
 const SCRIPT = [
   { text: "taylor swift?", correct: false },
-  { text: "dua lipa?", correct: false },
+  { text: "drake?", correct: false },
   { text: "⏭ skipped", correct: false },
-  { text: "blinding lights", correct: true },
+  { text: "infrunami", correct: true },
 ];
+const ANSWER = { title: "Infrunami", artist: "Steve Lacy" };
 const STEPS = [1, 2, 4, 7, 11, 16];
 
 export default function DemoPreview() {
   const [step, setStep] = useState(0); // 0..SCRIPT.length  (== solved)
   const [done, setDone] = useState(false);
+  const [pressed, setPressed] = useState(null);
 
   useEffect(() => {
     let t;
@@ -19,7 +21,7 @@ export default function DemoPreview() {
       t = setTimeout(() => {
         setStep(0);
         setDone(false);
-      }, 2600);
+      }, 3200);
     } else if (step < SCRIPT.length) {
       t = setTimeout(() => {
         const next = step + 1;
@@ -31,6 +33,11 @@ export default function DemoPreview() {
   }, [step, done]);
 
   const unlocked = STEPS[Math.min(step, STEPS.length - 1)];
+
+  function tapTooth(i) {
+    setPressed(i);
+    window.setTimeout(() => setPressed(null), 160);
+  }
 
   return (
     <div className="demo">
@@ -47,10 +54,19 @@ export default function DemoPreview() {
         </div>
 
         <div className="demo-stage demo-stage--cassette">
-          <div className="demo-cassette" aria-hidden="true">
+          <div className={`demo-cassette ${done ? "is-done" : ""}`}>
             <div className="demo-cassette-shell">
-              <div className="demo-cassette-label">
-                {done ? "♪ correct" : "??? side a"}
+              <div className={`demo-cassette-label ${done ? "demo-cassette-label--marquee" : ""}`}>
+                {done ? (
+                  <div className="demo-marquee">
+                    <span className="demo-marquee-track">
+                      <span>{ANSWER.title} — {ANSWER.artist}</span>
+                      <span aria-hidden="true">{ANSWER.title} — {ANSWER.artist}</span>
+                    </span>
+                  </div>
+                ) : (
+                  "??? side a"
+                )}
               </div>
               <div className="demo-cassette-window">
                 <span className={`demo-reel ${done ? "spin-slow" : "spin-fast"}`} />
@@ -58,10 +74,15 @@ export default function DemoPreview() {
                 <span className={`demo-reel ${done ? "spin-slow" : "spin-fast"}`} />
               </div>
               <div className="demo-cassette-sprockets">
-                <span />
-                <span />
-                <span />
-                <span />
+                {[0, 1, 2, 3].map((i) => (
+                  <button
+                    key={i}
+                    type="button"
+                    className={`demo-tooth ${pressed === i ? "is-pressed" : ""}`}
+                    aria-label={`cassette button ${i + 1}`}
+                    onClick={() => tapTooth(i)}
+                  />
+                ))}
               </div>
             </div>
           </div>
@@ -80,8 +101,8 @@ export default function DemoPreview() {
         {done ? (
           <div className="demo-win">
             <span className="demo-win-badge">✦ NAILED IT ✦</span>
-            <span className="demo-win-title">Blinding Lights</span>
-            <span className="demo-win-artist">The Weeknd</span>
+            <span className="demo-win-title">{ANSWER.title}</span>
+            <span className="demo-win-artist">{ANSWER.artist}</span>
           </div>
         ) : (
           <div className="demo-rows">
