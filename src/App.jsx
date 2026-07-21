@@ -4,7 +4,7 @@ import Home from "./components/Home.jsx";
 import PlaylistPicker from "./components/PlaylistPicker.jsx";
 import Game from "./components/Game.jsx";
 import ThemeSwitcher from "./components/ThemeSwitcher.jsx";
-import HowToPlay from "./components/HowToPlay.jsx";
+import FabDock from "./components/FabDock.jsx";
 import HostParty from "./multiplayer/HostParty.jsx";
 import GuestApp from "./multiplayer/GuestApp.jsx";
 import { makeRoomCode } from "./multiplayer/constants.js";
@@ -153,7 +153,7 @@ export default function App() {
         made with <span className="footer-heart" aria-hidden="true">♥</span> by nakul
       </footer>
 
-      <HowToPlay />
+      <FabDock />
     </div>
   );
 }

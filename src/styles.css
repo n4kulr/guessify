@@ -498,15 +498,22 @@ button { font-family: var(--font); }
 .demo-win-title { display: block; font-weight: 600; font-size: 16px; }
 .demo-win-artist { display: block; font-size: 13px; color: var(--sub-color); }
 
-/* ---------------- how-to help ---------------- */
-.help {
+/* ---------------- fab dock (feedback + help) ---------------- */
+.fab-dock {
   position: fixed;
   right: 18px;
   bottom: 18px;
   z-index: 80;
+  display: flex;
+  align-items: flex-end;
+  gap: 10px;
   pointer-events: none;
 }
-.help > * { pointer-events: auto; }
+.fab-item {
+  position: relative;
+  pointer-events: none;
+}
+.fab-item > * { pointer-events: auto; }
 .help-fab {
   position: relative;
   z-index: 82;
@@ -524,6 +531,7 @@ button { font-family: var(--font); }
   box-shadow: 0 8px 22px color-mix(in srgb, #000 35%, transparent);
   transition: background 0.15s ease, color 0.15s ease, transform 0.12s ease, border-color 0.15s ease;
 }
+.feedback-fab { font-size: 18px; }
 .help-fab:hover,
 .help-fab.is-open {
   background: var(--main-color);
@@ -560,6 +568,11 @@ button { font-family: var(--font); }
   pointer-events: none;
   transition: opacity 0.16s ease, transform 0.16s ease;
   z-index: 81;
+}
+.fab-item:first-child .help-panel {
+  right: auto;
+  left: 0;
+  transform-origin: bottom left;
 }
 .help-panel.is-open {
   opacity: 1;
@@ -617,8 +630,49 @@ button { font-family: var(--font); }
   color: var(--sub-color);
   font-size: 12px;
 }
+
+.feedback-form { display: flex; flex-direction: column; gap: 10px; }
+.feedback-label {
+  font-size: 13px;
+  color: var(--sub-color);
+}
+.feedback-input {
+  width: 100%;
+  resize: vertical;
+  min-height: 110px;
+  max-height: 240px;
+  padding: 12px 12px;
+  border-radius: 10px;
+  border: 1px solid color-mix(in srgb, var(--text-color) 18%, transparent);
+  background: var(--bg-color);
+  color: var(--text-color);
+  font-family: var(--font);
+  font-size: 14px;
+  line-height: 1.45;
+}
+.feedback-input:focus {
+  outline: 2px solid var(--main-color);
+  outline-offset: 1px;
+}
+.feedback-input:disabled { opacity: 0.7; }
+.feedback-send {
+  align-self: stretch;
+  justify-content: center;
+  margin-top: 2px;
+}
+.feedback-error {
+  margin: 0;
+  font-size: 12px;
+  color: var(--error-color);
+}
+.feedback-thanks {
+  margin: 8px 0 4px;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--main-color);
+}
 @media (max-width: 520px) {
-  .help { right: 14px; bottom: 14px; }
+  .fab-dock { right: 14px; bottom: 14px; }
   .help-panel { width: min(100vw - 28px, 360px); max-height: min(68vh, 480px); }
 }
 

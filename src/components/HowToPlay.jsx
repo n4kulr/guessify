@@ -1,29 +1,28 @@
-import { useEffect, useId, useRef, useState } from "react";
+import { useEffect, useId, useRef } from "react";
 
-export default function HowToPlay() {
-  const [open, setOpen] = useState(false);
+export default function HowToPlay({ open, onOpen, onClose }) {
   const titleId = useId();
   const closeRef = useRef(null);
 
   useEffect(() => {
     if (!open) return;
     const onKey = (e) => {
-      if (e.key === "Escape") setOpen(false);
+      if (e.key === "Escape") onClose();
     };
     window.addEventListener("keydown", onKey);
     closeRef.current?.focus();
     return () => window.removeEventListener("keydown", onKey);
-  }, [open]);
+  }, [open, onClose]);
 
   return (
-    <div className="help">
+    <div className="fab-item">
       <button
         type="button"
         className={`help-fab ${open ? "is-open" : ""}`}
         aria-label={open ? "Close how Guessify works" : "How Guessify works"}
         aria-expanded={open}
         aria-controls="help-panel"
-        onClick={() => setOpen((v) => !v)}
+        onClick={() => (open ? onClose() : onOpen())}
       >
         {open ? "×" : "?"}
       </button>
@@ -31,7 +30,7 @@ export default function HowToPlay() {
       {open && (
         <div
           className="help-backdrop"
-          onClick={() => setOpen(false)}
+          onClick={onClose}
           aria-hidden="true"
         />
       )}
@@ -53,7 +52,7 @@ export default function HowToPlay() {
             type="button"
             className="help-close"
             aria-label="Close"
-            onClick={() => setOpen(false)}
+            onClick={onClose}
           >
             ×
           </button>
