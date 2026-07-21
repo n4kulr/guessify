@@ -257,11 +257,11 @@ button { font-family: var(--font); }
 .demo-stage { position: relative; width: 118px; height: 118px; margin: 4px auto 16px; }
 .demo-stage--cassette {
   width: 100%;
-  margin: 10px 0 20px;
+  margin: 6px 0 14px;
 }
 .demo-cassette {
   width: 100%;
-  max-width: 280px;
+  max-width: 210px;
   margin: 0 auto;
   aspect-ratio: 1.55 / 1;
 }
@@ -269,8 +269,8 @@ button { font-family: var(--font); }
   position: relative;
   height: 100%;
   box-sizing: border-box;
-  padding: 12px 14px 18px;
-  border-radius: 6px 6px 10px 10px;
+  padding: 9px 11px 14px;
+  border-radius: 6px 6px 9px 9px;
   background: color-mix(in srgb, var(--text-color) 7%, var(--bg-color));
   border: 1px solid color-mix(in srgb, var(--text-color) 28%, transparent);
   box-shadow: inset 0 1px 0 color-mix(in srgb, var(--text-color) 10%, transparent);
@@ -293,10 +293,10 @@ button { font-family: var(--font); }
 .demo-cassette-label {
   display: flex;
   align-items: stretch;
-  gap: 8px;
-  min-height: 42px;
-  margin: 2px 4px 10px;
-  padding: 6px 8px;
+  gap: 7px;
+  min-height: 34px;
+  margin: 2px 2px 8px;
+  padding: 4px 6px;
   background: color-mix(in srgb, var(--main-color) 18%, var(--bg-color));
   border: 1px solid color-mix(in srgb, var(--main-color) 35%, transparent);
 }
@@ -341,24 +341,24 @@ button { font-family: var(--font); }
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 10px;
-  margin: 0 8px;
-  padding: 10px 14px;
-  min-height: 52px;
+  gap: 8px;
+  margin: 0 6px;
+  padding: 7px 10px;
+  min-height: 40px;
   background: #111;
   border: 1px solid color-mix(in srgb, var(--text-color) 40%, transparent);
   box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.04);
 }
 .demo-reel {
-  width: 34px;
-  height: 34px;
+  width: 26px;
+  height: 26px;
   border-radius: 50%;
   flex: none;
   background:
-    radial-gradient(circle, #1a1a1a 0 5px, transparent 6px),
+    radial-gradient(circle, #1a1a1a 0 4px, transparent 5px),
     repeating-conic-gradient(from 0deg, #2a2a2a 0 18deg, #111 18deg 36deg);
   border: 1px solid #555;
-  box-shadow: inset 0 0 0 4px #0d0d0d;
+  box-shadow: inset 0 0 0 3px #0d0d0d;
 }
 .demo-reel.spin-fast { animation: spin 1.35s linear infinite; }
 .demo-reel.spin-slow { animation: spin 3.2s linear infinite; }
@@ -727,11 +727,13 @@ button { font-family: var(--font); }
 .inline-badge {
   display: block; width: fit-content; margin: -6px auto 16px;
   font-size: 14px; font-weight: 800; letter-spacing: 0.14em; text-transform: uppercase;
-  padding: 8px 16px; border-radius: 999px;
+  padding: 0;
+  border-radius: 0;
+  background: none;
   animation: badge-pop 0.55s cubic-bezier(0.2, 1.4, 0.4, 1) both;
 }
-.inline-badge--win { background: var(--main-color); color: var(--bg-color); }
-.inline-badge--lose { background: var(--error-color); color: #fff; }
+.inline-badge--win { background: none; color: var(--main-color); }
+.inline-badge--lose { background: none; color: var(--error-color); }
 @keyframes badge-pop {
   0% { opacity: 0; transform: scale(0.4) translateY(12px); }
   70% { transform: scale(1.08) translateY(0); }
@@ -931,19 +933,32 @@ button { font-family: var(--font); }
   border: 2px solid color-mix(in srgb, var(--mp-color, var(--main-color)) 50%, #444);
 }
 .mp-avatar {
-  display: inline-flex;
-  align-items: flex-end;
-  justify-content: center;
+  display: inline-grid;
+  place-items: center;
   flex: none;
   border-radius: 50%;
   overflow: hidden;
-  border: 2px solid color-mix(in srgb, var(--text-color) 20%, transparent);
+  background:
+    radial-gradient(circle, transparent 0 34%, #141414 35%),
+    repeating-radial-gradient(circle, #0d0d0d 0 1.5px, #1c1c1c 1.5px 3px);
+  border: 2px solid color-mix(in srgb, var(--mp-label, var(--main-color)) 45%, #444);
 }
+.mp-avatar-label {
+  width: var(--mp-label-size, 48%);
+  height: var(--mp-label-size, 48%);
+  border-radius: 50%;
+  overflow: hidden;
+  background: var(--mp-label, var(--main-color));
+  display: grid;
+  place-items: center;
+}
+.mp-avatar-label img,
 .mp-avatar img {
-  width: 115%;
-  height: 115%;
+  width: 108%;
+  height: 108%;
   object-fit: cover;
-  object-position: center top;
+  object-position: center 18%;
+  transform: translateY(10%);
   pointer-events: none;
   user-select: none;
 }
