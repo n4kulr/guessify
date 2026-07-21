@@ -5,10 +5,10 @@ export default function Login({ error }) {
     <div className="hero">
       {/* LEFT — pitch + login */}
       <div className="hero-left">
-        <div className="sticker sticker--new">▶ NOW SPINNING</div>
+        <div className="sticker">now spinning</div>
 
         <h1 className="hero-title">
-          GUESS<span className="hero-title-accent">IFY</span>
+          guess<span className="hero-title-accent">ify</span>
         </h1>
         <p className="hero-tagline">
           Your playlists. One-second snippets. Can you <em>name that tune?</em>
@@ -16,18 +16,12 @@ export default function Login({ error }) {
 
         <div className="hero-turntable">
           <div className="vinyl spin-fast">
-            <div className="cd-sheen" />
             <div className="vinyl-label">
               <span>45</span>
               <span>RPM</span>
             </div>
           </div>
           <div className="tonearm tonearm--on" />
-          <div className="eq" aria-hidden="true">
-            {Array.from({ length: 7 }).map((_, i) => (
-              <span key={i} style={{ animationDelay: `${i * 0.12}s` }} />
-            ))}
-          </div>
         </div>
 
         <ol className="steps">

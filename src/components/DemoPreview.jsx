@@ -48,7 +48,6 @@ export default function DemoPreview() {
 
         <div className="demo-stage">
           <div className={`vinyl demo-vinyl ${!done ? "spin-fast" : "spin-slow"}`}>
-            <div className="cd-sheen" />
             <div className="vinyl-label vinyl-label--mystery">{done ? "♪" : "?"}</div>
           </div>
           <div className={`tonearm ${!done ? "tonearm--on" : ""}`} />

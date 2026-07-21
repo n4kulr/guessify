@@ -270,7 +270,6 @@ export default function Game({ playlist, onExit }) {
           <div className="result-badge">{outcome === "win" ? "NAILED IT" : "MISSED"}</div>
           <div className="reveal">
             <div className="reveal-art">
-              <div className="mini-vinyl mini-vinyl--reveal" />
               {track.cover && <img src={track.cover} alt="" className="reveal-cover" />}
             </div>
             <div className="reveal-text">

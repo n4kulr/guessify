@@ -55,7 +55,6 @@ export default function PlaylistPicker({ onPick }) {
             disabled={loadingId !== null}
           >
             <div className="record-art">
-              <div className="mini-vinyl" />
               {p.cover ? (
                 <img src={p.cover} alt="" className="record-cover" />
               ) : (
