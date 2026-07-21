@@ -11,6 +11,7 @@ export default function App() {
   const [playlist, setPlaylist] = useState(null); // full playlist w/ tracks -> game
   const [authError, setAuthError] = useState(null);
   const [theme, setTheme] = useState("serika_dark");
+  const [homeNonce, setHomeNonce] = useState(0); // bump to force a fresh picker
 
   useEffect(() => {
     setTheme(loadTheme());
@@ -44,9 +45,10 @@ export default function App() {
     setStatus("loggedOut");
   }
 
-  // Clicking the logo returns to the home screen (playlist picker / login).
+  // Clicking the logo returns to a fresh home screen (playlist picker / login).
   function goHome() {
     setPlaylist(null);
+    setHomeNonce((n) => n + 1); // remounts the picker so any error note clears
   }
 
   return (
@@ -78,7 +80,9 @@ export default function App() {
 
         {status === "loggedOut" && <Login error={authError} />}
 
-        {status === "loggedIn" && !playlist && <PlaylistPicker onPick={setPlaylist} />}
+        {status === "loggedIn" && !playlist && (
+          <PlaylistPicker key={homeNonce} onPick={setPlaylist} />
+        )}
 
         {status === "loggedIn" && playlist && (
           <Game playlist={playlist} onExit={() => setPlaylist(null)} />
