@@ -108,7 +108,9 @@ export default function App() {
         )}
       </main>
 
-      <footer className="footer">made for fun · not affiliated with Spotify</footer>
+      <footer className="footer">
+        made with <span className="footer-heart" aria-hidden="true">♥</span> by nakul
+      </footer>
     </div>
   );
 }

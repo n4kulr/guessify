@@ -2,11 +2,13 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { isCorrect, matchesAnyArtist } from "../match.js";
 import { useSpotifyPlayer } from "../useSpotifyPlayer.js";
 import { getToken } from "../spotify.js";
+import { createScratchEngine, pointerAngle } from "../vinylScratch.js";
 
 const STEPS = [1, 2, 4, 7, 11, 16]; // cumulative unlocked seconds per guess
 const MAX_GUESSES = STEPS.length;
 const TOTAL = STEPS[STEPS.length - 1];
 const ROUND_COUNT = 5;
+const SCRUB_THRESHOLD = 0.08; // radians before a drag counts as scrubbing
 
 function shuffle(arr) {
   const a = [...arr];
@@ -29,23 +31,39 @@ export default function Game({ playlist, onExit }) {
   const [phase, setPhase] = useState("play"); // play | over
   const [outcome, setOutcome] = useState(null); // null | win | lose
   const [score, setScore] = useState(0);
-  const [bonus, setBonus] = useState(0); // +1 if artist also nailed on the winning guess
+  const [bonus, setBonus] = useState(0);
   const [earnedPts, setEarnedPts] = useState(0);
   const [titleGuess, setTitleGuess] = useState("");
   const [artistGuess, setArtistGuess] = useState("");
   const [playing, setPlaying] = useState(false);
-  const [celebrate, setCelebrate] = useState(false); // triggers win CSS animations
+  const [celebrate, setCelebrate] = useState(false);
+  const [scrubbing, setScrubbing] = useState(false);
+  const [vinylRot, setVinylRot] = useState(0);
 
   const { deviceId, status: playerStatus, errorMsg, player } = useSpotifyPlayer();
   const stopTimer = useRef(null);
+  const vinylRef = useRef(null);
+  const scratchRef = useRef(null);
+  const scrubRef = useRef(null); // pointer scrub session
 
   const track = rounds[roundIdx];
   const unlocked = STEPS[Math.min(guessNum, MAX_GUESSES - 1)];
   const resolved = outcome !== null;
+  const canControl = playerStatus === "ready" && !!deviceId && !!track;
+
+  useEffect(() => {
+    scratchRef.current = createScratchEngine();
+    return () => {
+      scratchRef.current?.dispose();
+      scratchRef.current = null;
+    };
+  }, []);
 
   // Stop playback whenever the track changes (and on unmount).
   useEffect(() => {
     stopAudio();
+    setScrubbing(false);
+    setVinylRot(0);
     return stopAudio;
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [roundIdx]);
@@ -56,8 +74,16 @@ export default function Game({ playlist, onExit }) {
     setPlaying(false);
   }
 
+  function armStopTimer(seconds) {
+    clearTimeout(stopTimer.current);
+    stopTimer.current = setTimeout(() => {
+      if (player.current) player.current.pause().catch(() => {});
+      setPlaying(false);
+    }, seconds * 1000);
+  }
+
   async function playSnippet(seconds) {
-    if (playerStatus !== "ready" || !deviceId || !track) return;
+    if (!canControl) return;
     clearTimeout(stopTimer.current);
     try {
       const token = await getToken();
@@ -67,13 +93,20 @@ export default function Game({ playlist, onExit }) {
         body: JSON.stringify({ uris: [`spotify:track:${track.id}`], position_ms: 0 }),
       });
       setPlaying(true);
-      stopTimer.current = setTimeout(() => {
-        if (player.current) player.current.pause().catch(() => {});
-        setPlaying(false);
-      }, seconds * 1000);
+      armStopTimer(seconds);
     } catch {
       setPlaying(false);
     }
+  }
+
+  async function togglePlay() {
+    if (!canControl || phase !== "play") return;
+    if (playing) {
+      stopAudio();
+      return;
+    }
+    const secs = resolved ? Math.max(unlocked, 8) : unlocked;
+    await playSnippet(secs);
   }
 
   // Advance to the next attempt, or lose the round if out of guesses.
@@ -108,7 +141,6 @@ export default function Game({ playlist, onExit }) {
       setScore((s) => s + earned);
       setOutcome("win");
       setCelebrate(true);
-      // Keep the song going a bit as a victory lap.
       playSnippet(Math.max(unlocked, 8));
     } else {
       consumeGuess();
@@ -146,7 +178,84 @@ export default function Game({ playlist, onExit }) {
     onExit();
   }
 
+  function onVinylPointerDown(e) {
+    if (!canControl || phase !== "play") return;
+    e.preventDefault();
+    const el = vinylRef.current;
+    if (!el) return;
+    el.setPointerCapture?.(e.pointerId);
+
+    const angle = pointerAngle(el, e.clientX, e.clientY);
+    scrubRef.current = {
+      pointerId: e.pointerId,
+      startAngle: angle,
+      lastAngle: angle,
+      lastTime: performance.now(),
+      baseRot: vinylRot,
+      moved: false,
+      scrubbing: false,
+    };
+  }
+
+  function onVinylPointerMove(e) {
+    const s = scrubRef.current;
+    if (!s || s.pointerId !== e.pointerId) return;
+    const el = vinylRef.current;
+    if (!el) return;
+
+    const angle = pointerAngle(el, e.clientX, e.clientY);
+    let delta = angle - s.lastAngle;
+    // unwrap across ±π
+    if (delta > Math.PI) delta -= Math.PI * 2;
+    if (delta < -Math.PI) delta += Math.PI * 2;
+
+    const total = angle - s.startAngle;
+    let totalUnwrapped = total;
+    if (totalUnwrapped > Math.PI) totalUnwrapped -= Math.PI * 2;
+    if (totalUnwrapped < -Math.PI) totalUnwrapped += Math.PI * 2;
+
+    if (!s.moved && Math.abs(totalUnwrapped) > SCRUB_THRESHOLD) {
+      s.moved = true;
+      s.scrubbing = true;
+      setScrubbing(true);
+      // Duck the track while scratching.
+      clearTimeout(stopTimer.current);
+      if (player.current) player.current.pause().catch(() => {});
+      setPlaying(false);
+    }
+
+    if (s.scrubbing) {
+      const now = performance.now();
+      const dt = Math.max(1, now - s.lastTime);
+      const speed = delta / dt; // rad/ms
+      scratchRef.current?.setSpeed(speed);
+
+      const degDelta = ((angle - s.startAngle) * 180) / Math.PI;
+      setVinylRot(s.baseRot + degDelta);
+    }
+
+    s.lastAngle = angle;
+    s.lastTime = performance.now();
+  }
+
+  function endVinylPointer(e) {
+    const s = scrubRef.current;
+    if (!s || (e && s.pointerId !== e.pointerId)) return;
+    scrubRef.current = null;
+    scratchRef.current?.stop();
+
+    if (s.scrubbing) {
+      setScrubbing(false);
+      // Stay paused after a scrub — click again to keep playing.
+      return;
+    }
+
+    // Pure click → play / pause.
+    togglePlay();
+  }
+
   const maxScore = rounds.length * MAX_GUESSES;
+  const spinning = (playing || celebrate) && !scrubbing;
 
   return (
     <div className={`game ${outcome === "win" ? "game--win" : ""} ${outcome === "lose" ? "game--lose" : ""}`}>
@@ -185,19 +294,35 @@ export default function Game({ playlist, onExit }) {
               </>
             )}
             <div
-              className={`vinyl ${playing || celebrate ? "spin-fast" : ""} ${
+              ref={vinylRef}
+              role="button"
+              tabIndex={canControl ? 0 : -1}
+              aria-label={playing ? "pause snippet" : "play snippet"}
+              title={canControl ? (playing ? "pause" : "play · drag to scrub") : undefined}
+              className={`vinyl vinyl--interactive ${spinning ? "spin-fast" : ""} ${
                 resolved ? "vinyl--revealed" : ""
-              }`}
+              } ${scrubbing ? "vinyl--scrubbing" : ""}`}
+              style={scrubbing ? { "--vinyl-rot": `${vinylRot}deg` } : undefined}
+              onPointerDown={onVinylPointerDown}
+              onPointerMove={onVinylPointerMove}
+              onPointerUp={endVinylPointer}
+              onPointerCancel={endVinylPointer}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" || e.key === " ") {
+                  e.preventDefault();
+                  togglePlay();
+                }
+              }}
             >
               {resolved && track.cover ? (
-                <img src={track.cover} alt="" className="vinyl-cover" />
+                <img src={track.cover} alt="" className="vinyl-cover" draggable={false} />
               ) : (
                 <div className="vinyl-label vinyl-label--mystery">
                   {outcome === "lose" ? "✗" : "?"}
                 </div>
               )}
             </div>
-            <div className={`tonearm ${playing || celebrate ? "tonearm--on" : ""}`} />
+            <div className={`tonearm ${spinning ? "tonearm--on" : ""}`} />
           </div>
 
           {outcome === "win" && (
@@ -242,14 +367,14 @@ export default function Game({ playlist, onExit }) {
               ) : (
                 <button
                   className="btn btn-big btn-play"
-                  onClick={() => playSnippet(unlocked)}
-                  disabled={playerStatus !== "ready"}
+                  onClick={togglePlay}
+                  disabled={!canControl}
                 >
                   <span className="btn-disc" aria-hidden="true" />
-                  {playerStatus !== "ready"
+                  {!canControl
                     ? "connecting to spotify…"
                     : playing
-                    ? "playing…"
+                    ? "pause"
                     : `play ${unlocked}s`}
                 </button>
               )}
