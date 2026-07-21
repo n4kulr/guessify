@@ -178,7 +178,6 @@ export default function HostParty({ code, playlist, me, onExit }) {
           </div>
           <div className="mp-lobby-side">
             <h3 className="mp-side-title">crate · {playlist.name}</h3>
-            <PlayerRail players={players} />
             <div className="mp-lobby-edit">
               <p className="profile-label">your look</p>
               <ProfileEditor
@@ -187,6 +186,8 @@ export default function HostParty({ code, playlist, me, onExit }) {
                 onChange={updateHostProfile}
               />
             </div>
+            <h3 className="mp-side-title">players</h3>
+            <PlayerRail players={players} />
             {error && <div className="error-banner">{error}</div>}
             {status === "connecting" && <p className="fineprint">connecting to room…</p>}
             {status === "error" && (

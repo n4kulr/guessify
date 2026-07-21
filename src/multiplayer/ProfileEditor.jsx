@@ -2,13 +2,12 @@ import { useEffect, useState } from "react";
 import PlayerAvatar from "./PlayerAvatar.jsx";
 import {
   PLAYER_COLORS,
-  PEEP_COUNT,
   randomAvatar,
   normalizeAvatar,
 } from "./constants.js";
 
 /**
- * Nickname + Open Peeps bust picker (from Flat Assets library).
+ * Nickname + accent + randomize peep (no manual peep picker).
  * Calls onChange({ name, avatar }) whenever something updates.
  */
 export default function ProfileEditor({
@@ -87,23 +86,6 @@ export default function ProfileEditor({
               onClick={() => patchAvatar({ color: c })}
               aria-label={`color ${c}`}
             />
-          ))}
-        </div>
-      </div>
-
-      <div className="profile-section">
-        <span className="profile-label">peep</span>
-        <div className="profile-peeps">
-          {Array.from({ length: PEEP_COUNT }, (_, i) => i + 1).map((n) => (
-            <button
-              key={n}
-              type="button"
-              className={`profile-part ${avatar.peep === n ? "active" : ""}`}
-              onClick={() => patchAvatar({ peep: n })}
-              aria-label={`peep ${n}`}
-            >
-              <PlayerAvatar avatar={{ peep: n, color: avatar.color }} size={48} />
-            </button>
           ))}
         </div>
       </div>

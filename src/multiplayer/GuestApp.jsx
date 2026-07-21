@@ -73,7 +73,7 @@ export default function GuestApp({ code }) {
       <div className="mp-guest panel">
         <div className="sticker">room {upper}</div>
         <h2 className="title">make your look</h2>
-        <p className="subtitle">Nickname + peep — everyone in the lobby will see it.</p>
+        <p className="subtitle">Nickname, accent, and a random peep.</p>
         <ProfileEditor name={name} avatar={avatar} onChange={updateProfile} />
         {error && <div className="error-banner">{error}</div>}
         <button
@@ -98,10 +98,12 @@ export default function GuestApp({ code }) {
         <p className="section-sub">
           Waiting for {state.hostName} to start — tweak your look anytime.
         </p>
-        <PlayerRail players={state.players} />
         <div className="mp-lobby-edit">
+          <p className="profile-label">your look</p>
           <ProfileEditor name={name} avatar={avatar} onChange={updateProfile} />
         </div>
+        <h3 className="mp-side-title">players</h3>
+        <PlayerRail players={state.players} />
         {error && <div className="error-banner">{error}</div>}
       </div>
     );
