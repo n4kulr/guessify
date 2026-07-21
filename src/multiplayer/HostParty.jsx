@@ -67,6 +67,14 @@ export default function HostParty({ code, playlist, me, onExit }) {
     if (mePlayer.avatar) setHostAvatar(mePlayer.avatar);
   }, [mePlayer?.id, mePlayer?.name, mePlayer?.avatar?.peep, mePlayer?.avatar?.color]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  useEffect(() => {
+    if (state?.revealedArtist) setArtistGuess(state.revealedArtist);
+  }, [state?.revealedArtist]);
+
+  useEffect(() => {
+    if (!state?.revealedArtist) setArtistGuess("");
+  }, [state?.roundIdx]); // eslint-disable-line react-hooks/exhaustive-deps
+
   function updateHostProfile({ name, avatar }) {
     setHostName(name);
     setHostAvatar(avatar);
@@ -355,6 +363,7 @@ export default function HostParty({ code, playlist, me, onExit }) {
               className="guess-input"
               placeholder="artist…"
               value={artistGuess}
+              disabled={!!state.revealedArtist}
               onChange={(e) => setArtistGuess(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && submitGuess()}
             />

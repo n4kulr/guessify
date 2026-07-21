@@ -129,6 +129,8 @@ export class Room extends Server {
         bonus: 0,
         earnedPts: 0,
         playing: false,
+        revealedArtist: null,
+        artistClaimedBy: null,
         colorIdx: 1,
       };
       sender.send(
@@ -186,8 +188,8 @@ export class Room extends Server {
       sender.send(JSON.stringify({ type: "error", error: "Room not ready yet — wait for the host." }));
       return;
     }
-    if (this.state.phase !== "lobby") {
-      sender.send(JSON.stringify({ type: "error", error: "Game already started." }));
+    if (this.state.phase === "over") {
+      sender.send(JSON.stringify({ type: "error", error: "This party is over." }));
       return;
     }
 
@@ -223,7 +225,7 @@ export class Room extends Server {
   }
 
   handleProfile(msg, sender) {
-    if (!this.state || this.state.phase !== "lobby") return;
+    if (!this.state || this.state.phase === "over") return;
     const player = this.playerFor(sender);
     if (!player) return;
 
@@ -280,7 +282,8 @@ export class Room extends Server {
     this.state.bonus = 0;
     this.state.earnedPts = 0;
     this.state.playing = false;
-    this.state.artistBonusClaimed = {};
+    this.state.revealedArtist = null;
+    this.state.artistClaimedBy = null;
     this.broadcastState();
   }
 
@@ -293,21 +296,28 @@ export class Room extends Server {
     }
 
     const title = String(msg.title || "").trim();
-    const artist = String(msg.artist || "").trim();
+    let artist = String(msg.artist || "").trim();
+    const artistLocked = !!this.state.revealedArtist;
+
+    // Artist already claimed room-wide — only title guesses matter now.
+    if (artistLocked) {
+      artist = "";
+      if (!title) return;
+    }
     if (!title && !artist) return;
 
     const track = this.state.tracks[this.state.roundIdx];
     if (!track) return;
 
     const titleOk = title ? isCorrect(title, track.name) : false;
-    const artistOk = artist ? matchesAnyArtist(artist, track.artists) : false;
+    const artistOk = !artistLocked && artist ? matchesAnyArtist(artist, track.artists) : false;
     const win = titleOk;
 
-    // Artist bonus once per player per round, even without a title win.
+    // First correct artist fills it for the whole room (+bonus once).
     let artistPts = 0;
-    if (artistOk && !this.state.artistBonusClaimed?.[player.id]) {
-      if (!this.state.artistBonusClaimed) this.state.artistBonusClaimed = {};
-      this.state.artistBonusClaimed[player.id] = true;
+    if (artistOk && !this.state.artistClaimedBy) {
+      this.state.artistClaimedBy = player.id;
+      this.state.revealedArtist = (track.artists || []).join(", ");
       artistPts = ARTIST_BONUS;
       player.score += artistPts;
     }
@@ -317,8 +327,8 @@ export class Room extends Server {
       name: player.name,
       color: player.color,
       avatar: player.avatar,
-      title,
-      artist,
+      title: title || null,
+      artist: artistOk ? this.state.revealedArtist : artist || null,
       titleOk,
       artistOk,
       win,
@@ -341,7 +351,8 @@ export class Room extends Server {
         this.state.bonus = artistPts;
         this.state.earnedPts = artistPts;
       }
-      this.consumeGuess();
+      // Artist-only correct shouldn't burn a shared unlock step.
+      if (title || !artistOk) this.consumeGuess();
     }
 
     this.broadcastState();
@@ -401,7 +412,8 @@ export class Room extends Server {
     this.state.bonus = 0;
     this.state.earnedPts = 0;
     this.state.playing = false;
-    this.state.artistBonusClaimed = {};
+    this.state.revealedArtist = null;
+    this.state.artistClaimedBy = null;
     this.state.phase = "play";
     this.broadcastState();
   }
@@ -463,6 +475,8 @@ export class Room extends Server {
       bonus: this.state.bonus,
       earnedPts: this.state.earnedPts,
       playing: this.state.playing,
+      revealedArtist: this.state.revealedArtist || null,
+      artistClaimedBy: this.state.artistClaimedBy || null,
       track: this.publicTrack(),
       // Host-only full track id for Spotify playback (guests get id too but no secret beyond that —
       // knowing the Spotify id doesn't reveal the title in-UI; they still can't hear without being nearby).

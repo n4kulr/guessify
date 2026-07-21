@@ -36,6 +36,16 @@ export default function GuestApp({ code }) {
     if (me.avatar) setAvatar(me.avatar);
   }, [me?.id, me?.name, me?.avatar?.peep, me?.avatar?.color]);
 
+  // Shared artist lock — fill for everyone once claimed.
+  useEffect(() => {
+    if (state?.revealedArtist) setArtistGuess(state.revealedArtist);
+  }, [state?.revealedArtist]);
+
+  // Clear artist field when a new round starts.
+  useEffect(() => {
+    if (!state?.revealedArtist) setArtistGuess("");
+  }, [state?.roundIdx]); // eslint-disable-line react-hooks/exhaustive-deps
+
   function join() {
     setError(null);
     send({ type: "join", name, avatar });
@@ -73,7 +83,9 @@ export default function GuestApp({ code }) {
       <div className="mp-guest panel">
         <div className="sticker">room {upper}</div>
         <h2 className="title">join the party</h2>
-        <p className="subtitle">Pick a look, then jump in — no Spotify needed.</p>
+        <p className="subtitle">
+          Pick a look, then jump in — even mid-game. No Spotify needed.
+        </p>
         <div className="mp-lobby-edit">
           <p className="profile-label">your look</p>
           <ProfileEditor name={name} avatar={avatar} onChange={updateProfile} />
@@ -206,6 +218,7 @@ export default function GuestApp({ code }) {
                 className="guess-input"
                 placeholder="artist…"
                 value={artistGuess}
+                disabled={!!state.revealedArtist}
                 onChange={(e) => setArtistGuess(e.target.value)}
                 onKeyDown={(e) => e.key === "Enter" && submitGuess()}
               />
