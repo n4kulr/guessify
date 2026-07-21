@@ -23,6 +23,6 @@ export default async function handler(req, res) {
     res.status(200).json({ playlists });
   } catch (e) {
     console.error(e);
-    res.status(500).json({ error: "Failed to load playlists" });
+    res.status(500).json({ error: "Failed to load playlists", detail: e.message });
   }
 }

@@ -47,6 +47,8 @@ export default async function handler(req, res) {
     const status = e.status === 404 ? 404 : 500;
     res.status(status).json({
       error: status === 404 ? "Playlist not found." : "Failed to load playlist.",
+      detail: e.message,
+      spotifyStatus: e.status || null,
     });
   }
 }

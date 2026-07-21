@@ -101,8 +101,10 @@ export async function tokenRequest(params) {
 export async function spotifyGet(url, token) {
   const r = await fetch(url, { headers: { Authorization: `Bearer ${token}` } });
   if (!r.ok) {
-    const e = new Error(`spotify ${r.status}`);
+    const body = await r.text();
+    const e = new Error(`spotify ${r.status} @ ${url} :: ${body}`);
     e.status = r.status;
+    e.body = body;
     throw e;
   }
   return r.json();
