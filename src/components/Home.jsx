@@ -1,5 +1,5 @@
 import DemoPreview from "./DemoPreview.jsx";
-import ScrubbableVinyl from "./ScrubbableVinyl.jsx";
+import HeroTurntable from "./HeroTurntable.jsx";
 import JoinCodeForm from "../multiplayer/JoinCodeForm.jsx";
 
 export default function Home({ me, onStartSolo, onStartMulti }) {
@@ -16,15 +16,7 @@ export default function Home({ me, onStartSolo, onStartMulti }) {
           fast you can <em>name that tune</em>.
         </p>
 
-        <div className="hero-turntable">
-          <ScrubbableVinyl spin="fast" title="drag to scrub">
-            <div className="vinyl-label">
-              <span>45</span>
-              <span>RPM</span>
-            </div>
-          </ScrubbableVinyl>
-          <div className="tonearm tonearm--on" />
-        </div>
+        <HeroTurntable />
 
         <ol className="steps">
           <li><b>1</b> pick a playlist (or Liked Songs)</li>

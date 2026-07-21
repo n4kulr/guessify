@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { createScratchEngine, pointerAngle } from "../vinylScratch.js";
 
-const SCRUB_THRESHOLD = 0.08; // radians before a drag counts as scrubbing
+const SCRUB_THRESHOLD = 0.05; // radians before a drag counts as scrubbing
 
 // One shared engine so every disc on screen can scratch without stacking contexts.
 let sharedScratch = null;

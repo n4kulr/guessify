@@ -107,7 +107,7 @@ export default function Feedback({ open, onOpen, onClose }) {
               aria-expanded={showAbout}
               onClick={() => setShowAbout((v) => !v)}
             >
-              ?
+              how?
             </button>
             <button
               type="button"
@@ -140,7 +140,7 @@ export default function Feedback({ open, onOpen, onClose }) {
         ) : (
           <form className="feedback-form" onSubmit={send}>
             <label className="feedback-label" htmlFor="feedback-message">
-              bugs, ideas, vibes — drop it here
+              bugs, ideas, complaints — drop it here
             </label>
             <textarea
               id="feedback-message"

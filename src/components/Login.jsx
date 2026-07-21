@@ -1,13 +1,11 @@
 import DemoPreview from "./DemoPreview.jsx";
-import ScrubbableVinyl from "./ScrubbableVinyl.jsx";
+import HeroTurntable from "./HeroTurntable.jsx";
 import JoinCodeForm from "../multiplayer/JoinCodeForm.jsx";
 
 export default function Login({ error }) {
   return (
     <div className="hero">
       <div className="hero-left">
-        <div className="sticker">now spinning</div>
-
         <h1 className="hero-title">
           guess<span className="hero-title-accent">ify</span>
         </h1>
@@ -15,15 +13,7 @@ export default function Login({ error }) {
           Your playlists. One-second snippets. Can you <em>name that tune?</em>
         </p>
 
-        <div className="hero-turntable">
-          <ScrubbableVinyl spin="fast" title="drag to scrub">
-            <div className="vinyl-label">
-              <span>45</span>
-              <span>RPM</span>
-            </div>
-          </ScrubbableVinyl>
-          <div className="tonearm tonearm--on" />
-        </div>
+        <HeroTurntable />
 
         <ol className="steps">
           <li><b>1</b> log in with Spotify</li>

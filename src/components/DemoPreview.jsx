@@ -1,4 +1,6 @@
 import { useEffect, useState } from "react";
+import { playCassetteButton } from "../cassetteSounds.js";
+
 // Self-playing fake rounds so people see the vibe before logging in.
 const ROUNDS = [
   {
@@ -93,6 +95,13 @@ const ROUNDS = [
 
 const STEPS = [1, 2, 4, 7, 11, 16];
 
+const TEETH = [
+  { id: "rew", label: "rewind", icon: "⏮" },
+  { id: "play", label: "play", icon: "▶" },
+  { id: "pause", label: "pause", icon: "⏸" },
+  { id: "ff", label: "fast forward", icon: "⏭" },
+];
+
 export default function DemoPreview() {
   const [roundIdx, setRoundIdx] = useState(0);
   const [step, setStep] = useState(0); // 0..guesses.length (== solved)
@@ -126,6 +135,7 @@ export default function DemoPreview() {
 
   function tapTooth(i) {
     setPressed(i);
+    playCassetteButton(i);
     window.setTimeout(() => setPressed(null), 160);
   }
 
@@ -136,8 +146,10 @@ export default function DemoPreview() {
       </div>
 
       <div className="demo-screen">
+        <div className="demo-grain" aria-hidden="true" />
+        <div className="demo-scanlines" aria-hidden="true" />
         <div className="demo-head">
-          <span className="demo-playlist">▶ your-liked-songs</span>
+          <span className="demo-playlist">▶ liked-songs</span>
           <span className="demo-score">
             SCORE <b>4200</b>
           </span>
@@ -146,6 +158,14 @@ export default function DemoPreview() {
         <div className="demo-stage demo-stage--cassette">
           <div className={`demo-cassette ${done ? "is-done" : ""}`}>
             <div className="demo-cassette-shell">
+              <span className="demo-screw demo-screw--tl" aria-hidden="true" />
+              <span className="demo-screw demo-screw--tr" aria-hidden="true" />
+              <span className="demo-screw demo-screw--bl" aria-hidden="true" />
+              <span className="demo-screw demo-screw--br" aria-hidden="true" />
+              <span className="demo-side-mark" aria-hidden="true">
+                A
+              </span>
+
               <div
                 className={`demo-cassette-label ${
                   done ? "demo-cassette-label--solved" : ""
@@ -157,8 +177,8 @@ export default function DemoPreview() {
                       className="demo-cover"
                       src={answer.cover}
                       alt=""
-                      width={36}
-                      height={36}
+                      width={18}
+                      height={18}
                       decoding="async"
                     />
                     <div className="demo-marquee">
@@ -173,19 +193,28 @@ export default function DemoPreview() {
                 )}
               </div>
               <div className="demo-cassette-window">
-                <span className={`demo-reel ${done ? "spin-slow" : "spin-fast"}`} />
-                <span className="demo-tape" />
-                <span className={`demo-reel ${done ? "spin-slow" : "spin-fast"}`} />
+                <span
+                  className={`demo-reel demo-reel--left ${done ? "spin-slow" : "spin-fast"}`}
+                  aria-hidden="true"
+                />
+                <span
+                  className={`demo-reel demo-reel--right ${done ? "spin-slow" : "spin-fast"}`}
+                  aria-hidden="true"
+                />
               </div>
               <div className="demo-cassette-sprockets">
-                {[0, 1, 2, 3].map((i) => (
+                {TEETH.map((tooth, i) => (
                   <button
-                    key={i}
+                    key={tooth.id}
                     type="button"
                     className={`demo-tooth ${pressed === i ? "is-pressed" : ""}`}
-                    aria-label={`cassette button ${i + 1}`}
+                    aria-label={tooth.label}
                     onClick={() => tapTooth(i)}
-                  />
+                  >
+                    <span className="demo-tooth-icon" aria-hidden="true">
+                      {tooth.icon}
+                    </span>
+                  </button>
                 ))}
               </div>
             </div>
@@ -202,33 +231,35 @@ export default function DemoPreview() {
           <span className="demo-time">0:0{unlocked} unlocked</span>
         </div>
 
-        {done ? (
-          <div className="demo-win">
-            <img
-              className="demo-win-cover"
-              src={answer.cover}
-              alt=""
-              decoding="async"
-            />
-            <div className="demo-win-meta">
-              <span className="demo-win-title">{answer.title}</span>
-              <span className="demo-win-artist">{answer.artist}</span>
-            </div>
-          </div>
-        ) : (
-          <div className="demo-rows" key={roundIdx}>
-            {script.map((g, i) => (
-              <div
-                key={i}
-                className={`demo-row ${
-                  i < step ? (g.correct ? "hit" : "miss") : i === step ? "cursor" : ""
-                }`}
-              >
-                {i < step ? g.text : i === step ? "◉ guessing…" : ""}
+        <div className="demo-result">
+          {done ? (
+            <div className="demo-win">
+              <img
+                className="demo-win-cover"
+                src={answer.cover}
+                alt=""
+                decoding="async"
+              />
+              <div className="demo-win-meta">
+                <span className="demo-win-title">{answer.title}</span>
+                <span className="demo-win-artist">{answer.artist}</span>
               </div>
-            ))}
-          </div>
-        )}
+            </div>
+          ) : (
+            <div className="demo-rows" key={roundIdx}>
+              {script.map((g, i) => (
+                <div
+                  key={i}
+                  className={`demo-row ${
+                    i < step ? (g.correct ? "hit" : "miss") : i === step ? "cursor" : ""
+                  }`}
+                >
+                  {i < step ? g.text : i === step ? "◉ guessing…" : ""}
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );
