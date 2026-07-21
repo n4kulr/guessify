@@ -257,98 +257,133 @@ button { font-family: var(--font); }
 .demo-stage { position: relative; width: 118px; height: 118px; margin: 4px auto 16px; }
 .demo-stage--cassette {
   width: 100%;
-  max-width: 100%;
-  height: auto;
-  min-height: 0;
-  margin: 8px 0 18px;
-  display: block;
+  margin: 10px 0 20px;
 }
 .demo-cassette {
   width: 100%;
+  max-width: 280px;
+  margin: 0 auto;
+  aspect-ratio: 1.55 / 1;
 }
 .demo-cassette-shell {
-  background:
-    linear-gradient(180deg, color-mix(in srgb, var(--text-color) 12%, var(--bg-color)) 0%, var(--bg-color) 100%);
-  border: 2px solid color-mix(in srgb, var(--text-color) 35%, transparent);
-  border-radius: 12px;
-  padding: 14px 16px 16px;
-  width: 100%;
-  box-sizing: border-box;
-  box-shadow:
-    inset 0 1px 0 color-mix(in srgb, var(--text-color) 18%, transparent),
-    0 8px 18px color-mix(in srgb, #000 28%, transparent);
   position: relative;
+  height: 100%;
+  box-sizing: border-box;
+  padding: 12px 14px 18px;
+  border-radius: 6px 6px 10px 10px;
+  background: color-mix(in srgb, var(--text-color) 7%, var(--bg-color));
+  border: 1px solid color-mix(in srgb, var(--text-color) 28%, transparent);
+  box-shadow: inset 0 1px 0 color-mix(in srgb, var(--text-color) 10%, transparent);
 }
+.demo-screw {
+  position: absolute;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background:
+    radial-gradient(circle at 35% 35%, color-mix(in srgb, var(--text-color) 35%, #fff) 0 1px, transparent 2px),
+    color-mix(in srgb, var(--text-color) 45%, var(--bg-color));
+  border: 1px solid color-mix(in srgb, var(--text-color) 30%, transparent);
+}
+.demo-screw.tl { top: 6px; left: 7px; }
+.demo-screw.tr { top: 6px; right: 7px; }
+.demo-screw.bl { bottom: 8px; left: 10px; }
+.demo-screw.br { bottom: 8px; right: 10px; }
+
 .demo-cassette-label {
-  font-size: 12px;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  text-align: center;
+  display: flex;
+  align-items: stretch;
+  gap: 8px;
+  min-height: 42px;
+  margin: 2px 4px 10px;
+  padding: 6px 8px;
+  background: color-mix(in srgb, var(--main-color) 18%, var(--bg-color));
+  border: 1px solid color-mix(in srgb, var(--main-color) 35%, transparent);
+}
+.demo-cassette-side {
+  flex: none;
+  width: 22px;
+  display: grid;
+  place-items: center;
+  font-size: 13px;
+  font-weight: 800;
   color: var(--bg-color);
   background: var(--main-color);
-  border-radius: 5px;
-  padding: 8px 10px;
-  margin-bottom: 12px;
-  font-weight: 700;
 }
+.demo-cassette-meta {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 2px;
+  border-bottom: 1px solid color-mix(in srgb, var(--text-color) 18%, transparent);
+  padding-bottom: 2px;
+}
+.demo-cassette-title {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: var(--text-color);
+}
+.demo-cassette-artist {
+  font-size: 10px;
+  color: var(--sub-color);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
 .demo-cassette-window {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 14px;
-  background: color-mix(in srgb, var(--text-color) 8%, var(--sub-alt-color));
-  border: 1px solid color-mix(in srgb, var(--text-color) 22%, transparent);
-  border-radius: 6px;
-  padding: 14px 16px;
-  margin-bottom: 12px;
-  min-height: 64px;
+  gap: 10px;
+  margin: 0 8px;
+  padding: 10px 14px;
+  min-height: 52px;
+  background: #111;
+  border: 1px solid color-mix(in srgb, var(--text-color) 40%, transparent);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.04);
 }
 .demo-reel {
-  width: 42px;
-  height: 42px;
+  width: 34px;
+  height: 34px;
   border-radius: 50%;
   flex: none;
   background:
-    radial-gradient(circle, var(--bg-color) 0 6px, transparent 7px),
-    repeating-conic-gradient(
-      from 0deg,
-      var(--main-color) 0 12deg,
-      color-mix(in srgb, var(--text-color) 55%, #000) 12deg 24deg
+    radial-gradient(circle, #1a1a1a 0 5px, transparent 6px),
+    repeating-conic-gradient(from 0deg, #2a2a2a 0 18deg, #111 18deg 36deg);
+  border: 1px solid #555;
+  box-shadow: inset 0 0 0 4px #0d0d0d;
+}
+.demo-reel.spin-fast { animation: spin 1.35s linear infinite; }
+.demo-reel.spin-slow { animation: spin 3.2s linear infinite; }
+.demo-tape-path {
+  flex: 1;
+  height: 3px;
+  background: #3a342c;
+  border-radius: 1px;
+  opacity: 0.9;
+}
+
+.demo-cassette-teeth {
+  position: absolute;
+  left: 18%;
+  right: 18%;
+  bottom: 5px;
+  height: 7px;
+  background:
+    repeating-linear-gradient(
+      90deg,
+      transparent 0 5px,
+      color-mix(in srgb, var(--text-color) 28%, transparent) 5px 9px
     );
-  border: 2px solid color-mix(in srgb, var(--text-color) 40%, transparent);
-}
-.demo-reel.spin-fast { animation: spin 1.1s linear infinite; }
-.demo-reel.spin-slow { animation: spin 2.8s linear infinite; }
-.demo-tape {
-  flex: 1;
-  height: 8px;
-  border-radius: 4px;
-  background: linear-gradient(
-    90deg,
-    transparent,
-    color-mix(in srgb, var(--main-color) 70%, #222),
-    transparent
-  );
+  border-radius: 0 0 2px 2px;
   opacity: 0.85;
-  animation: tape-shimmer 1.2s linear infinite;
-}
-@keyframes tape-shimmer {
-  0% { opacity: 0.45; transform: scaleX(0.92); }
-  50% { opacity: 0.95; transform: scaleX(1); }
-  100% { opacity: 0.45; transform: scaleX(0.92); }
-}
-.demo-cassette-sprockets {
-  display: flex;
-  justify-content: space-between;
-  gap: 8px;
-  padding: 0 2px;
-}
-.demo-cassette-sprockets span {
-  flex: 1;
-  height: 10px;
-  border-radius: 3px;
-  background: color-mix(in srgb, var(--text-color) 22%, transparent);
-  border: 1px solid color-mix(in srgb, var(--text-color) 18%, transparent);
 }
 
 .demo-progress { margin-bottom: 14px; }
