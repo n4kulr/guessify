@@ -231,7 +231,7 @@ export default function Game({ playlist, onExit }) {
 
       {phase === "play" && (
         <>
-          <div className={`turntable turntable--game ${celebrate ? "turntable--celebrate" : ""}`}>
+          <div className={`turntable turntable--game turntable--md ${celebrate ? "turntable--celebrate" : ""}`}>
             {celebrate && (
               <>
                 <span className="win-ring win-ring--1" aria-hidden="true" />
@@ -239,8 +239,9 @@ export default function Game({ playlist, onExit }) {
                 <span className="win-ring win-ring--3" aria-hidden="true" />
               </>
             )}
+            <div className="platter" aria-hidden="true" />
             <ScrubbableVinyl
-              className={resolved ? "vinyl--revealed" : ""}
+              className={`vinyl--md ${resolved ? "vinyl--revealed" : ""}`}
               spin={spinning ? "fast" : false}
               enabled={canControl}
               title={

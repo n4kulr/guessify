@@ -6,8 +6,8 @@ import { getToken } from "../spotify.js";
 import { STEPS, TOTAL, randomAvatar } from "./constants.js";
 import ScrubbableVinyl from "../components/ScrubbableVinyl.jsx";
 import PlayerRail from "./PlayerRail.jsx";
-import PlayerAvatar from "./PlayerAvatar.jsx";
 import ProfileEditor from "./ProfileEditor.jsx";
+import GuessPopups from "./GuessPopups.jsx";
 
 /**
  * Host multiplayer session — one PartySocket for lobby + DJ board so the
@@ -247,7 +247,8 @@ export default function HostParty({ code, playlist, me, onExit }) {
   const lastGuesser = state.guesses[state.guesses.length - 1];
 
   return (
-    <div className="game mp-host">
+    <div className="game mp-host mp-board">
+      <div className="mp-board-main">
       <div className="game-head">
         <button className="btn btn-mini" onClick={onExit}>
           ← end party
@@ -271,9 +272,10 @@ export default function HostParty({ code, playlist, me, onExit }) {
         pulseId={lastGuesser?.playerId}
       />
 
-      <div className="turntable turntable--game">
+      <div className="turntable turntable--game turntable--md">
+        <div className="platter" aria-hidden="true" />
         <ScrubbableVinyl
-          className={revealed ? "vinyl--revealed" : ""}
+          className={`vinyl--md ${revealed ? "vinyl--revealed" : ""}`}
           spin={spinning ? "fast" : false}
           enabled={canControl}
           title={canControl ? "play / pause · drag to scrub" : undefined}
@@ -338,38 +340,6 @@ export default function HostParty({ code, playlist, me, onExit }) {
           )}
         </div>
       )}
-
-      <div className="guess-rows mp-guess-feed">
-        {state.guesses.length === 0 ? (
-          <div className="guess-row active">waiting for guesses…</div>
-        ) : (
-          state.guesses.map((g, i) => (
-            <div
-              key={i}
-              className={`guess-row ${g.win ? "correct" : "wrong"}`}
-              style={{ borderLeft: `4px solid ${g.color}` }}
-            >
-              <span className="mp-guess-who">
-                <PlayerAvatar
-                  avatar={g.avatar || { peep: 1, color: g.color }}
-                  size={22}
-                  className="mp-guess-avatar"
-                />
-                {g.playerId === playerId ? "you" : g.name}
-              </span>
-              {g.skip ? (
-                <span className="gr-skip">⏭ skipped</span>
-              ) : (
-                <>
-                  <span className={`gr-field ${g.titleOk ? "ok" : "no"}`}>{g.title || "—"}</span>
-                  <span className="gr-sep">by</span>
-                  <span className={`gr-field ${g.artistOk ? "ok" : "no"}`}>{g.artist || "—"}</span>
-                </>
-              )}
-            </div>
-          ))
-        )}
-      </div>
 
       {phase === "play" && (
         <div className="guess-input-wrap">
@@ -441,6 +411,9 @@ export default function HostParty({ code, playlist, me, onExit }) {
       <p className="fineprint mp-host-hint">
         You're in the race too — only you can skip to unlock more audio for everyone.
       </p>
+      </div>
+
+      <GuessPopups guesses={state.guesses} myId={playerId} />
     </div>
   );
 }

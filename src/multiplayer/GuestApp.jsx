@@ -1,8 +1,8 @@
 import { useEffect, useState } from "react";
 import { usePartyRoom } from "./usePartyRoom.js";
 import PlayerRail from "./PlayerRail.jsx";
-import PlayerAvatar from "./PlayerAvatar.jsx";
 import ProfileEditor from "./ProfileEditor.jsx";
+import GuessPopups from "./GuessPopups.jsx";
 import { STEPS, TOTAL, randomAvatar } from "./constants.js";
 import ScrubbableVinyl from "../components/ScrubbableVinyl.jsx";
 
@@ -129,178 +129,120 @@ export default function GuestApp({ code }) {
   const revealed = state.phase === "reveal";
   const unlocked = state.unlocked;
   const track = state.track;
-  const myGuesses = state.guesses.filter((g) => g.playerId === playerId);
-  const othersGuesses = state.guesses.filter((g) => g.playerId !== playerId);
   const spinning = state.playing && state.phase === "play";
 
   return (
-    <div className="game mp-guest-game">
-      <div className="now-playing">
-        <span className="np-playlist">{state.playlistName}</span>
-        <span className="np-round">
-          record {state.roundIdx + 1} / {state.roundCount}
-        </span>
-      </div>
-
-      <PlayerRail
-        players={state.players}
-        winnerId={state.winnerId}
-        pulseId={state.guesses[state.guesses.length - 1]?.playerId}
-      />
-
-      <div className="turntable turntable--game">
-        <ScrubbableVinyl
-          className={revealed ? "vinyl--revealed" : ""}
-          spin={spinning ? "fast" : false}
-          title="drag to scrub"
-        >
-          {revealed && track?.cover ? (
-            <img src={track.cover} alt="" className="vinyl-cover" draggable={false} />
-          ) : (
-            <div className="vinyl-label vinyl-label--mystery">
-              {state.outcome === "lose" ? "✗" : "?"}
-            </div>
-          )}
-        </ScrubbableVinyl>
-        <div className={`tonearm ${spinning ? "tonearm--on" : ""}`} />
-      </div>
-
-      {state.outcome === "win" && revealed && (
-        <div className="inline-badge inline-badge--win">
-          {state.winnerId === playerId
-            ? "YOU NAILED IT"
-            : `${state.players.find((p) => p.id === state.winnerId)?.name || "someone"} NAILED IT`}
+    <div className="game mp-guest-game mp-board">
+      <div className="mp-board-main">
+        <div className="now-playing">
+          <span className="np-playlist">{state.playlistName}</span>
+          <span className="np-round">
+            record {state.roundIdx + 1} / {state.roundCount}
+          </span>
         </div>
-      )}
-      {state.outcome === "lose" && revealed && (
-        <div className="inline-badge inline-badge--lose">MISSED</div>
-      )}
 
-      <div className="progress">
-        <div className="progress-track">
-          <div
-            className="progress-fill"
-            style={{ width: `${((revealed ? TOTAL : unlocked) / TOTAL) * 100}%` }}
-          />
-          {STEPS.map((s) => (
-            <span key={s} className="progress-tick" style={{ left: `${(s / TOTAL) * 100}%` }} />
-          ))}
-        </div>
-        <div className="progress-labels">
-          <span>0:00</span>
-          <span>{revealed ? "revealed" : `${unlocked}s unlocked`}</span>
-        </div>
-      </div>
+        <PlayerRail
+          players={state.players}
+          winnerId={state.winnerId}
+          pulseId={state.guesses[state.guesses.length - 1]?.playerId}
+        />
 
-      {othersGuesses.length > 0 && (
-        <div className="mp-others">
-          <div className="mp-others-label">room guesses</div>
-          <div className="guess-rows mp-guess-feed">
-            {othersGuesses.map((g, i) => (
-              <div
-                key={i}
-                className={`guess-row ${g.win ? "correct" : "wrong"}`}
-                style={{ borderLeft: `4px solid ${g.color || g.avatar?.color || "#888"}` }}
-              >
-                <PlayerAvatar
-                  avatar={g.avatar || { peep: 1, color: g.color }}
-                  size={22}
-                  className="mp-guess-avatar"
-                />
-                <span className="mp-guess-who">{g.name}</span>
-                {g.skip ? (
-                  <span className="gr-skip">⏭ skipped</span>
-                ) : (
-                  <>
-                    <span className={`gr-field ${g.titleOk ? "ok" : "no"}`}>{g.title || "—"}</span>
-                    <span className="gr-sep">by</span>
-                    <span className={`gr-field ${g.artistOk ? "ok" : "no"}`}>{g.artist || "—"}</span>
-                  </>
-                )}
+        <div className="turntable turntable--game turntable--md">
+          <div className="platter" aria-hidden="true" />
+          <ScrubbableVinyl
+            className={`vinyl--md ${revealed ? "vinyl--revealed" : ""}`}
+            spin={spinning ? "fast" : false}
+            title="drag to scrub"
+          >
+            {revealed && track?.cover ? (
+              <img src={track.cover} alt="" className="vinyl-cover" draggable={false} />
+            ) : (
+              <div className="vinyl-label vinyl-label--mystery">
+                {state.outcome === "lose" ? "✗" : "?"}
               </div>
+            )}
+          </ScrubbableVinyl>
+          <div className={`tonearm ${spinning ? "tonearm--on" : ""}`} />
+        </div>
+
+        {state.outcome === "win" && revealed && (
+          <div className="inline-badge inline-badge--win">
+            {state.winnerId === playerId
+              ? "YOU NAILED IT"
+              : `${state.players.find((p) => p.id === state.winnerId)?.name || "someone"} NAILED IT`}
+          </div>
+        )}
+        {state.outcome === "lose" && revealed && (
+          <div className="inline-badge inline-badge--lose">MISSED</div>
+        )}
+
+        <div className="progress">
+          <div className="progress-track">
+            <div
+              className="progress-fill"
+              style={{ width: `${((revealed ? TOTAL : unlocked) / TOTAL) * 100}%` }}
+            />
+            {STEPS.map((s) => (
+              <span key={s} className="progress-tick" style={{ left: `${(s / TOTAL) * 100}%` }} />
             ))}
           </div>
+          <div className="progress-labels">
+            <span>0:00</span>
+            <span>{revealed ? "revealed" : `${unlocked}s unlocked`}</span>
+          </div>
         </div>
-      )}
 
-      <div className="mp-others-label">your guesses</div>
-      <div className="guess-rows">
-        {Array.from({ length: 6 }).map((_, i) => {
-          const g = myGuesses[i];
-          let cls = "guess-row";
-          if (g?.win) cls += " correct";
-          else if (g) cls += " wrong";
-          if (!revealed && i === myGuesses.length) cls += " active";
-          return (
-            <div key={i} className={cls}>
-              {g ? (
-                g.skip ? (
-                  <span className="gr-skip">⏭ skipped</span>
-                ) : (
-                  <>
-                    <span className={`gr-field ${g.titleOk ? "ok" : "no"}`}>{g.title || "—"}</span>
-                    <span className="gr-sep">by</span>
-                    <span className={`gr-field ${g.artistOk ? "ok" : "no"}`}>{g.artist || "—"}</span>
-                  </>
-                )
-              ) : !revealed && i === myGuesses.length ? (
-                "◉ your guess…"
-              ) : (
-                ""
-              )}
+        {state.phase === "play" && (
+          <div className="guess-input-wrap">
+            <div className="guess-fields">
+              <input
+                className="guess-input"
+                placeholder="song title…"
+                value={titleGuess}
+                onChange={(e) => setTitleGuess(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && submitGuess()}
+              />
+              <input
+                className="guess-input"
+                placeholder="artist…"
+                value={artistGuess}
+                onChange={(e) => setArtistGuess(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && submitGuess()}
+              />
             </div>
-          );
-        })}
+            <div className="guess-actions guess-actions--guess-only">
+              <button
+                className="btn btn-guess"
+                onClick={submitGuess}
+                disabled={!titleGuess.trim() && !artistGuess.trim()}
+              >
+                <span className="btn-label">guess</span>
+                <span className="btn-hint">↵ enter</span>
+              </button>
+            </div>
+          </div>
+        )}
+
+        {revealed && track && (
+          <div className="inline-reveal">
+            <div className="reveal">
+              <div className="reveal-art">
+                {track.cover && <img src={track.cover} alt="" className="reveal-cover" />}
+              </div>
+              <div className="reveal-text">
+                <span className="reveal-title">{track.name}</span>
+                <span className="reveal-artist">{(track.artists || []).join(", ")}</span>
+                {state.winnerId === playerId && (
+                  <span className="reveal-points">+{state.earnedPts} pts</span>
+                )}
+              </div>
+            </div>
+            <p className="fineprint">waiting for host to continue…</p>
+          </div>
+        )}
       </div>
 
-      {state.phase === "play" && (
-        <div className="guess-input-wrap">
-          <div className="guess-fields">
-            <input
-              className="guess-input"
-              placeholder="song title…"
-              value={titleGuess}
-              onChange={(e) => setTitleGuess(e.target.value)}
-              onKeyDown={(e) => e.key === "Enter" && submitGuess()}
-            />
-            <input
-              className="guess-input"
-              placeholder="artist…"
-              value={artistGuess}
-              onChange={(e) => setArtistGuess(e.target.value)}
-              onKeyDown={(e) => e.key === "Enter" && submitGuess()}
-            />
-          </div>
-          <div className="guess-actions guess-actions--guess-only">
-            <button
-              className="btn btn-guess"
-              onClick={submitGuess}
-              disabled={!titleGuess.trim() && !artistGuess.trim()}
-            >
-              <span className="btn-label">guess</span>
-              <span className="btn-hint">↵ enter</span>
-            </button>
-          </div>
-        </div>
-      )}
-
-      {revealed && track && (
-        <div className="inline-reveal">
-          <div className="reveal">
-            <div className="reveal-art">
-              {track.cover && <img src={track.cover} alt="" className="reveal-cover" />}
-            </div>
-            <div className="reveal-text">
-              <span className="reveal-title">{track.name}</span>
-              <span className="reveal-artist">{(track.artists || []).join(", ")}</span>
-              {state.winnerId === playerId && (
-                <span className="reveal-points">+{state.earnedPts} pts</span>
-              )}
-            </div>
-          </div>
-          <p className="fineprint">waiting for host to continue…</p>
-        </div>
-      )}
+      <GuessPopups guesses={state.guesses} myId={playerId} />
     </div>
   );
 }
