@@ -1,11 +1,11 @@
 import { useEffect, useState } from "react";
-
 // Self-playing fake rounds so people see the vibe before logging in.
 const ROUNDS = [
   {
     guesses: [
       { text: "taylor swift?", correct: false },
       { text: "drake?", correct: false },
+      { text: "daniel caesar?", correct: false },
       { text: "⏭ skipped", correct: false },
       { text: "infrunami", correct: true },
     ],
@@ -34,56 +34,59 @@ const ROUNDS = [
     guesses: [
       { text: "billie eilish?", correct: false },
       { text: "olivia rodrigo?", correct: false },
-      { text: "⏭ skipped", correct: false },
-      { text: "anti-hero", correct: true },
+      { text: "taylor swift?", correct: false },
+      { text: "it's nice to have a friend", correct: true },
     ],
     answer: {
-      title: "Anti-Hero",
+      title: "It's Nice To Have A Friend",
       artist: "Taylor Swift",
       cover:
-        "https://is1-ssl.mzstatic.com/image/thumb/Music112/v4/3d/01/f2/3d01f2e5-5a08-835f-3d30-d031720b2b80/22UM1IM07364.rgb.jpg/300x300bb.jpg",
+        "https://is1-ssl.mzstatic.com/image/thumb/Music125/v4/49/3d/ab/493dab54-f920-9043-6181-80993b8116c9/19UMGIM53909.rgb.jpg/300x300bb.jpg",
     },
   },
   {
     guesses: [
       { text: "post malone?", correct: false },
       { text: "ed sheeran?", correct: false },
+      { text: "frank ocean?", correct: false },
       { text: "⏭ skipped", correct: false },
-      { text: "blinding lights", correct: true },
+      { text: "house of balloons", correct: true },
     ],
     answer: {
-      title: "Blinding Lights",
+      title: "House of Balloons",
       artist: "The Weeknd",
       cover:
-        "https://is1-ssl.mzstatic.com/image/thumb/Music125/v4/a6/6e/bf/a66ebf79-5008-8948-b352-a790fc87446b/19UM1IM04638.rgb.jpg/300x300bb.jpg",
+        "https://is1-ssl.mzstatic.com/image/thumb/Music114/v4/31/18/fa/3118fab0-90ea-2ae5-cf6c-bc64054ab9e3/21UMGIM21449.rgb.jpg/300x300bb.jpg",
     },
   },
   {
     guesses: [
       { text: "ariana grande?", correct: false },
       { text: "doja cat?", correct: false },
+      { text: "lil uzi vert?", correct: false },
       { text: "⏭ skipped", correct: false },
-      { text: "levitating", correct: true },
+      { text: "thinkin bout you", correct: true },
     ],
     answer: {
-      title: "Levitating",
-      artist: "Dua Lipa",
+      title: "Thinkin Bout You",
+      artist: "Frank Ocean",
       cover:
-        "https://is1-ssl.mzstatic.com/image/thumb/Music116/v4/6c/11/d6/6c11d681-aa3a-d59e-4c2e-f77e181026ab/190295092665.jpg/300x300bb.jpg",
+        "https://is1-ssl.mzstatic.com/image/thumb/Music125/v4/04/f8/63/04f863fc-2852-604f-c910-a97ac069506b/12UMGIM40339.rgb.jpg/300x300bb.jpg",
     },
   },
   {
     guesses: [
       { text: "the weeknd?", correct: false },
       { text: "justin bieber?", correct: false },
+      { text: "beach house?", correct: false },
       { text: "⏭ skipped", correct: false },
-      { text: "as it was", correct: true },
+      { text: "lovers rock", correct: true },
     ],
     answer: {
-      title: "As It Was",
-      artist: "Harry Styles",
+      title: "Lovers Rock",
+      artist: "TV Girl",
       cover:
-        "https://is1-ssl.mzstatic.com/image/thumb/Music126/v4/2a/19/fb/2a19fb85-2f70-9e44-f2a9-82abe679b88e/886449990061.jpg/300x300bb.jpg",
+        "https://is1-ssl.mzstatic.com/image/thumb/Music122/v4/3d/09/0c/3d090c87-f02b-3c3c-cedf-603cc900082f/888174780955_cover.jpg/300x300bb.jpg",
     },
   },
 ];
@@ -201,20 +204,15 @@ export default function DemoPreview() {
 
         {done ? (
           <div className="demo-win">
-            <span className="demo-win-badge">✦ NAILED IT ✦</span>
-            <div className="demo-win-row">
-              <img
-                className="demo-win-cover"
-                src={answer.cover}
-                alt=""
-                width={48}
-                height={48}
-                decoding="async"
-              />
-              <div className="demo-win-meta">
-                <span className="demo-win-title">{answer.title}</span>
-                <span className="demo-win-artist">{answer.artist}</span>
-              </div>
+            <img
+              className="demo-win-cover"
+              src={answer.cover}
+              alt=""
+              decoding="async"
+            />
+            <div className="demo-win-meta">
+              <span className="demo-win-title">{answer.title}</span>
+              <span className="demo-win-artist">{answer.artist}</span>
             </div>
           </div>
         ) : (

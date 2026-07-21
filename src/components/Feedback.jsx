@@ -4,26 +4,33 @@ export default function Feedback({ open, onOpen, onClose }) {
   const [message, setMessage] = useState("");
   const [status, setStatus] = useState("idle"); // idle | sending | sent | error
   const [error, setError] = useState("");
+  const [showAbout, setShowAbout] = useState(false);
   const titleId = useId();
   const inputRef = useRef(null);
 
   useEffect(() => {
     if (!open) return;
     const onKey = (e) => {
-      if (e.key === "Escape") onClose();
+      if (e.key === "Escape") {
+        if (showAbout) setShowAbout(false);
+        else onClose();
+      }
     };
     window.addEventListener("keydown", onKey);
-    const t = window.setTimeout(() => inputRef.current?.focus(), 30);
+    const t = window.setTimeout(() => {
+      if (!showAbout) inputRef.current?.focus();
+    }, 30);
     return () => {
       window.removeEventListener("keydown", onKey);
       window.clearTimeout(t);
     };
-  }, [open, onClose]);
+  }, [open, onClose, showAbout]);
 
   useEffect(() => {
     if (!open) {
       setStatus("idle");
       setError("");
+      setShowAbout(false);
     }
   }, [open]);
 
@@ -92,17 +99,43 @@ export default function Feedback({ open, onOpen, onClose }) {
           <h2 id={titleId} className="help-title">
             feedback
           </h2>
-          <button
-            type="button"
-            className="help-close"
-            aria-label="Close"
-            onClick={onClose}
-          >
-            ×
-          </button>
+          <div className="feedback-head-actions">
+            <button
+              type="button"
+              className={`feedback-about-btn ${showAbout ? "is-open" : ""}`}
+              aria-label={showAbout ? "Hide how feedback works" : "How feedback works"}
+              aria-expanded={showAbout}
+              onClick={() => setShowAbout((v) => !v)}
+            >
+              ?
+            </button>
+            <button
+              type="button"
+              className="help-close"
+              aria-label="Close"
+              onClick={onClose}
+            >
+              ×
+            </button>
+          </div>
         </div>
 
-        {status === "sent" ? (
+        {showAbout ? (
+          <div className="feedback-about">
+            <p>
+              Messages land in my Discord through a <b>webhook</b> — no inbox,
+              just a channel ping when someone hits send.
+            </p>
+            <img
+              className="feedback-about-img"
+              src="/feedback-discord.png"
+              alt="Discord message from guessify showing feedback: dude this game rocks"
+            />
+            <p className="feedback-about-note">
+              looks like this on my end
+            </p>
+          </div>
+        ) : status === "sent" ? (
           <p className="feedback-thanks">got it — thanks!</p>
         ) : (
           <form className="feedback-form" onSubmit={send}>
