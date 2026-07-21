@@ -26,19 +26,22 @@ export default function Game({ playlist, onExit }) {
   const [roundIdx, setRoundIdx] = useState(0);
   const [guessNum, setGuessNum] = useState(0);
   const [guesses, setGuesses] = useState([]); // {title, artist, titleOk, artistOk, win, skip}
-  const [phase, setPhase] = useState("play"); // play | result | over
-  const [outcome, setOutcome] = useState(null); // win | lose
+  const [phase, setPhase] = useState("play"); // play | over
+  const [outcome, setOutcome] = useState(null); // null | win | lose
   const [score, setScore] = useState(0);
   const [bonus, setBonus] = useState(0); // +1 if artist also nailed on the winning guess
+  const [earnedPts, setEarnedPts] = useState(0);
   const [titleGuess, setTitleGuess] = useState("");
   const [artistGuess, setArtistGuess] = useState("");
   const [playing, setPlaying] = useState(false);
+  const [celebrate, setCelebrate] = useState(false); // triggers win CSS animations
 
   const { deviceId, status: playerStatus, errorMsg, player } = useSpotifyPlayer();
   const stopTimer = useRef(null);
 
   const track = rounds[roundIdx];
   const unlocked = STEPS[Math.min(guessNum, MAX_GUESSES - 1)];
+  const resolved = outcome !== null;
 
   // Stop playback whenever the track changes (and on unmount).
   useEffect(() => {
@@ -58,14 +61,12 @@ export default function Game({ playlist, onExit }) {
     clearTimeout(stopTimer.current);
     try {
       const token = await getToken();
-      // Start the real track from the top on our in-browser device...
       await fetch(`https://api.spotify.com/v1/me/player/play?device_id=${deviceId}`, {
         method: "PUT",
         headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
         body: JSON.stringify({ uris: [`spotify:track:${track.id}`], position_ms: 0 }),
       });
       setPlaying(true);
-      // ...then pause after the unlocked number of seconds.
       stopTimer.current = setTimeout(() => {
         if (player.current) player.current.pause().catch(() => {});
         setPlaying(false);
@@ -80,21 +81,20 @@ export default function Game({ playlist, onExit }) {
     const nextNum = guessNum + 1;
     if (nextNum >= MAX_GUESSES) {
       setOutcome("lose");
-      setPhase("result");
     } else {
       setGuessNum(nextNum);
     }
   }
 
   function submitGuess() {
-    if (phase !== "play") return;
+    if (phase !== "play" || resolved) return;
     const title = titleGuess.trim();
     const artist = artistGuess.trim();
-    if (!title && !artist) return; // nothing entered
+    if (!title && !artist) return;
 
     const titleOk = title ? isCorrect(title, track.name) : false;
     const artistOk = artist ? matchesAnyArtist(artist, track.artists) : false;
-    const win = titleOk; // getting the title identifies the song
+    const win = titleOk;
 
     setGuesses([...guesses, { title, artist, titleOk, artistOk, win }]);
     setTitleGuess("");
@@ -104,16 +104,19 @@ export default function Game({ playlist, onExit }) {
     if (win) {
       const earned = MAX_GUESSES - guessNum + (artistOk ? 1 : 0);
       setBonus(artistOk ? 1 : 0);
+      setEarnedPts(earned);
       setScore((s) => s + earned);
       setOutcome("win");
-      setPhase("result");
+      setCelebrate(true);
+      // Keep the song going a bit as a victory lap.
+      playSnippet(Math.max(unlocked, 8));
     } else {
       consumeGuess();
     }
   }
 
   function skip() {
-    if (phase !== "play") return;
+    if (phase !== "play" || resolved) return;
     setGuesses([...guesses, { skip: true }]);
     setTitleGuess("");
     setArtistGuess("");
@@ -122,6 +125,7 @@ export default function Game({ playlist, onExit }) {
   }
 
   function nextRound() {
+    stopAudio();
     if (roundIdx + 1 >= rounds.length) {
       setPhase("over");
       return;
@@ -131,6 +135,8 @@ export default function Game({ playlist, onExit }) {
     setGuesses([]);
     setOutcome(null);
     setBonus(0);
+    setEarnedPts(0);
+    setCelebrate(false);
     setTitleGuess("");
     setArtistGuess("");
     setPhase("play");
@@ -143,7 +149,7 @@ export default function Game({ playlist, onExit }) {
   const maxScore = rounds.length * MAX_GUESSES;
 
   return (
-    <div className="game">
+    <div className={`game ${outcome === "win" ? "game--win" : ""} ${outcome === "lose" ? "game--lose" : ""}`}>
       <div className="game-head">
         <button className="btn btn-mini" onClick={onExit}>
           ← change playlist
@@ -151,6 +157,11 @@ export default function Game({ playlist, onExit }) {
         <div className="scoreboard">
           <span className="scoreboard-label">score</span>
           <span className="scoreboard-value">{score}</span>
+          {celebrate && earnedPts > 0 && (
+            <span key={`pts-${roundIdx}`} className="points-float">
+              +{earnedPts}
+            </span>
+          )}
         </div>
       </div>
 
@@ -165,18 +176,46 @@ export default function Game({ playlist, onExit }) {
 
       {phase === "play" && (
         <>
-          <div className="turntable turntable--game">
-            <div className={`vinyl ${playing ? "spin-fast" : ""}`}>
-              <div className="vinyl-label vinyl-label--mystery">?</div>
+          <div className={`turntable turntable--game ${celebrate ? "turntable--celebrate" : ""}`}>
+            {celebrate && (
+              <>
+                <span className="win-ring win-ring--1" aria-hidden="true" />
+                <span className="win-ring win-ring--2" aria-hidden="true" />
+                <span className="win-ring win-ring--3" aria-hidden="true" />
+              </>
+            )}
+            <div
+              className={`vinyl ${playing || celebrate ? "spin-fast" : ""} ${
+                resolved ? "vinyl--revealed" : ""
+              }`}
+            >
+              {resolved && track.cover ? (
+                <img src={track.cover} alt="" className="vinyl-cover" />
+              ) : (
+                <div className="vinyl-label vinyl-label--mystery">
+                  {outcome === "lose" ? "✗" : "?"}
+                </div>
+              )}
             </div>
-            <div className={`tonearm ${playing ? "tonearm--on" : ""}`} />
+            <div className={`tonearm ${playing || celebrate ? "tonearm--on" : ""}`} />
           </div>
+
+          {outcome === "win" && (
+            <div key={`badge-${roundIdx}`} className="inline-badge inline-badge--win">
+              NAILED IT
+            </div>
+          )}
+          {outcome === "lose" && (
+            <div className="inline-badge inline-badge--lose">MISSED</div>
+          )}
 
           <div className="progress">
             <div className="progress-track">
               <div
                 className="progress-fill"
-                style={{ width: `${(unlocked / TOTAL) * 100}%` }}
+                style={{
+                  width: `${((resolved ? TOTAL : unlocked) / TOTAL) * 100}%`,
+                }}
               />
               {STEPS.map((s) => (
                 <span
@@ -189,36 +228,40 @@ export default function Game({ playlist, onExit }) {
             <div className="progress-labels">
               <span>0:00</span>
               <span>
-                {unlocked}s unlocked · 0:{String(TOTAL).padStart(2, "0")}
+                {resolved
+                  ? "revealed"
+                  : `${unlocked}s unlocked · 0:${String(TOTAL).padStart(2, "0")}`}
               </span>
             </div>
           </div>
 
-          <div className="controls">
-            {playerStatus === "error" ? (
-              <div className="error-banner">{errorMsg}</div>
-            ) : (
-              <button
-                className="btn btn-big btn-play"
-                onClick={() => playSnippet(unlocked)}
-                disabled={playerStatus !== "ready"}
-              >
-                <span className="btn-disc" aria-hidden="true" />
-                {playerStatus !== "ready"
-                  ? "connecting to spotify…"
-                  : playing
-                  ? "playing…"
-                  : `play ${unlocked}s`}
-              </button>
-            )}
-          </div>
+          {!resolved && (
+            <div className="controls">
+              {playerStatus === "error" ? (
+                <div className="error-banner">{errorMsg}</div>
+              ) : (
+                <button
+                  className="btn btn-big btn-play"
+                  onClick={() => playSnippet(unlocked)}
+                  disabled={playerStatus !== "ready"}
+                >
+                  <span className="btn-disc" aria-hidden="true" />
+                  {playerStatus !== "ready"
+                    ? "connecting to spotify…"
+                    : playing
+                    ? "playing…"
+                    : `play ${unlocked}s`}
+                </button>
+              )}
+            </div>
+          )}
 
           <div className="guess-rows">
             {Array.from({ length: MAX_GUESSES }).map((_, i) => {
               const g = guesses[i];
-              const active = i === guessNum;
+              const active = !resolved && i === guessNum;
               let cls = "guess-row";
-              if (g?.win) cls += " correct";
+              if (g?.win) cls += " correct correct--pulse";
               else if (g) cls += " wrong";
               if (active) cls += " active";
               return (
@@ -247,63 +290,63 @@ export default function Game({ playlist, onExit }) {
             })}
           </div>
 
-          <div className="guess-input-wrap">
-            <div className="guess-fields">
-              <input
-                className="guess-input"
-                placeholder="song title…"
-                value={titleGuess}
-                onChange={(e) => setTitleGuess(e.target.value)}
-                onKeyDown={(e) => e.key === "Enter" && submitGuess()}
-              />
-              <input
-                className="guess-input"
-                placeholder="artist…"
-                value={artistGuess}
-                onChange={(e) => setArtistGuess(e.target.value)}
-                onKeyDown={(e) => e.key === "Enter" && submitGuess()}
-              />
-            </div>
-            <div className="guess-actions">
-              <button className="btn btn-skip" onClick={skip}>
-                <span className="btn-label">skip</span>
-                <span className="btn-hint">+audio</span>
-              </button>
-              <button
-                className="btn btn-guess"
-                onClick={submitGuess}
-                disabled={!titleGuess.trim() && !artistGuess.trim()}
-              >
-                <span className="btn-label">guess</span>
-                <span className="btn-hint">↵ enter</span>
+          {resolved ? (
+            <div className={`inline-reveal ${outcome}`}>
+              <div className="reveal">
+                <div className="reveal-art">
+                  {track.cover && <img src={track.cover} alt="" className="reveal-cover" />}
+                </div>
+                <div className="reveal-text">
+                  <span className="reveal-title">{track.name}</span>
+                  <span className="reveal-artist">{track.artists.join(", ")}</span>
+                  {outcome === "win" && (
+                    <span className="reveal-points">
+                      +{earnedPts} pts
+                      {bonus ? " · artist bonus!" : ""}
+                    </span>
+                  )}
+                </div>
+              </div>
+              <button className="btn btn-big btn-play" onClick={nextRound}>
+                <span className="btn-disc" aria-hidden="true" />
+                {roundIdx + 1 >= rounds.length ? "see results →" : "next record →"}
               </button>
             </div>
-          </div>
+          ) : (
+            <div className="guess-input-wrap">
+              <div className="guess-fields">
+                <input
+                  className="guess-input"
+                  placeholder="song title…"
+                  value={titleGuess}
+                  onChange={(e) => setTitleGuess(e.target.value)}
+                  onKeyDown={(e) => e.key === "Enter" && submitGuess()}
+                />
+                <input
+                  className="guess-input"
+                  placeholder="artist…"
+                  value={artistGuess}
+                  onChange={(e) => setArtistGuess(e.target.value)}
+                  onKeyDown={(e) => e.key === "Enter" && submitGuess()}
+                />
+              </div>
+              <div className="guess-actions">
+                <button className="btn btn-skip" onClick={skip}>
+                  <span className="btn-label">skip</span>
+                  <span className="btn-hint">+audio</span>
+                </button>
+                <button
+                  className="btn btn-guess"
+                  onClick={submitGuess}
+                  disabled={!titleGuess.trim() && !artistGuess.trim()}
+                >
+                  <span className="btn-label">guess</span>
+                  <span className="btn-hint">↵ enter</span>
+                </button>
+              </div>
+            </div>
+          )}
         </>
-      )}
-
-      {phase === "result" && (
-        <div className={`result ${outcome}`}>
-          <div className="result-badge">{outcome === "win" ? "NAILED IT" : "MISSED"}</div>
-          <div className="reveal">
-            <div className="reveal-art">
-              {track.cover && <img src={track.cover} alt="" className="reveal-cover" />}
-            </div>
-            <div className="reveal-text">
-              <span className="reveal-title">{track.name}</span>
-              <span className="reveal-artist">{track.artists.join(", ")}</span>
-              {outcome === "win" && (
-                <span className="reveal-points">
-                  +{MAX_GUESSES - guessNum + bonus} pts
-                  {bonus ? " (artist bonus!)" : ""}
-                </span>
-              )}
-            </div>
-          </div>
-          <button className="btn btn-big" onClick={nextRound}>
-            {roundIdx + 1 >= rounds.length ? "see results →" : "next record →"}
-          </button>
-        </div>
       )}
 
       {phase === "over" && (
