@@ -278,6 +278,7 @@ export class Room extends Server {
     this.state.bonus = 0;
     this.state.earnedPts = 0;
     this.state.playing = false;
+    this.state.artistBonusClaimed = {};
     this.broadcastState();
   }
 
@@ -300,6 +301,15 @@ export class Room extends Server {
     const artistOk = artist ? matchesAnyArtist(artist, track.artists) : false;
     const win = titleOk;
 
+    // Artist bonus is +1 once per player per round, even without a title win.
+    let artistPts = 0;
+    if (artistOk && !this.state.artistBonusClaimed?.[player.id]) {
+      if (!this.state.artistBonusClaimed) this.state.artistBonusClaimed = {};
+      this.state.artistBonusClaimed[player.id] = true;
+      artistPts = 1;
+      player.score += 1;
+    }
+
     this.state.guesses.push({
       playerId: player.id,
       name: player.name,
@@ -310,19 +320,25 @@ export class Room extends Server {
       titleOk,
       artistOk,
       win,
+      artistPts,
     });
 
     if (win) {
-      const earned = MAX_GUESSES - this.state.guessNum + (artistOk ? 1 : 0);
-      this.state.bonus = artistOk ? 1 : 0;
+      const titlePts = MAX_GUESSES - this.state.guessNum;
+      const earned = titlePts + artistPts;
+      this.state.bonus = artistPts;
       this.state.earnedPts = earned;
       this.state.winnerId = player.id;
       this.state.outcome = "win";
       this.state.phase = "reveal";
       this.state.playing = false;
-      player.score += earned;
+      player.score += titlePts;
       player.wins += 1;
     } else {
+      if (artistPts) {
+        this.state.bonus = 1;
+        this.state.earnedPts = artistPts;
+      }
       this.consumeGuess();
     }
 
@@ -383,6 +399,7 @@ export class Room extends Server {
     this.state.bonus = 0;
     this.state.earnedPts = 0;
     this.state.playing = false;
+    this.state.artistBonusClaimed = {};
     this.state.phase = "play";
     this.broadcastState();
   }

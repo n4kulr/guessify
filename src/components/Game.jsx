@@ -32,6 +32,7 @@ export default function Game({ playlist, onExit }) {
   const [score, setScore] = useState(0);
   const [bonus, setBonus] = useState(0);
   const [earnedPts, setEarnedPts] = useState(0);
+  const [artistBonusTaken, setArtistBonusTaken] = useState(false);
   const [titleGuess, setTitleGuess] = useState("");
   const [artistGuess, setArtistGuess] = useState("");
   const [playing, setPlaying] = useState(false);
@@ -138,15 +139,24 @@ export default function Game({ playlist, onExit }) {
     setArtistGuess("");
     stopAudio();
 
+    let artistPts = 0;
+    if (artistOk && !artistBonusTaken) {
+      artistPts = 1;
+      setArtistBonusTaken(true);
+      setBonus(1);
+      setScore((s) => s + 1);
+    }
+
     if (win) {
-      const earned = MAX_GUESSES - guessNum + (artistOk ? 1 : 0);
-      setBonus(artistOk ? 1 : 0);
+      const titlePts = MAX_GUESSES - guessNum;
+      const earned = titlePts + artistPts;
       setEarnedPts(earned);
-      setScore((s) => s + earned);
+      setScore((s) => s + titlePts);
       setOutcome("win");
       setCelebrate(true);
       playSnippet(Math.max(unlocked, 8));
     } else {
+      if (artistPts) setEarnedPts(artistPts);
       consumeGuess();
     }
   }
@@ -172,6 +182,7 @@ export default function Game({ playlist, onExit }) {
     setOutcome(null);
     setBonus(0);
     setEarnedPts(0);
+    setArtistBonusTaken(false);
     setCelebrate(false);
     setTitleGuess("");
     setArtistGuess("");
