@@ -53,7 +53,7 @@ export default function DemoPreview() {
           >
             <div className="demo-cassette-shell">
               <div className="demo-cassette-label">
-                {done ? "♪ nailed" : "??? side a"}
+                {done ? "♪ correct" : "??? side a"}
               </div>
               <div className="demo-cassette-window">
                 <span className={`demo-reel ${done ? "spin-slow" : "spin-fast"}`} />

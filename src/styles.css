@@ -265,13 +265,6 @@ button { font-family: var(--font); }
 }
 .demo-cassette {
   width: 100%;
-  transform-origin: center center;
-}
-.demo-cassette--play { animation: cassette-bob 1.8s ease-in-out infinite; }
-.demo-cassette--slow { animation: cassette-bob 3.2s ease-in-out infinite; }
-@keyframes cassette-bob {
-  0%, 100% { transform: translateY(0) rotate(-0.8deg); }
-  50% { transform: translateY(-3px) rotate(0.8deg); }
 }
 .demo-cassette-shell {
   background:
