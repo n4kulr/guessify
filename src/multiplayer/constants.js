@@ -4,6 +4,9 @@ export const MAX_GUESSES = STEPS.length;
 export const TOTAL = STEPS[STEPS.length - 1];
 export const ROUND_COUNT = 5;
 
+// Open Peeps bust presets live in /public/peeps/peep-1.svg … peep-105.svg
+export const PEEP_COUNT = 105;
+
 export const PLAYER_COLORS = [
   "#e2b714",
   "#7aa2f7",
@@ -19,29 +22,30 @@ export const PLAYER_COLORS = [
   "#a9b1d6",
 ];
 
-// Skribbl-style face parts (rendered as SVG paths in PlayerAvatar).
-export const AVATAR_EYES = 6;
-export const AVATAR_MOUTHS = 6;
+export function peepSrc(peep) {
+  const n = Math.min(PEEP_COUNT, Math.max(1, Number(peep) || 1));
+  return `/peeps/peep-${n}.svg`;
+}
 
 export function randomAvatar() {
   return {
+    peep: 1 + Math.floor(Math.random() * PEEP_COUNT),
     color: PLAYER_COLORS[Math.floor(Math.random() * PLAYER_COLORS.length)],
-    eyes: Math.floor(Math.random() * AVATAR_EYES),
-    mouth: Math.floor(Math.random() * AVATAR_MOUTHS),
   };
 }
 
 export function normalizeAvatar(raw, fallbackColor = PLAYER_COLORS[0]) {
   const a = raw && typeof raw === "object" ? raw : {};
+  // Migrate old eyes/mouth avatars → random peep
+  let peep = Number(a.peep);
+  if (!Number.isFinite(peep) || peep < 1 || peep > PEEP_COUNT) {
+    peep = 1 + Math.floor(Math.random() * PEEP_COUNT);
+  }
   const color =
     typeof a.color === "string" && /^#[0-9a-fA-F]{6}$/.test(a.color)
       ? a.color
       : fallbackColor;
-  return {
-    color,
-    eyes: Math.abs(Number(a.eyes) || 0) % AVATAR_EYES,
-    mouth: Math.abs(Number(a.mouth) || 0) % AVATAR_MOUTHS,
-  };
+  return { peep: Math.floor(peep), color };
 }
 
 export function makeRoomCode() {

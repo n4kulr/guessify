@@ -34,7 +34,7 @@ export default function GuestApp({ code }) {
     if (!me) return;
     setName(me.name || "");
     if (me.avatar) setAvatar(me.avatar);
-  }, [me?.id, me?.name, me?.avatar?.color, me?.avatar?.eyes, me?.avatar?.mouth]);
+  }, [me?.id, me?.name, me?.avatar?.peep, me?.avatar?.color]);
 
   function join() {
     setError(null);
@@ -73,7 +73,7 @@ export default function GuestApp({ code }) {
       <div className="mp-guest panel">
         <div className="sticker">room {upper}</div>
         <h2 className="title">make your look</h2>
-        <p className="subtitle">Name + face — everyone in the lobby will see it.</p>
+        <p className="subtitle">Nickname + peep — everyone in the lobby will see it.</p>
         <ProfileEditor name={name} avatar={avatar} onChange={updateProfile} />
         {error && <div className="error-banner">{error}</div>}
         <button
@@ -199,7 +199,7 @@ export default function GuestApp({ code }) {
                 style={{ borderLeft: `4px solid ${g.color || g.avatar?.color || "#888"}` }}
               >
                 <PlayerAvatar
-                  avatar={g.avatar || { color: g.color, eyes: 0, mouth: 0 }}
+                  avatar={g.avatar || { peep: 1, color: g.color }}
                   size={22}
                   className="mp-guess-avatar"
                 />

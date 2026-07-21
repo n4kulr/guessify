@@ -2,14 +2,13 @@ import { useEffect, useState } from "react";
 import PlayerAvatar from "./PlayerAvatar.jsx";
 import {
   PLAYER_COLORS,
-  AVATAR_EYES,
-  AVATAR_MOUTHS,
+  PEEP_COUNT,
   randomAvatar,
   normalizeAvatar,
 } from "./constants.js";
 
 /**
- * Skribbl-style nickname + face customizer.
+ * Nickname + Open Peeps bust picker (from Flat Assets library).
  * Calls onChange({ name, avatar }) whenever something updates.
  */
 export default function ProfileEditor({
@@ -23,7 +22,6 @@ export default function ProfileEditor({
     normalizeAvatar(avatarProp || randomAvatar())
   );
 
-  // Sync if parent resets (e.g. after rejoin loads profile).
   useEffect(() => {
     if (nameProp && nameProp !== name) setName(nameProp);
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -32,7 +30,7 @@ export default function ProfileEditor({
   useEffect(() => {
     if (avatarProp) setAvatar(normalizeAvatar(avatarProp));
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [avatarProp?.color, avatarProp?.eyes, avatarProp?.mouth]);
+  }, [avatarProp?.peep, avatarProp?.color]);
 
   function emit(nextName, nextAvatar) {
     onChange?.({
@@ -61,7 +59,7 @@ export default function ProfileEditor({
   return (
     <div className="profile-editor">
       <div className="profile-preview">
-        <PlayerAvatar avatar={avatar} size={88} />
+        <PlayerAvatar avatar={avatar} size={96} />
         {showRandom && (
           <button type="button" className="btn btn-mini" onClick={randomize}>
             randomize
@@ -78,7 +76,7 @@ export default function ProfileEditor({
       />
 
       <div className="profile-section">
-        <span className="profile-label">color</span>
+        <span className="profile-label">accent</span>
         <div className="profile-swatches">
           {PLAYER_COLORS.map((c) => (
             <button
@@ -94,32 +92,17 @@ export default function ProfileEditor({
       </div>
 
       <div className="profile-section">
-        <span className="profile-label">eyes</span>
-        <div className="profile-parts">
-          {Array.from({ length: AVATAR_EYES }, (_, i) => (
+        <span className="profile-label">peep</span>
+        <div className="profile-peeps">
+          {Array.from({ length: PEEP_COUNT }, (_, i) => i + 1).map((n) => (
             <button
-              key={i}
+              key={n}
               type="button"
-              className={`profile-part ${avatar.eyes === i ? "active" : ""}`}
-              onClick={() => patchAvatar({ eyes: i })}
+              className={`profile-part ${avatar.peep === n ? "active" : ""}`}
+              onClick={() => patchAvatar({ peep: n })}
+              aria-label={`peep ${n}`}
             >
-              <PlayerAvatar avatar={{ ...avatar, eyes: i }} size={36} />
-            </button>
-          ))}
-        </div>
-      </div>
-
-      <div className="profile-section">
-        <span className="profile-label">mouth</span>
-        <div className="profile-parts">
-          {Array.from({ length: AVATAR_MOUTHS }, (_, i) => (
-            <button
-              key={i}
-              type="button"
-              className={`profile-part ${avatar.mouth === i ? "active" : ""}`}
-              onClick={() => patchAvatar({ mouth: i })}
-            >
-              <PlayerAvatar avatar={{ ...avatar, mouth: i }} size={36} />
+              <PlayerAvatar avatar={{ peep: n, color: avatar.color }} size={48} />
             </button>
           ))}
         </div>

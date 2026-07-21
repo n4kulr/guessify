@@ -2,9 +2,9 @@ import { useEffect, useRef, useState } from "react";
 import PartySocket from "partysocket";
 
 function partyHost() {
-  // Local: partykit dev defaults to 127.0.0.1:1999
-  // Prod: set VITE_PARTYKIT_HOST to something like "guessify.nakul.partykit.dev"
-  return import.meta.env.VITE_PARTYKIT_HOST || "127.0.0.1:1999";
+  // Local: `npm run dev:party` (wrangler) defaults to 127.0.0.1:8787
+  // Prod: set VITE_PARTYKIT_HOST to your workers.dev host (no https://)
+  return import.meta.env.VITE_PARTYKIT_HOST || "127.0.0.1:8787";
 }
 
 export function usePartyRoom(code, { enabled = true } = {}) {
@@ -23,6 +23,7 @@ export function usePartyRoom(code, { enabled = true } = {}) {
 
     const socket = new PartySocket({
       host: partyHost(),
+      party: "main",
       room: code.toUpperCase(),
     });
     socketRef.current = socket;

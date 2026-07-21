@@ -65,7 +65,7 @@ export default function HostParty({ code, playlist, me, onExit }) {
     if (!mePlayer) return;
     setHostName(mePlayer.name || hostName);
     if (mePlayer.avatar) setHostAvatar(mePlayer.avatar);
-  }, [mePlayer?.id, mePlayer?.name, mePlayer?.avatar?.color, mePlayer?.avatar?.eyes, mePlayer?.avatar?.mouth]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [mePlayer?.id, mePlayer?.name, mePlayer?.avatar?.peep, mePlayer?.avatar?.color]); // eslint-disable-line react-hooks/exhaustive-deps
 
   function updateHostProfile({ name, avatar }) {
     setHostName(name);
@@ -191,8 +191,8 @@ export default function HostParty({ code, playlist, me, onExit }) {
             {status === "connecting" && <p className="fineprint">connecting to room…</p>}
             {status === "error" && (
               <p className="fineprint">
-                Multiplayer server unreachable. Run <code>npx partykit dev</code> locally or
-                set <code>VITE_PARTYKIT_HOST</code>.
+                Multiplayer server unreachable. Run <code>npm run dev:party</code> locally or
+                set <code>VITE_PARTYKIT_HOST</code> on Vercel.
               </p>
             )}
             <button
@@ -350,7 +350,7 @@ export default function HostParty({ code, playlist, me, onExit }) {
             >
               <span className="mp-guess-who">
                 <PlayerAvatar
-                  avatar={g.avatar || { color: g.color, eyes: 0, mouth: 0 }}
+                  avatar={g.avatar || { peep: 1, color: g.color }}
                   size={22}
                   className="mp-guess-avatar"
                 />

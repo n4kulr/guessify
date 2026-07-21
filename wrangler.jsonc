@@ -1,0 +1,19 @@
+{
+  "name": "guessify",
+  "main": "party/worker.js",
+  "compatibility_date": "2024-11-01",
+  "durable_objects": {
+    "bindings": [
+      {
+        "name": "main",
+        "class_name": "Room"
+      }
+    ]
+  },
+  "migrations": [
+    {
+      "tag": "v1",
+      "new_sqlite_classes": ["Room"]
+    }
+  ]
+}

@@ -15,7 +15,7 @@ export default function PlayerRail({ players = [], winnerId, pulseId }) {
           } ${pulseId === p.id ? "pulse" : ""}`}
         >
           <PlayerAvatar
-            avatar={p.avatar || { color: p.color, eyes: 0, mouth: 0 }}
+            avatar={p.avatar || { peep: 1, color: p.color }}
             size={40}
           />
           <div className="mp-player-meta">

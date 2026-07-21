@@ -38,14 +38,14 @@ export default function Home({ me, onStartSolo, onStartMulti }) {
             play solo
           </button>
           <button className="btn btn-big btn-multi" onClick={onStartMulti}>
-            multiplayer
+            host a game
           </button>
         </div>
 
         <JoinCodeForm />
 
         <p className="fineprint">
-          multiplayer: DJ + race on this device · friends join with the code
+          host: DJ + race on this device · friends join with the code
         </p>
       </div>
 

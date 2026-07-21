@@ -1,3 +1,4 @@
+import { Server } from "partyserver";
 import { isCorrect, matchesAnyArtist } from "../src/match.js";
 import {
   STEPS,
@@ -10,18 +11,15 @@ import {
 } from "../src/multiplayer/constants.js";
 
 /**
- * PartyKit room for Guessify multiplayer.
+ * Multiplayer room (PartyServer / Cloudflare Durable Object).
  * Host DJs Spotify audio and races guesses with guests. First correct title wins.
  */
-export default class Room {
-  constructor(room) {
-    this.room = room;
-    this.state = null; // set when host claims the room
-  }
+export class Room extends Server {
+  state = null; // set when host claims the room
 
   onConnect(conn) {
     // Wait for hello / join before treating as a player.
-    conn.send(JSON.stringify({ type: "hello", room: this.room.id }));
+    conn.send(JSON.stringify({ type: "hello", room: this.name }));
   }
 
   onClose(conn) {
@@ -45,7 +43,7 @@ export default class Room {
     }
   }
 
-  async onMessage(message, sender) {
+  async onMessage(sender, message) {
     let msg;
     try {
       msg = JSON.parse(message);
@@ -454,9 +452,6 @@ export default class Room {
   }
 
   broadcastState() {
-    const payload = JSON.stringify({ type: "state", state: this.snapshot() });
-    for (const conn of this.room.getConnections()) {
-      conn.send(payload);
-    }
+    this.broadcast(JSON.stringify({ type: "state", state: this.snapshot() }));
   }
 }
