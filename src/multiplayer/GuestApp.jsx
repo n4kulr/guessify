@@ -1,18 +1,22 @@
 import { useEffect, useState } from "react";
 import { usePartyRoom } from "./usePartyRoom.js";
 import PlayerRail from "./PlayerRail.jsx";
-import { STEPS, TOTAL } from "./constants.js";
+import PlayerAvatar from "./PlayerAvatar.jsx";
+import ProfileEditor from "./ProfileEditor.jsx";
+import { STEPS, TOTAL, randomAvatar } from "./constants.js";
 import ScrubbableVinyl from "../components/ScrubbableVinyl.jsx";
 
 export default function GuestApp({ code }) {
   const upper = code.toUpperCase();
   const { state, playerId, status, error, setError, send } = usePartyRoom(upper);
   const [name, setName] = useState("");
+  const [avatar, setAvatar] = useState(() => randomAvatar());
   const [titleGuess, setTitleGuess] = useState("");
   const [artistGuess, setArtistGuess] = useState("");
   const [rejoinTried, setRejoinTried] = useState(false);
 
   const joined = !!playerId;
+  const me = state?.players?.find((p) => p.id === playerId);
 
   useEffect(() => {
     if (status !== "connected" || rejoinTried || joined) return;
@@ -25,9 +29,22 @@ export default function GuestApp({ code }) {
     }
   }, [status, rejoinTried, joined, upper]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // After join/rejoin, mirror server profile into local editor.
+  useEffect(() => {
+    if (!me) return;
+    setName(me.name || "");
+    if (me.avatar) setAvatar(me.avatar);
+  }, [me?.id, me?.name, me?.avatar?.color, me?.avatar?.eyes, me?.avatar?.mouth]);
+
   function join() {
     setError(null);
-    send({ type: "join", name });
+    send({ type: "join", name, avatar });
+  }
+
+  function updateProfile({ name: n, avatar: a }) {
+    setName(n);
+    setAvatar(a);
+    if (joined) send({ type: "profile", name: n, avatar: a });
   }
 
   function submitGuess() {
@@ -35,12 +52,6 @@ export default function GuestApp({ code }) {
     const artist = artistGuess.trim();
     if (!title && !artist) return;
     send({ type: "guess", title, artist });
-    setTitleGuess("");
-    setArtistGuess("");
-  }
-
-  function skip() {
-    send({ type: "skip" });
     setTitleGuess("");
     setArtistGuess("");
   }
@@ -61,16 +72,9 @@ export default function GuestApp({ code }) {
     return (
       <div className="mp-guest panel">
         <div className="sticker">room {upper}</div>
-        <h2 className="title">pick a name</h2>
-        <p className="subtitle">No Spotify needed — just race the other phones.</p>
-        <input
-          className="guess-input"
-          placeholder="nickname…"
-          value={name}
-          maxLength={16}
-          onChange={(e) => setName(e.target.value)}
-          onKeyDown={(e) => e.key === "Enter" && name.trim() && join()}
-        />
+        <h2 className="title">make your look</h2>
+        <p className="subtitle">Name + face — everyone in the lobby will see it.</p>
+        <ProfileEditor name={name} avatar={avatar} onChange={updateProfile} />
         {error && <div className="error-banner">{error}</div>}
         <button
           className="btn btn-big btn-play"
@@ -91,21 +95,27 @@ export default function GuestApp({ code }) {
     return (
       <div className="mp-guest">
         <h2 className="section-title">you're in</h2>
-        <p className="section-sub">Waiting for {state.hostName} to drop the needle…</p>
+        <p className="section-sub">
+          Waiting for {state.hostName} to start — tweak your look anytime.
+        </p>
         <PlayerRail players={state.players} />
+        <div className="mp-lobby-edit">
+          <ProfileEditor name={name} avatar={avatar} onChange={updateProfile} />
+        </div>
+        {error && <div className="error-banner">{error}</div>}
       </div>
     );
   }
 
   if (state.phase === "over") {
     const ranked = [...state.players].sort((a, b) => b.score - a.score || b.wins - a.wins);
-    const me = ranked.find((p) => p.id === playerId);
+    const mine = ranked.find((p) => p.id === playerId);
     return (
       <div className="mp-guest mp-over">
         <h2 className="title">That's a wrap!</h2>
         <p className="subtitle">
-          You finished with <strong>{me?.score ?? 0}</strong> pts
-          {me?.wins ? ` · ${me.wins} wins` : ""}.
+          You finished with <strong>{mine?.score ?? 0}</strong> pts
+          {mine?.wins ? ` · ${mine.wins} wins` : ""}.
         </p>
         <PlayerRail players={ranked} winnerId={ranked[0]?.id} />
       </div>
@@ -116,6 +126,7 @@ export default function GuestApp({ code }) {
   const unlocked = state.unlocked;
   const track = state.track;
   const myGuesses = state.guesses.filter((g) => g.playerId === playerId);
+  const othersGuesses = state.guesses.filter((g) => g.playerId !== playerId);
   const spinning = state.playing && state.phase === "play";
 
   return (
@@ -177,6 +188,38 @@ export default function GuestApp({ code }) {
         </div>
       </div>
 
+      {othersGuesses.length > 0 && (
+        <div className="mp-others">
+          <div className="mp-others-label">room guesses</div>
+          <div className="guess-rows mp-guess-feed">
+            {othersGuesses.map((g, i) => (
+              <div
+                key={i}
+                className={`guess-row ${g.win ? "correct" : "wrong"}`}
+                style={{ borderLeft: `4px solid ${g.color || g.avatar?.color || "#888"}` }}
+              >
+                <PlayerAvatar
+                  avatar={g.avatar || { color: g.color, eyes: 0, mouth: 0 }}
+                  size={22}
+                  className="mp-guess-avatar"
+                />
+                <span className="mp-guess-who">{g.name}</span>
+                {g.skip ? (
+                  <span className="gr-skip">⏭ skipped</span>
+                ) : (
+                  <>
+                    <span className={`gr-field ${g.titleOk ? "ok" : "no"}`}>{g.title || "—"}</span>
+                    <span className="gr-sep">by</span>
+                    <span className={`gr-field ${g.artistOk ? "ok" : "no"}`}>{g.artist || "—"}</span>
+                  </>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      <div className="mp-others-label">your guesses</div>
       <div className="guess-rows">
         {Array.from({ length: 6 }).map((_, i) => {
           const g = myGuesses[i];
@@ -224,11 +267,7 @@ export default function GuestApp({ code }) {
               onKeyDown={(e) => e.key === "Enter" && submitGuess()}
             />
           </div>
-          <div className="guess-actions">
-            <button className="btn btn-skip" onClick={skip}>
-              <span className="btn-label">skip</span>
-              <span className="btn-hint">+audio</span>
-            </button>
+          <div className="guess-actions guess-actions--guess-only">
             <button
               className="btn btn-guess"
               onClick={submitGuess}

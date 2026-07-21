@@ -41,7 +41,10 @@ export function usePartyRoom(code, { enabled = true } = {}) {
         return;
       }
       if (msg.type === "state") setState(msg.state);
-      if (msg.type === "hosted") setRole("host");
+      if (msg.type === "hosted") {
+        setRole("host");
+        if (msg.playerId) setPlayerId(msg.playerId);
+      }
       if (msg.type === "joined") {
         setRole("guest");
         setPlayerId(msg.playerId);

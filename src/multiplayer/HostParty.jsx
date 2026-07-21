@@ -3,18 +3,26 @@ import QRCode from "qrcode";
 import { usePartyRoom } from "./usePartyRoom.js";
 import { useSpotifyPlayer } from "../useSpotifyPlayer.js";
 import { getToken } from "../spotify.js";
-import { STEPS, TOTAL } from "./constants.js";
+import { STEPS, TOTAL, randomAvatar } from "./constants.js";
 import ScrubbableVinyl from "../components/ScrubbableVinyl.jsx";
 import PlayerRail from "./PlayerRail.jsx";
+import PlayerAvatar from "./PlayerAvatar.jsx";
+import ProfileEditor from "./ProfileEditor.jsx";
 
 /**
  * Host multiplayer session — one PartySocket for lobby + DJ board so the
  * host never drops the room when the game starts.
  */
 export default function HostParty({ code, playlist, me, onExit }) {
-  const { state, status, error, send } = usePartyRoom(code);
+  const { state, status, error, send, playerId } = usePartyRoom(code);
   const [qr, setQr] = useState(null);
   const [copied, setCopied] = useState(false);
+  const [titleGuess, setTitleGuess] = useState("");
+  const [artistGuess, setArtistGuess] = useState("");
+  const [hostName, setHostName] = useState(
+    () => me?.displayName?.split(" ")[0] || "host"
+  );
+  const [hostAvatar, setHostAvatar] = useState(() => randomAvatar());
   const { deviceId, status: playerStatus, errorMsg, player } = useSpotifyPlayer();
   const [playBusy, setPlayBusy] = useState(false);
   const [localPlaying, setLocalPlaying] = useState(false);
@@ -40,7 +48,8 @@ export default function HostParty({ code, playlist, me, onExit }) {
     hostedRef.current = true;
     send({
       type: "host",
-      hostName: me?.displayName || "host",
+      hostName,
+      avatar: hostAvatar,
       playlistName: playlist.name,
       tracks: playlist.tracks.map((t) => ({
         id: t.id,
@@ -50,6 +59,19 @@ export default function HostParty({ code, playlist, me, onExit }) {
       })),
     });
   }, [status]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const mePlayer = state?.players?.find((p) => p.id === playerId);
+  useEffect(() => {
+    if (!mePlayer) return;
+    setHostName(mePlayer.name || hostName);
+    if (mePlayer.avatar) setHostAvatar(mePlayer.avatar);
+  }, [mePlayer?.id, mePlayer?.name, mePlayer?.avatar?.color, mePlayer?.avatar?.eyes, mePlayer?.avatar?.mouth]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  function updateHostProfile({ name, avatar }) {
+    setHostName(name);
+    setHostAvatar(avatar);
+    if (playerId) send({ type: "profile", name, avatar });
+  }
 
   useEffect(() => {
     return () => {
@@ -139,8 +161,8 @@ export default function HostParty({ code, playlist, me, onExit }) {
         </button>
         <h2 className="section-title">Party lobby</h2>
         <p className="section-sub">
-          Friends scan the QR, or open guessify and type the code below. You keep the
-          music here — they race to guess.
+          Friends scan the QR, or open guessify and type the code. You DJ the audio
+          and can race guesses too.
         </p>
         <div className="mp-lobby-grid">
           <div className="mp-qr-card">
@@ -157,6 +179,14 @@ export default function HostParty({ code, playlist, me, onExit }) {
           <div className="mp-lobby-side">
             <h3 className="mp-side-title">crate · {playlist.name}</h3>
             <PlayerRail players={players} />
+            <div className="mp-lobby-edit">
+              <p className="profile-label">your look</p>
+              <ProfileEditor
+                name={hostName}
+                avatar={hostAvatar}
+                onChange={updateHostProfile}
+              />
+            </div>
             {error && <div className="error-banner">{error}</div>}
             {status === "connecting" && <p className="fineprint">connecting to room…</p>}
             {status === "error" && (
@@ -177,6 +207,21 @@ export default function HostParty({ code, playlist, me, onExit }) {
         </div>
       </div>
     );
+  }
+
+  function submitGuess() {
+    const title = titleGuess.trim();
+    const artist = artistGuess.trim();
+    if (!title && !artist) return;
+    send({ type: "guess", title, artist });
+    setTitleGuess("");
+    setArtistGuess("");
+  }
+
+  function skipGuess() {
+    send({ type: "skip" });
+    setTitleGuess("");
+    setArtistGuess("");
   }
 
   // ---- game over ----
@@ -303,7 +348,14 @@ export default function HostParty({ code, playlist, me, onExit }) {
               className={`guess-row ${g.win ? "correct" : "wrong"}`}
               style={{ borderLeft: `4px solid ${g.color}` }}
             >
-              <span className="mp-guess-who">{g.name}</span>
+              <span className="mp-guess-who">
+                <PlayerAvatar
+                  avatar={g.avatar || { color: g.color, eyes: 0, mouth: 0 }}
+                  size={22}
+                  className="mp-guess-avatar"
+                />
+                {g.playerId === playerId ? "you" : g.name}
+              </span>
               {g.skip ? (
                 <span className="gr-skip">⏭ skipped</span>
               ) : (
@@ -318,6 +370,41 @@ export default function HostParty({ code, playlist, me, onExit }) {
         )}
       </div>
 
+      {phase === "play" && (
+        <div className="guess-input-wrap">
+          <div className="guess-fields">
+            <input
+              className="guess-input"
+              placeholder="song title…"
+              value={titleGuess}
+              onChange={(e) => setTitleGuess(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && submitGuess()}
+            />
+            <input
+              className="guess-input"
+              placeholder="artist…"
+              value={artistGuess}
+              onChange={(e) => setArtistGuess(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && submitGuess()}
+            />
+          </div>
+          <div className="guess-actions">
+            <button className="btn btn-skip" onClick={skipGuess}>
+              <span className="btn-label">skip</span>
+              <span className="btn-hint">+audio</span>
+            </button>
+            <button
+              className="btn btn-guess"
+              onClick={submitGuess}
+              disabled={!titleGuess.trim() && !artistGuess.trim()}
+            >
+              <span className="btn-label">guess</span>
+              <span className="btn-hint">↵ enter</span>
+            </button>
+          </div>
+        </div>
+      )}
+
       {revealed && track && (
         <div className="inline-reveal">
           <div className="reveal">
@@ -331,6 +418,7 @@ export default function HostParty({ code, playlist, me, onExit }) {
                 <span className="reveal-points">
                   +{state.earnedPts} pts
                   {state.bonus ? " · artist bonus!" : ""}
+                  {state.winnerId === playerId ? " · you!" : ""}
                 </span>
               )}
             </div>
@@ -350,7 +438,7 @@ export default function HostParty({ code, playlist, me, onExit }) {
 
       {error && <div className="error-banner">{error}</div>}
       <p className="fineprint mp-host-hint">
-        You're the DJ — phones race. Wrong guesses unlock more audio for everyone.
+        You're in the race too — only you can skip to unlock more audio for everyone.
       </p>
     </div>
   );

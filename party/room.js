@@ -5,11 +5,13 @@ import {
   ROUND_COUNT,
   PLAYER_COLORS,
   shuffle,
+  normalizeAvatar,
+  randomAvatar,
 } from "../src/multiplayer/constants.js";
 
 /**
  * PartyKit room for Guessify multiplayer.
- * Host DJs Spotify audio; guests race to guess. First correct title wins.
+ * Host DJs Spotify audio and races guesses with guests. First correct title wins.
  */
 export default class Room {
   constructor(room) {
@@ -27,6 +29,11 @@ export default class Room {
     if (this.state.hostConnId === conn.id) {
       this.state.hostConnId = null;
       this.state.hostConnected = false;
+      const hostPlayer = this.state.players.find((x) => x.isHost);
+      if (hostPlayer) {
+        hostPlayer.connected = false;
+        hostPlayer.connId = null;
+      }
       this.broadcastState();
       return;
     }
@@ -71,6 +78,9 @@ export default class Room {
       case "rejoin":
         this.handleRejoin(msg, sender);
         break;
+      case "profile":
+        this.handleProfile(msg, sender);
+        break;
       default:
         break;
     }
@@ -90,13 +100,26 @@ export default class Room {
     }
 
     if (!this.state) {
+      const hostName = String(msg.hostName || "host").trim().split(/\s+/)[0].slice(0, 16) || "host";
+      const avatar = normalizeAvatar(msg.avatar || randomAvatar(), PLAYER_COLORS[0]);
+      const hostPlayer = {
+        id: crypto.randomUUID(),
+        connId: sender.id,
+        name: hostName,
+        color: avatar.color,
+        avatar,
+        score: 0,
+        wins: 0,
+        connected: true,
+        isHost: true,
+      };
       this.state = {
         hostConnId: sender.id,
         hostConnected: true,
-        hostName: msg.hostName || "host",
+        hostName,
         playlistName: msg.playlistName || "playlist",
         tracks: shuffle(tracks).slice(0, Math.min(ROUND_COUNT, tracks.length)),
-        players: [],
+        players: [hostPlayer],
         phase: "lobby", // lobby | play | reveal | over
         roundIdx: 0,
         guessNum: 0,
@@ -106,25 +129,55 @@ export default class Room {
         bonus: 0,
         earnedPts: 0,
         playing: false,
-        colorIdx: 0,
+        colorIdx: 1,
       };
+      sender.send(
+        JSON.stringify({ type: "hosted", role: "host", playerId: hostPlayer.id })
+      );
+      this.broadcastState();
+      return;
+    }
+
+    this.state.hostConnId = sender.id;
+    this.state.hostConnected = true;
+    this.state.hostName = msg.hostName || this.state.hostName;
+    let hostPlayer = this.state.players.find((p) => p.isHost);
+    if (!hostPlayer) {
+      const avatar = normalizeAvatar(msg.avatar || randomAvatar(), PLAYER_COLORS[0]);
+      hostPlayer = {
+        id: crypto.randomUUID(),
+        connId: sender.id,
+        name: String(this.state.hostName).split(/\s+/)[0].slice(0, 16) || "host",
+        color: avatar.color,
+        avatar,
+        score: 0,
+        wins: 0,
+        connected: true,
+        isHost: true,
+      };
+      this.state.players.unshift(hostPlayer);
     } else {
-      this.state.hostConnId = sender.id;
-      this.state.hostConnected = true;
-      this.state.hostName = msg.hostName || this.state.hostName;
-      if (msg.tracks?.length) {
-        // Only replace tracks while still in lobby.
-        if (this.state.phase === "lobby") {
-          this.state.tracks = shuffle(msg.tracks).slice(
-            0,
-            Math.min(ROUND_COUNT, msg.tracks.length)
-          );
-          this.state.playlistName = msg.playlistName || this.state.playlistName;
-        }
+      hostPlayer.connId = sender.id;
+      hostPlayer.connected = true;
+      if (msg.avatar) {
+        hostPlayer.avatar = normalizeAvatar(msg.avatar, hostPlayer.color);
+        hostPlayer.color = hostPlayer.avatar.color;
+      }
+    }
+    if (msg.tracks?.length) {
+      // Only replace tracks while still in lobby.
+      if (this.state.phase === "lobby") {
+        this.state.tracks = shuffle(msg.tracks).slice(
+          0,
+          Math.min(ROUND_COUNT, msg.tracks.length)
+        );
+        this.state.playlistName = msg.playlistName || this.state.playlistName;
       }
     }
 
-    sender.send(JSON.stringify({ type: "hosted", role: "host" }));
+    sender.send(
+      JSON.stringify({ type: "hosted", role: "host", playerId: hostPlayer.id })
+    );
     this.broadcastState();
   }
 
@@ -150,13 +203,15 @@ export default class Room {
       return;
     }
 
-    const color = PLAYER_COLORS[this.state.colorIdx % PLAYER_COLORS.length];
+    const fallback = PLAYER_COLORS[this.state.colorIdx % PLAYER_COLORS.length];
     this.state.colorIdx += 1;
+    const avatar = normalizeAvatar(msg.avatar || randomAvatar(), fallback);
     const player = {
       id: crypto.randomUUID(),
       connId: sender.id,
       name,
-      color,
+      color: avatar.color,
+      avatar,
       score: 0,
       wins: 0,
       connected: true,
@@ -164,6 +219,32 @@ export default class Room {
     this.state.players.push(player);
 
     sender.send(JSON.stringify({ type: "joined", role: "guest", playerId: player.id }));
+    this.broadcastState();
+  }
+
+  handleProfile(msg, sender) {
+    if (!this.state || this.state.phase !== "lobby") return;
+    const player = this.playerFor(sender);
+    if (!player) return;
+
+    const name = String(msg.name || player.name).trim().slice(0, 16);
+    if (!name) {
+      sender.send(JSON.stringify({ type: "error", error: "Enter a nickname." }));
+      return;
+    }
+    if (
+      this.state.players.some(
+        (p) => p.id !== player.id && p.connected && p.name.toLowerCase() === name.toLowerCase()
+      )
+    ) {
+      sender.send(JSON.stringify({ type: "error", error: "That name is taken." }));
+      return;
+    }
+
+    player.name = name;
+    player.avatar = normalizeAvatar(msg.avatar || player.avatar, player.color);
+    player.color = player.avatar.color;
+    if (player.isHost) this.state.hostName = name;
     this.broadcastState();
   }
 
@@ -206,7 +287,7 @@ export default class Room {
     if (!this.state || this.state.phase !== "play") return;
     const player = this.playerFor(sender);
     if (!player) {
-      sender.send(JSON.stringify({ type: "error", error: "Only guests can guess." }));
+      sender.send(JSON.stringify({ type: "error", error: "Join the race first." }));
       return;
     }
 
@@ -225,6 +306,7 @@ export default class Room {
       playerId: player.id,
       name: player.name,
       color: player.color,
+      avatar: player.avatar,
       title,
       artist,
       titleOk,
@@ -251,6 +333,11 @@ export default class Room {
 
   handleSkip(sender) {
     if (!this.state || this.state.phase !== "play") return;
+    // Only the DJ can unlock more audio via skip.
+    if (!this.isHost(sender)) {
+      sender.send(JSON.stringify({ type: "error", error: "Only the DJ can skip." }));
+      return;
+    }
     const player = this.playerFor(sender);
     if (!player) return;
 
@@ -258,6 +345,7 @@ export default class Room {
       playerId: player.id,
       name: player.name,
       color: player.color,
+      avatar: player.avatar,
       skip: true,
     });
     this.consumeGuess();
@@ -342,9 +430,11 @@ export default class Room {
         id: p.id,
         name: p.name,
         color: p.color,
+        avatar: p.avatar || normalizeAvatar(null, p.color),
         score: p.score,
         wins: p.wins,
         connected: p.connected,
+        isHost: !!p.isHost,
       })),
       roundIdx: this.state.roundIdx,
       roundCount: this.state.tracks.length,

@@ -1,3 +1,5 @@
+import PlayerAvatar from "./PlayerAvatar.jsx";
+
 export default function PlayerRail({ players = [], winnerId, pulseId }) {
   if (!players.length) {
     return <p className="mp-empty">waiting for players to scan in…</p>;
@@ -12,13 +14,15 @@ export default function PlayerRail({ players = [], winnerId, pulseId }) {
             winnerId === p.id ? "winner" : ""
           } ${pulseId === p.id ? "pulse" : ""}`}
         >
-          <div
-            className="mp-mini-vinyl"
-            style={{ "--mp-color": p.color }}
-            aria-hidden="true"
+          <PlayerAvatar
+            avatar={p.avatar || { color: p.color, eyes: 0, mouth: 0 }}
+            size={40}
           />
           <div className="mp-player-meta">
-            <span className="mp-player-name">{p.name}</span>
+            <span className="mp-player-name">
+              {p.name}
+              {p.isHost ? " · dj" : ""}
+            </span>
             <span className="mp-player-score">
               {p.wins}W · {p.score}pts
             </span>

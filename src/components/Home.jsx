@@ -45,7 +45,7 @@ export default function Home({ me, onStartSolo, onStartMulti }) {
         <JoinCodeForm />
 
         <p className="fineprint">
-          multiplayer: you DJ here · friends join with the code (no Spotify needed)
+          multiplayer: DJ + race on this device · friends join with the code
         </p>
       </div>
 
