@@ -343,10 +343,33 @@ button { font-family: var(--font); }
   font-size: 11px; font-weight: 700; line-height: 1.5;
   position: relative; z-index: 2;
 }
-.vinyl-label--mystery { font-size: 26px; }
 .vinyl-label::after {
   content: ""; position: absolute; width: 7px; height: 7px; border-radius: 50%;
   background: var(--bg-color); border: 1px solid var(--sub-color);
+}
+.vinyl-hub {
+  width: 34%;
+  height: 34%;
+  border-radius: 50%;
+  background:
+    radial-gradient(circle at 35% 30%, #3a3a3a 0%, #1a1a1a 55%, #0d0d0d 100%);
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, 0.08),
+    inset 0 0 18px rgba(0, 0, 0, 0.55);
+  position: relative;
+  z-index: 2;
+}
+.vinyl-hub::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+  background: #050505;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.12);
 }
 .spin-fast { animation: spin 1.4s linear infinite; }
 .spin-slow { animation: spin 5s linear infinite; }
@@ -1303,7 +1326,10 @@ button { font-family: var(--font); }
   height: 34%;
   font-size: 12px;
 }
-.turntable--md .vinyl-label--mystery { font-size: 28px; }
+.turntable--md .vinyl-hub {
+  width: 34%;
+  height: 34%;
+}
 .turntable--md .tonearm {
   top: 4px;
   right: 10px;
