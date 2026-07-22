@@ -5,6 +5,7 @@ import PlaylistPicker from "./components/PlaylistPicker.jsx";
 import Game from "./components/Game.jsx";
 import ThemeSwitcher from "./components/ThemeSwitcher.jsx";
 import FabDock from "./components/FabDock.jsx";
+import UserMenu from "./components/UserMenu.jsx";
 import HostParty from "./multiplayer/HostParty.jsx";
 import GuestApp from "./multiplayer/GuestApp.jsx";
 import { makeRoomCode } from "./multiplayer/constants.js";
@@ -116,15 +117,7 @@ export default function App() {
 
         <div className="topbar-right">
           <ThemeSwitcher current={theme} onChange={setTheme} />
-          {status === "loggedIn" && (
-            <div className="user-chip">
-              {me?.image && <img src={me.image} alt="" className="user-avatar" />}
-              <span className="user-name">{me?.displayName || "you"}</span>
-              <button className="btn btn-mini" onClick={logout}>
-                log out
-              </button>
-            </div>
-          )}
+          {status === "loggedIn" && <UserMenu me={me} onLogout={logout} />}
         </div>
       </header>
 
