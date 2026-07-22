@@ -1756,7 +1756,7 @@ button { font-family: var(--font); }
   .hero-right {
     position: fixed;
     top: 18%;
-    right: 0;
+    right: -3px; /* bleed past the screen edge so no hairline shows */
     z-index: 70;
     width: min(340px, 86vw);
     margin: 0;
@@ -1780,7 +1780,10 @@ button { font-family: var(--font); }
   /* Flush with the screen edge — flat, no right line */
   .hero-right .demo-screen {
     border-radius: 16px 0 0 16px;
-    border-right: none;
+    border-right: 0 none transparent;
+    border-right-width: 0;
+    outline: none;
+    box-shadow: none;
   }
   .hero-right .demo--expanded {
     transform: translateX(0);
@@ -1792,6 +1795,7 @@ button { font-family: var(--font); }
   .demo--expanded .demo-screen {
     border-color: var(--main-color);
     border-right-color: transparent;
+    border-right-width: 0;
     box-shadow:
       -1px 0 0 0 var(--main-color),
       0 -1px 0 0 var(--main-color),
