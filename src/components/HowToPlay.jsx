@@ -59,6 +59,11 @@ export default function HowToPlay({ open, onOpen, onClose }) {
         </div>
 
         <div className="help-body">
+          <p>
+            <b>Guessify</b> is a music guessing game built on your Spotify
+            playlists — short snippets, fast guesses.
+          </p>
+
           <h3 className="help-section-title">why</h3>
           <p>
             I made Guessify because I used to play this with my friends on the
