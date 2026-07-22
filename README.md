@@ -1,6 +1,6 @@
 # Guessify
 
-A record-shop-styled music guessing game. Log in with Spotify, pick a playlist (or Liked Songs), and name the track from short snippets that grow longer as you miss. Score more for guessing sooner — and get a bonus if you nail the artist too.
+A record-shop-styled music guessing game. Log in with Spotify to load your playlists (or Liked Songs), then name the track from short snippets that grow longer as you miss. Audio comes from free **iTunes preview MP3s** — no Spotify Premium, no Web Playback SDK.
 
 Play solo, or **host a game** so friends can join from their phones (nickname only, no Spotify) and race for the first correct title.
 
@@ -11,11 +11,11 @@ Play solo, or **host a game** so friends can join from their phones (nickname on
 ## What you can do
 
 ### Solo
-- Log in with Spotify Premium
+- Log in with Spotify (any account)
 - Pick **Liked Songs** or a playlist you own (others’ playlists show locked)
-- Hear unlocking snippets (1 → 2 → 4 → 7 → 11 → 16 seconds)
+- Hear unlocking snippets (1 → 2 → 4 → 7 → 11 → 16 seconds) from iTunes previews
 - Type **title** and **artist** (fuzzy match); correct title wins the round
-- Correct artist adds **+1** bonus
+- Correct artist adds a bonus
 - Scrub / play / pause on the vinyl; skip unlocks more audio
 
 ### Multiplayer
@@ -32,26 +32,27 @@ Play solo, or **host a game** so friends can join from their phones (nickname on
 | Layer | Stack | Role |
 | --- | --- | --- |
 | **UI** | React 18 + Vite | Landing, playlist picker, solo game, multiplayer lobby / race |
-| **Auth & Spotify data** | Vercel serverless (`api/`) | OAuth, session cookie, playlists, Liked Songs, track lists, Web Playback token |
-| **Playback** | Spotify Web Playback SDK | Full-track streaming in the browser (Premium required for host / solo) |
+| **Auth & library** | Vercel serverless (`api/`) | Spotify OAuth, session cookie, playlists, Liked Songs, track metadata / cover art |
+| **Playback** | iTunes Search API + HTML `<audio>` | Free 30s preview MP3s (no API key, no Apple login) |
 | **Realtime rooms** | Cloudflare Workers + [PartyServer](https://github.com/cloudflare/partykit/tree/main/packages/partyserver) + Durable Objects | Authoritative multiplayer state, guesses, first-correct wins |
 | **Client sockets** | [PartySocket](https://www.npmjs.com/package/partysocket) | Browser ↔ Worker WebSocket |
 
 ### Repo map
 
 ```
-api/                 Spotify OAuth + playlist/liked proxies (Vercel)
+api/                 Spotify OAuth + playlist/liked proxies + iTunes preview lookup
 party/               Multiplayer Worker (room.js + worker entry)
 public/peeps/        Open Peeps bust avatars for multiplayer
 src/
   components/        Solo UI (Home, Game, PlaylistPicker, DemoPreview, …)
   multiplayer/       Host/guest apps, avatars, PartySocket hook
   match.js           Fuzzy title/artist matching
-  useSpotifyPlayer.js
+  itunes.js          Preview URL cache → /api/preview
+  usePreviewPlayer.js
 wrangler.jsonc       Cloudflare Worker config (Durable Object + SQLite migration)
 ```
 
-Session: encrypted **http-only cookie** (no DB). Spotify Client Secret stays on the server.
+Session: encrypted **http-only cookie** (no DB). Spotify Client Secret stays on the server. Spotify is only used for **your library + cover art**; snippets are resolved at play time via iTunes.
 
 Avatars: 105 Open Peeps busts in `public/peeps/` (from Flat Assets); lobby is nickname + randomize + accent.
 
@@ -63,20 +64,25 @@ Each round has **6 guesses**. Unlock steps: **1 → 2 → 4 → 7 → 11 → 16*
 
 | Guess attempt | Points (title) |
 | --- | --- |
-| 1st | 6 |
-| … | … |
-| 6th | 1 |
+| 1st | 1000 |
+| 2nd | 800 |
+| 3rd | 600 |
+| 4th | 400 |
+| 5th | 300 |
+| 6th | 200 |
 
-Correct **artist** (independent fuzzy match) → **+1** bonus.
+Correct **artist** (independent fuzzy match) → **+200** bonus (once per round).
 
 ---
 
 ## Deploy
 
-### 1. Spotify app
+### 1. Spotify app (library only)
 1. [Spotify Developer Dashboard](https://developer.spotify.com/dashboard) → create an app  
 2. Copy **Client ID** and **Client Secret**  
-3. Add redirect URI after you have a Vercel URL (step 3)
+3. Add redirect URI after you have a Vercel URL (step 3)  
+
+You do **not** need Spotify Premium, Web Playback, or streaming scopes — just playlist/library read.
 
 ### 2. Vercel (site + API)
 Import the GitHub repo. Add env vars:
@@ -132,6 +138,8 @@ Optional in `.env` / Vercel:
 ```
 VITE_PARTYKIT_HOST=127.0.0.1:8787   # local default if unset
 ```
+
+After pulling this playback change, **log out and log back in** once so Spotify re-issues a token without the old streaming scopes.
 
 ---
 

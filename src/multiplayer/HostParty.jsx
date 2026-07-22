@@ -1,8 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import QRCode from "qrcode";
 import { usePartyRoom } from "./usePartyRoom.js";
-import { useSpotifyPlayer } from "../useSpotifyPlayer.js";
-import { getToken } from "../spotify.js";
+import { usePreviewPlayer } from "../usePreviewPlayer.js";
 import { STEPS, TOTAL, randomAvatar } from "./constants.js";
 import { loadMediaMode, saveMediaMode } from "../mediaMode.js";
 import GuessMedia from "../components/GuessMedia.jsx";
@@ -25,11 +24,10 @@ export default function HostParty({ code, playlist, me, onExit }) {
     () => me?.displayName?.split(" ")[0] || "host"
   );
   const [hostAvatar, setHostAvatar] = useState(() => randomAvatar());
-  const { deviceId, status: playerStatus, errorMsg, player } = useSpotifyPlayer();
+  const { errorMsg, play, pause } = usePreviewPlayer();
   const [playBusy, setPlayBusy] = useState(false);
   const [localPlaying, setLocalPlaying] = useState(false);
   const [mediaMode, setMediaMode] = useState(loadMediaMode);
-  const stopTimer = useRef(null);
   const lastTrackRef = useRef(null);
 
   function changeMediaMode(next) {
@@ -42,6 +40,8 @@ export default function HostParty({ code, playlist, me, onExit }) {
     typeof window !== "undefined"
       ? `${window.location.origin}/join/${code}`
       : `/join/${code}`;
+
+  const hostTrack = playlist?.tracks?.find((t) => t.id === state?.trackId) || null;
 
   useEffect(() => {
     let cancelled = false;
@@ -112,16 +112,14 @@ export default function HostParty({ code, playlist, me, onExit }) {
 
   useEffect(() => {
     return () => {
-      clearTimeout(stopTimer.current);
-      player.current?.pause().catch(() => {});
+      pause();
     };
-  }, [player]);
+  }, [pause]);
 
   useEffect(() => {
     if (!state?.trackId) return;
     if (lastTrackRef.current !== state.trackId || state.phase !== "play") {
-      clearTimeout(stopTimer.current);
-      player.current?.pause().catch(() => {});
+      pause();
       setLocalPlaying(false);
       if (state.phase !== "play") send({ type: "playState", playing: false });
       lastTrackRef.current = state.trackId;
@@ -129,28 +127,22 @@ export default function HostParty({ code, playlist, me, onExit }) {
   }, [state?.trackId, state?.phase]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const unlocked = state?.unlocked ?? STEPS[0];
-  const canControl = playerStatus === "ready" && !!deviceId && !!state?.trackId;
+  const canControl = !!hostTrack;
   const phase = state?.phase || "lobby";
   const spinning = localPlaying && phase === "play";
 
   async function playSnippet(seconds) {
-    if (!canControl || playBusy || localPlaying) return;
+    if (!hostTrack || playBusy || localPlaying) return;
     setPlayBusy(true);
-    clearTimeout(stopTimer.current);
     try {
-      const token = await getToken();
-      await fetch(`https://api.spotify.com/v1/me/player/play?device_id=${deviceId}`, {
-        method: "PUT",
-        headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
-        body: JSON.stringify({ uris: [`spotify:track:${state.trackId}`], position_ms: 0 }),
+      await play(hostTrack, seconds, {
+        onStop: () => {
+          setLocalPlaying(false);
+          send({ type: "playState", playing: false });
+        },
       });
       setLocalPlaying(true);
       send({ type: "playState", playing: true });
-      stopTimer.current = setTimeout(() => {
-        player.current?.pause().catch(() => {});
-        setLocalPlaying(false);
-        send({ type: "playState", playing: false });
-      }, seconds * 1000);
     } catch {
       setLocalPlaying(false);
       send({ type: "playState", playing: false });
@@ -160,8 +152,7 @@ export default function HostParty({ code, playlist, me, onExit }) {
   }
 
   function stopAudio() {
-    clearTimeout(stopTimer.current);
-    player.current?.pause().catch(() => {});
+    pause();
     setLocalPlaying(false);
     send({ type: "playState", playing: false });
     setPlayBusy(false);
@@ -360,25 +351,23 @@ export default function HostParty({ code, playlist, me, onExit }) {
       </div>
 
       <div className={`controls${phase === "play" ? "" : " controls--toggle-only"}`}>
-        {phase === "play" &&
-          (playerStatus === "error" ? (
-            <div className="error-banner">{errorMsg}</div>
-          ) : (
+        {phase === "play" && (
+          <>
+            {errorMsg && <div className="error-banner">{errorMsg}</div>}
             <button
               className="btn btn-big btn-play"
               onClick={() => playSnippet(unlocked)}
               disabled={!canControl || localPlaying || playBusy}
             >
               <span className="btn-disc" aria-hidden="true" />
-              {!canControl
-                ? "connecting to spotify…"
-                : playBusy
+              {playBusy
                 ? "starting…"
                 : localPlaying
                 ? "playing…"
                 : `play ${unlocked}s`}
             </button>
-          ))}
+          </>
+        )}
         <MediaModeToggle mode={mediaMode} onChange={changeMediaMode} />
       </div>
 

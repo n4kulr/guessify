@@ -34,8 +34,7 @@ export default async function handler(req, res) {
       next = page.next;
     }
 
-    // Every track is playable now — the Web Playback SDK streams full tracks,
-    // so we no longer depend on Spotify's (now-null) preview_url.
+    // Spotify metadata only — 30s audio previews are resolved via iTunes at play time.
     res.status(200).json({
       id,
       name: meta.name,

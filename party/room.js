@@ -478,8 +478,7 @@ export class Room extends Server {
       revealedArtist: this.state.revealedArtist || null,
       artistClaimedBy: this.state.artistClaimedBy || null,
       track: this.publicTrack(),
-      // Host-only full track id for Spotify playback (guests get id too but no secret beyond that —
-      // knowing the Spotify id doesn't reveal the title in-UI; they still can't hear without being nearby).
+      // Host uses this id to look up metadata locally and resolve an iTunes preview.
       trackId: this.state.tracks[this.state.roundIdx]?.id || null,
     };
   }

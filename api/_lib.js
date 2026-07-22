@@ -5,16 +5,14 @@ import crypto from "node:crypto";
 
 const SECRET = process.env.SESSION_SECRET || "dev-insecure-secret-change-me";
 
+// Library + profile only. Audio previews come from the free iTunes Search API
+// (no Premium / Web Playback scopes needed).
 export const SCOPES = [
   "playlist-read-private",
   "playlist-read-collaborative",
   "user-library-read",
-  // Web Playback SDK (stream full tracks in-browser) — requires Premium.
-  "streaming",
   "user-read-email",
   "user-read-private",
-  "user-modify-playback-state",
-  "user-read-playback-state",
 ].join(" ");
 
 function key() {

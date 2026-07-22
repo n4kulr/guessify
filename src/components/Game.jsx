@@ -1,7 +1,6 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { isCorrect, matchesAnyArtist } from "../match.js";
-import { useSpotifyPlayer } from "../useSpotifyPlayer.js";
-import { getToken } from "../spotify.js";
+import { usePreviewPlayer } from "../usePreviewPlayer.js";
 import { loadMediaMode, saveMediaMode } from "../mediaMode.js";
 import GuessMedia from "./GuessMedia.jsx";
 import MediaModeToggle from "./MediaModeToggle.jsx";
@@ -43,13 +42,12 @@ export default function Game({ playlist, onExit }) {
   const [titleGuess, setTitleGuess] = useState("");
   const [artistGuess, setArtistGuess] = useState("");
   const [playing, setPlaying] = useState(false);
-  const [playBusy, setPlayBusy] = useState(false); // lock while Spotify request is in flight
+  const [playBusy, setPlayBusy] = useState(false);
   const [celebrate, setCelebrate] = useState(false);
   const [scrubbing, setScrubbing] = useState(false);
   const [mediaMode, setMediaMode] = useState(loadMediaMode);
 
-  const { deviceId, status: playerStatus, errorMsg, player } = useSpotifyPlayer();
-  const stopTimer = useRef(null);
+  const { errorMsg, play, pause } = usePreviewPlayer();
 
   function changeMediaMode(next) {
     setMediaMode(next);
@@ -59,7 +57,7 @@ export default function Game({ playlist, onExit }) {
   const track = rounds[roundIdx];
   const unlocked = STEPS[Math.min(guessNum, MAX_GUESSES - 1)];
   const resolved = outcome !== null;
-  const canControl = playerStatus === "ready" && !!deviceId && !!track;
+  const canControl = !!track;
 
   // Stop playback whenever the track changes (and on unmount).
   useEffect(() => {
@@ -71,33 +69,17 @@ export default function Game({ playlist, onExit }) {
   }, [roundIdx]);
 
   function stopAudio() {
-    clearTimeout(stopTimer.current);
-    if (player.current) player.current.pause().catch(() => {});
+    pause();
     setPlaying(false);
     setPlayBusy(false);
   }
 
-  function armStopTimer(seconds) {
-    clearTimeout(stopTimer.current);
-    stopTimer.current = setTimeout(() => {
-      if (player.current) player.current.pause().catch(() => {});
-      setPlaying(false);
-    }, seconds * 1000);
-  }
-
   async function playSnippet(seconds) {
-    if (!canControl || playBusy || playing) return;
+    if (!track || playBusy || playing) return;
     setPlayBusy(true);
-    clearTimeout(stopTimer.current);
     try {
-      const token = await getToken();
-      await fetch(`https://api.spotify.com/v1/me/player/play?device_id=${deviceId}`, {
-        method: "PUT",
-        headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
-        body: JSON.stringify({ uris: [`spotify:track:${track.id}`], position_ms: 0 }),
-      });
+      await play(track, seconds, { onStop: () => setPlaying(false) });
       setPlaying(true);
-      armStopTimer(seconds);
     } catch {
       setPlaying(false);
     } finally {
@@ -106,7 +88,7 @@ export default function Game({ playlist, onExit }) {
   }
 
   async function togglePlay() {
-    if (!canControl || phase !== "play" || playBusy) return;
+    if (!track || phase !== "play" || playBusy) return;
     if (playing) {
       stopAudio();
       return;
@@ -117,8 +99,7 @@ export default function Game({ playlist, onExit }) {
 
   function onVinylScrubStart() {
     setScrubbing(true);
-    clearTimeout(stopTimer.current);
-    if (player.current) player.current.pause().catch(() => {});
+    pause();
     setPlaying(false);
     setPlayBusy(false);
   }
@@ -298,25 +279,23 @@ export default function Game({ playlist, onExit }) {
           </div>
 
           <div className={`controls${!resolved ? "" : " controls--toggle-only"}`}>
-            {!resolved &&
-              (playerStatus === "error" ? (
-                <div className="error-banner">{errorMsg}</div>
-              ) : (
+            {!resolved && (
+              <>
+                {errorMsg && <div className="error-banner">{errorMsg}</div>}
                 <button
                   className="btn btn-big btn-play"
                   onClick={() => playSnippet(unlocked)}
                   disabled={playDisabled}
                 >
                   <span className="btn-disc" aria-hidden="true" />
-                  {!canControl
-                    ? "connecting to spotify…"
-                    : playBusy
+                  {playBusy
                     ? "starting…"
                     : playing
                     ? "playing…"
                     : `play ${unlocked}s`}
                 </button>
-              ))}
+              </>
+            )}
             <MediaModeToggle mode={mediaMode} onChange={changeMediaMode} />
           </div>
 
