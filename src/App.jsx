@@ -8,7 +8,7 @@ import FabDock from "./components/FabDock.jsx";
 import HostParty from "./multiplayer/HostParty.jsx";
 import GuestApp from "./multiplayer/GuestApp.jsx";
 import { makeRoomCode } from "./multiplayer/constants.js";
-import { loadTheme } from "./themes.js";
+import { loadTheme, DEFAULT_THEME } from "./themes.js";
 import { attachKeyboardSounds } from "./keyboardSounds.js";
 
 function joinCodeFromPath() {
@@ -25,7 +25,7 @@ export default function App() {
   const [roomCode, setRoomCode] = useState(null);
   const [joinCode] = useState(() => joinCodeFromPath());
   const [authError, setAuthError] = useState(null);
-  const [theme, setTheme] = useState("serika_dark");
+  const [theme, setTheme] = useState(DEFAULT_THEME);
   const [homeNonce, setHomeNonce] = useState(0);
 
   useEffect(() => attachKeyboardSounds(), []);

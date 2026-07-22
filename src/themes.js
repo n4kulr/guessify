@@ -16,7 +16,7 @@ export const THEMES = {
   bento:        { name: "bento",        bg: "#2d394d", main: "#ff7a90", sub: "#5c6b83", subAlt: "#28333f", text: "#fffaf4", error: "#fa5f55" },
 };
 
-export const DEFAULT_THEME = "serika_dark";
+export const DEFAULT_THEME = "olivia";
 const KEY = "guessify-theme";
 
 export function applyTheme(key) {
