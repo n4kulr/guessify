@@ -1505,6 +1505,18 @@ button { font-family: var(--font); }
 .mp-copy-link {
   margin-top: 0;
   align-self: flex-start;
+  /* Match text start to .mp-code (cancel btn-mini horizontal padding) */
+  margin-left: -10px;
+}
+.mp-side-title {
+  font-size: 12px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--sub-color);
+  margin: 0;
+}
+.mp-side-accent {
+  color: var(--main-color);
 }
 .mp-qr-look {
   padding-top: 14px;
@@ -1539,13 +1551,6 @@ button { font-family: var(--font); }
   background: color-mix(in srgb, var(--sub-alt-color) 70%, var(--bg-color));
 }
 .mp-lobby-side { display: flex; flex-direction: column; gap: 12px; align-items: stretch; text-align: left; }
-.mp-side-title {
-  font-size: 12px;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: var(--sub-color);
-  margin: 0;
-}
 
 .mp-rail {
   display: flex;
