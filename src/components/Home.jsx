@@ -26,7 +26,7 @@ export default function Home({ me, onStartSolo, onStartMulti }) {
 
         <div className="home-actions">
           <button className="btn btn-big btn-play" onClick={onStartSolo}>
-            <span className="btn-disc" aria-hidden="true" />
+            <span className="btn-play-icon" aria-hidden="true" />
             play solo
           </button>
           <button className="btn btn-big btn-multi" onClick={onStartMulti}>

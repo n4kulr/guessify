@@ -129,6 +129,17 @@ button { font-family: var(--font); }
 }
 .btn-ghost { background: var(--sub-alt-color); }
 
+.btn-play-icon {
+  width: 0;
+  height: 0;
+  flex: none;
+  border-style: solid;
+  border-width: 7px 0 7px 12px;
+  border-color: transparent transparent transparent currentColor;
+  margin-left: 2px;
+  transform: translateX(1px);
+}
+
 .btn-disc {
   width: 18px; height: 18px; border-radius: 50%;
   background:
