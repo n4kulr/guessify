@@ -66,9 +66,9 @@ export default function HowToPlay({ open, onOpen, onClose }) {
 
           <h3 className="help-section-title">why</h3>
           <p>
-            I made Guessify because I used to play this with my friends on the
-            way to tuition — we’d race to guess the radio song the fastest, and
-            our moms would keep score since they were driving.
+            I made Guessify because I used to play this with my school friends
+            while our parents drove us to tuition — we’d race to guess the radio
+            song the fastest, and it got very competitive.
           </p>
 
           <h3 className="help-section-title">instructions</h3>
