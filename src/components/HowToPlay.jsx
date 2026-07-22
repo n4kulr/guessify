@@ -59,14 +59,14 @@ export default function HowToPlay({ open, onOpen, onClose }) {
         </div>
 
         <div className="help-body">
-          <h3>why</h3>
+          <h3 className="help-section-title">why</h3>
           <p>
             I made Guessify because I used to play this with my friends on the
             way to tuition — we’d race to guess the radio song the fastest, and
             our moms would keep score since they were driving.
           </p>
 
-          <h3>instructions</h3>
+          <h3 className="help-section-title">instructions</h3>
           <p>
             Log in with <b>Spotify Premium</b> to host. Guests only need the
             party code — no Spotify required.
