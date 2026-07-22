@@ -1,4 +1,5 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { playCassetteButton } from "../cassetteSounds.js";
 
 // Self-playing fake rounds so people see the vibe before logging in.
@@ -107,6 +108,9 @@ export default function DemoPreview() {
   const [step, setStep] = useState(0); // 0..guesses.length (== solved)
   const [done, setDone] = useState(false);
   const [pressed, setPressed] = useState(null);
+  const [expanded, setExpanded] = useState(false);
+  const [dragX, setDragX] = useState(0);
+  const drag = useRef({ active: false, startX: 0, dx: 0 });
 
   const round = ROUNDS[roundIdx];
   const script = round.guesses;
@@ -130,137 +134,223 @@ export default function DemoPreview() {
     return () => clearTimeout(t);
   }, [step, done, script.length]);
 
+  useEffect(() => {
+    if (!expanded) return;
+    function onKey(e) {
+      if (e.key === "Escape") closeDemo();
+    }
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [expanded]);
+
+  useEffect(() => {
+    if (!expanded) setDragX(0);
+  }, [expanded]);
+
   const unlocked = STEPS[Math.min(step, STEPS.length - 1)];
   const label = `${answer.title} — ${answer.artist}`;
 
-  function tapTooth(i) {
+  function isMobileDemo() {
+    return window.matchMedia("(max-width: 820px)").matches;
+  }
+
+  function closeDemo() {
+    setExpanded(false);
+    setDragX(0);
+  }
+
+  function tapTooth(i, e) {
+    e.stopPropagation();
     setPressed(i);
     playCassetteButton(i);
     window.setTimeout(() => setPressed(null), 160);
   }
 
+  function onDemoClick() {
+    if (!isMobileDemo()) return;
+    if (!expanded) setExpanded(true);
+  }
+
+  function onPointerDown(e) {
+    if (!expanded || !isMobileDemo()) return;
+    if (e.target.closest?.(".demo-tooth")) return;
+    drag.current = { active: true, startX: e.clientX, dx: 0 };
+    try {
+      e.currentTarget.setPointerCapture(e.pointerId);
+    } catch {
+      /* ignore */
+    }
+  }
+
+  function onPointerMove(e) {
+    if (!drag.current.active) return;
+    const dx = Math.max(0, e.clientX - drag.current.startX);
+    drag.current.dx = dx;
+    setDragX(dx);
+  }
+
+  function onPointerUp() {
+    if (!drag.current.active) return;
+    const dx = drag.current.dx;
+    drag.current.active = false;
+    if (dx > 88) closeDemo();
+    else setDragX(0);
+  }
+
+  const dragStyle =
+    expanded && dragX > 0
+      ? {
+          transform: `translateX(${dragX}px)`,
+          transition: "none",
+        }
+      : undefined;
+
   return (
-    <div className="demo">
-      <div className="demo-tag">
-        <span className="rec-dot" /> LIVE DEMO
-      </div>
-
-      <div className="demo-screen">
-        <div className="demo-grain" aria-hidden="true" />
-        <div className="demo-scanlines" aria-hidden="true" />
-        <div className="demo-head">
-          <span className="demo-playlist">▶ liked-songs</span>
-          <span className="demo-score">
-            SCORE <b>4200</b>
-          </span>
+    <>
+      {expanded &&
+        createPortal(
+          <button
+            type="button"
+            className="demo-backdrop"
+            aria-label="Close live demo"
+            onClick={closeDemo}
+          />,
+          document.body
+        )}
+      <div
+        className={`demo${expanded ? " demo--expanded" : " demo--peek"}`}
+        onClick={onDemoClick}
+        onPointerDown={onPointerDown}
+        onPointerMove={onPointerMove}
+        onPointerUp={onPointerUp}
+        onPointerCancel={onPointerUp}
+        style={dragStyle}
+        role="presentation"
+      >
+        <div className="demo-peek-tab" aria-hidden="true">
+          demo
+        </div>
+        <div className="demo-tag">
+          <span className="rec-dot" /> LIVE DEMO
         </div>
 
-        <div className="demo-stage demo-stage--cassette">
-          <div className={`demo-cassette ${done ? "is-done" : ""}`}>
-            <div className="demo-cassette-shell">
-              <span className="demo-screw demo-screw--tl" aria-hidden="true" />
-              <span className="demo-screw demo-screw--tr" aria-hidden="true" />
-              <span className="demo-screw demo-screw--bl" aria-hidden="true" />
-              <span className="demo-screw demo-screw--br" aria-hidden="true" />
-              <span className="demo-side-mark" aria-hidden="true">
-                A
-              </span>
-
-              <div
-                className={`demo-cassette-label ${
-                  done ? "demo-cassette-label--solved" : ""
-                }`}
-              >
-                {done ? (
-                  <>
-                    <img
-                      className="demo-cover"
-                      src={answer.cover}
-                      alt=""
-                      width={18}
-                      height={18}
-                      decoding="async"
-                    />
-                    <div className="demo-marquee">
-                      <span className="demo-marquee-track">
-                        <span>{label}</span>
-                        <span aria-hidden="true">{label}</span>
-                      </span>
-                    </div>
-                  </>
-                ) : (
-                  "??? side a"
-                )}
-              </div>
-              <div className="demo-cassette-window">
-                <span
-                  className={`demo-reel demo-reel--left ${done ? "spin-slow" : "spin-fast"}`}
-                  aria-hidden="true"
-                />
-                <span
-                  className={`demo-reel demo-reel--right ${done ? "spin-slow" : "spin-fast"}`}
-                  aria-hidden="true"
-                />
-              </div>
-              <div className="demo-cassette-sprockets">
-                {TEETH.map((tooth, i) => (
-                  <button
-                    key={tooth.id}
-                    type="button"
-                    className={`demo-tooth ${pressed === i ? "is-pressed" : ""}`}
-                    aria-label={tooth.label}
-                    onClick={() => tapTooth(i)}
-                  >
-                    <span className="demo-tooth-icon" aria-hidden="true">
-                      {tooth.icon}
-                    </span>
-                  </button>
-                ))}
-              </div>
-            </div>
+        <div className="demo-screen">
+          <div className="demo-grain" aria-hidden="true" />
+          <div className="demo-scanlines" aria-hidden="true" />
+          <div className="demo-head">
+            <span className="demo-playlist">▶ liked-songs</span>
+            <span className="demo-score">
+              SCORE <b>4200</b>
+            </span>
           </div>
-        </div>
 
-        <div className="demo-progress">
-          <div className="progress-track demo-track">
-            <div
-              className="progress-fill"
-              style={{ width: `${(unlocked / 16) * 100}%` }}
-            />
-          </div>
-          <span className="demo-time">0:0{unlocked} unlocked</span>
-        </div>
+          <div className="demo-stage demo-stage--cassette">
+            <div className={`demo-cassette ${done ? "is-done" : ""}`}>
+              <div className="demo-cassette-shell">
+                <span className="demo-screw demo-screw--tl" aria-hidden="true" />
+                <span className="demo-screw demo-screw--tr" aria-hidden="true" />
+                <span className="demo-screw demo-screw--bl" aria-hidden="true" />
+                <span className="demo-screw demo-screw--br" aria-hidden="true" />
+                <span className="demo-side-mark" aria-hidden="true">
+                  A
+                </span>
 
-        <div className="demo-result">
-          {done ? (
-            <div className="demo-win">
-              <img
-                className="demo-win-cover"
-                src={answer.cover}
-                alt=""
-                decoding="async"
-              />
-              <div className="demo-win-meta">
-                <span className="demo-win-title">{answer.title}</span>
-                <span className="demo-win-artist">{answer.artist}</span>
-              </div>
-            </div>
-          ) : (
-            <div className="demo-rows" key={roundIdx}>
-              {script.map((g, i) => (
                 <div
-                  key={i}
-                  className={`demo-row ${
-                    i < step ? (g.correct ? "hit" : "miss") : i === step ? "cursor" : ""
+                  className={`demo-cassette-label ${
+                    done ? "demo-cassette-label--solved" : ""
                   }`}
                 >
-                  {i < step ? g.text : i === step ? "◉ guessing…" : ""}
+                  {done ? (
+                    <>
+                      <img
+                        className="demo-cover"
+                        src={answer.cover}
+                        alt=""
+                        width={18}
+                        height={18}
+                        decoding="async"
+                      />
+                      <div className="demo-marquee">
+                        <span className="demo-marquee-track">
+                          <span>{label}</span>
+                          <span aria-hidden="true">{label}</span>
+                        </span>
+                      </div>
+                    </>
+                  ) : (
+                    "??? side a"
+                  )}
                 </div>
-              ))}
+                <div className="demo-cassette-window">
+                  <span
+                    className={`demo-reel demo-reel--left ${done ? "spin-slow" : "spin-fast"}`}
+                    aria-hidden="true"
+                  />
+                  <span
+                    className={`demo-reel demo-reel--right ${done ? "spin-slow" : "spin-fast"}`}
+                    aria-hidden="true"
+                  />
+                </div>
+                <div className="demo-cassette-sprockets">
+                  {TEETH.map((tooth, i) => (
+                    <button
+                      key={tooth.id}
+                      type="button"
+                      className={`demo-tooth ${pressed === i ? "is-pressed" : ""}`}
+                      aria-label={tooth.label}
+                      onClick={(e) => tapTooth(i, e)}
+                    >
+                      <span className="demo-tooth-icon" aria-hidden="true">
+                        {tooth.icon}
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              </div>
             </div>
-          )}
+          </div>
+
+          <div className="demo-progress">
+            <div className="progress-track demo-track">
+              <div
+                className="progress-fill"
+                style={{ width: `${(unlocked / 16) * 100}%` }}
+              />
+            </div>
+            <span className="demo-time">0:0{unlocked} unlocked</span>
+          </div>
+
+          <div className="demo-result">
+            {done ? (
+              <div className="demo-win">
+                <img
+                  className="demo-win-cover"
+                  src={answer.cover}
+                  alt=""
+                  decoding="async"
+                />
+                <div className="demo-win-meta">
+                  <span className="demo-win-title">{answer.title}</span>
+                  <span className="demo-win-artist">{answer.artist}</span>
+                </div>
+              </div>
+            ) : (
+              <div className="demo-rows" key={roundIdx}>
+                {script.map((g, i) => (
+                  <div
+                    key={i}
+                    className={`demo-row ${
+                      i < step ? (g.correct ? "hit" : "miss") : i === step ? "cursor" : ""
+                    }`}
+                  >
+                    {i < step ? g.text : i === step ? "◉ guessing…" : ""}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
       </div>
-    </div>
+    </>
   );
 }
