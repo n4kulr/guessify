@@ -75,7 +75,7 @@ export default function GuessMedia({
         {revealed && cover ? (
           <img src={cover} alt="" className="vinyl-cover" draggable={false} />
         ) : (
-          <span className="vinyl-hub" aria-hidden="true" />
+          <div className="vinyl-label" aria-hidden="true" />
         )}
       </ScrubbableVinyl>
       <div className={`tonearm ${spinning ? "tonearm--on" : ""}`} />
