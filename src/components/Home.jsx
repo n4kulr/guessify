@@ -13,7 +13,7 @@ export default function Home({ me, onStartSolo, onStartMulti }) {
         </h1>
         <p className="hero-tagline">
           Hey {name} — drop the needle on one of your playlists and see how
-          fast you can <em>name that tune</em>.
+          fast you can <em>name that song</em>.
         </p>
 
         <HeroTurntable />

@@ -12,6 +12,7 @@ const TEETH = [
  * Shared cassette face used by the landing demo and in-game media stage.
  * `interactiveTeeth` enables the sprocket click + blip (demo). Game mode
  * can pass `onActivate` to toggle play/pause via the shell.
+ * Pass `muteControl` on the demo to replace ⏭ with mute / unmute.
  */
 export default function CassetteShell({
   done = false,
@@ -20,17 +21,31 @@ export default function CassetteShell({
   label = "",
   mysteryText = "??? side a",
   interactiveTeeth = false,
+  muteControl = null,
   onActivate,
   className = "",
 }) {
   const [pressed, setPressed] = useState(null);
   const reelSpin = spinning ? (done ? "spin-slow" : "spin-fast") : "";
 
-  function tapTooth(i, e) {
+  const teeth = muteControl
+    ? TEETH.map((t) =>
+        t.id === "ff"
+          ? {
+              id: "mute",
+              label: muteControl.muted ? "unmute audio" : "mute audio",
+              icon: muteControl.muted ? "🔇" : "🔊",
+            }
+          : t
+      )
+    : TEETH;
+
+  function tapTooth(i, tooth, e) {
     e.stopPropagation();
     if (!interactiveTeeth) return;
     setPressed(i);
     playCassetteButton(i);
+    if (tooth.id === "mute") muteControl?.onToggle?.();
     window.setTimeout(() => setPressed(null), 160);
   }
 
@@ -101,14 +116,15 @@ export default function CassetteShell({
         </div>
 
         <div className="cassette-sprockets">
-          {TEETH.map((tooth, i) =>
+          {teeth.map((tooth, i) =>
             interactiveTeeth ? (
               <button
                 key={tooth.id}
                 type="button"
                 className={`cassette-tooth ${pressed === i ? "is-pressed" : ""}`}
                 aria-label={tooth.label}
-                onClick={(e) => tapTooth(i, e)}
+                aria-pressed={tooth.id === "mute" ? !!muteControl?.muted : undefined}
+                onClick={(e) => tapTooth(i, tooth, e)}
               >
                 <span className="cassette-tooth-icon" aria-hidden="true">
                   {tooth.icon}

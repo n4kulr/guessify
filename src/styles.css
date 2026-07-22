@@ -1956,10 +1956,10 @@ button { font-family: var(--font); }
   .hero { grid-template-columns: 1fr; gap: 30px; }
   .hero-turntable { display: none; }
   .hero-title { font-size: clamp(48px, 16vw, 80px); }
-  /* Clear the peeked live-demo strip + vertical "demo" tab on the right */
+  /* Clear the peeked live-demo strip + horizontal "pull me" tab on the right */
   .hero-left {
     width: 100%;
-    padding-right: 72px;
+    padding-right: 120px;
     box-sizing: border-box;
   }
   .hero-tagline,
@@ -2005,12 +2005,16 @@ button { font-family: var(--font); }
     max-width: none;
     transform: translateX(calc(100% - 48px));
     transition:
-      transform 0.38s cubic-bezier(0.22, 1, 0.36, 1),
-      filter 0.3s ease;
+      transform 0.4s cubic-bezier(0.22, 1, 0.36, 1),
+      filter 0.35s ease;
     cursor: pointer;
+    touch-action: none;
   }
   .hero-right .demo--peek {
     filter: saturate(0.85) brightness(0.92);
+  }
+  .hero-right .demo--dragging {
+    cursor: grabbing;
   }
   /* Flush with the screen edge — flat, no right line */
   .hero-right .demo-screen {
@@ -2023,7 +2027,6 @@ button { font-family: var(--font); }
   .hero-right .demo--expanded {
     transform: translateX(0);
     cursor: grab;
-    touch-action: pan-y;
     filter: none;
   }
   .hero-right .demo--expanded:active { cursor: grabbing; }
@@ -2039,25 +2042,78 @@ button { font-family: var(--font); }
   }
   .demo-peek-tab {
     display: flex;
+    align-items: center;
     position: absolute;
-    top: 50%;
+    top: 38%;
     left: 0;
     z-index: 4;
-    transform: translate(-100%, -50%);
-    writing-mode: vertical-rl;
-    rotate: 180deg;
-    font-size: 10px;
-    font-weight: 700;
-    letter-spacing: 0.16em;
-    text-transform: uppercase;
-    color: var(--bg-color);
-    background: var(--main-color);
-    padding: 12px 7px;
-    border-radius: 8px 8px 0 0;
-    box-shadow: -2px 2px 0 color-mix(in srgb, #000 25%, transparent);
+    font: inherit;
+    /* Match hero tagline line box (~17px × 1.6) */
+    height: calc(17px * 1.6);
+    padding: 0 12px 0 18px;
+    border: 1px solid color-mix(in srgb, var(--text-color) 14%, transparent);
+    border-right: none;
+    border-radius: 0;
+    /* Folded scrap of paper sticking out of the demo */
+    background: color-mix(in srgb, var(--text-color) 6%, var(--bg-color));
+    box-shadow:
+      -2px 3px 0 color-mix(in srgb, #000 22%, transparent),
+      inset 0 1px 0 color-mix(in srgb, #fff 10%, transparent);
+    cursor: pointer;
+    pointer-events: auto;
+    transform: translate(calc(-100% + 1px), -50%);
+  }
+  .demo-peek-tab-fold {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 16px;
+    height: 100%;
+    pointer-events: none;
+    /* Folded-back tip: triangle underside + crease */
+    background: linear-gradient(
+      135deg,
+      color-mix(in srgb, #000 28%, var(--sub-alt-color)) 0%,
+      color-mix(in srgb, #000 14%, var(--sub-alt-color)) 48%,
+      transparent 49%
+    );
+    clip-path: polygon(0 0, 100% 0, 0 100%);
+    box-shadow: 1px 0 0 color-mix(in srgb, #000 18%, transparent);
+  }
+  .demo-peek-tab-fold::after {
+    content: "";
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(
+      135deg,
+      transparent 46%,
+      color-mix(in srgb, #000 25%, transparent) 50%,
+      transparent 54%
+    );
+  }
+  .demo-peek-tab-label {
+    position: relative;
+    z-index: 1;
+    font-family: "Caveat", "Segoe Print", "Comic Sans MS", cursive;
+    font-size: 17px;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+    line-height: 1.6;
+    text-transform: lowercase;
+    /* Graphite pencil */
+    color: color-mix(in srgb, var(--text-color) 72%, #6b5e4e);
+  }
+  .demo-peek-tab:focus-visible {
+    outline: 2px solid var(--text-color);
+    outline-offset: 2px;
+  }
+  .demo--expanded .demo-peek-tab {
+    opacity: 0;
     pointer-events: none;
   }
-  .demo--expanded .demo-peek-tab { opacity: 0; }
   .demo--peek .cassette-tooth { pointer-events: none; }
   .demo-backdrop {
     display: block;
@@ -2067,14 +2123,10 @@ button { font-family: var(--font); }
     border: none;
     padding: 0;
     margin: 0;
-    background: color-mix(in srgb, #000 42%, transparent);
+    background: #000;
     cursor: pointer;
     pointer-events: auto;
-    animation: demo-backdrop-in 0.25s ease;
-  }
-  @keyframes demo-backdrop-in {
-    from { opacity: 0; }
-    to { opacity: 1; }
+    transition: opacity 0.2s ease;
   }
 
   .mp-lobby-grid { grid-template-columns: 1fr; }

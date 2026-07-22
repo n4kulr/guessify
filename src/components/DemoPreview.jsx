@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import CassetteShell from "./CassetteShell.jsx";
+import { resolvePreview } from "../itunes.js";
 
 // Self-playing fake rounds so people see the vibe before logging in.
 const ROUNDS = [
@@ -101,8 +102,25 @@ export default function DemoPreview() {
   const [step, setStep] = useState(0); // 0..guesses.length (== solved)
   const [done, setDone] = useState(false);
   const [expanded, setExpanded] = useState(false);
-  const [dragX, setDragX] = useState(0);
-  const drag = useRef({ active: false, startX: 0, dx: 0 });
+  const [muted, setMuted] = useState(true);
+  // While dragging: pixel translateX (0 = fully open). null = use CSS open/peek classes.
+  const [dragX, setDragX] = useState(null);
+  const panelRef = useRef(null);
+  const audioRef = useRef(null);
+  const mutedRef = useRef(true);
+  mutedRef.current = muted;
+  const drag = useRef({
+    active: false,
+    pointerId: null,
+    startClientX: 0,
+    originX: 0,
+    closedX: 0,
+    currentX: 0,
+    moved: false,
+    lastClientX: 0,
+    lastT: 0,
+    velocity: 0,
+  });
 
   const round = ROUNDS[roundIdx];
   const script = round.guesses;
@@ -135,9 +153,52 @@ export default function DemoPreview() {
     return () => window.removeEventListener("keydown", onKey);
   }, [expanded]);
 
+  // Play the revealed/current demo track via iTunes preview (starts muted for autoplay).
   useEffect(() => {
-    if (!expanded) setDragX(0);
-  }, [expanded]);
+    let cancelled = false;
+    const audio = audioRef.current || new Audio();
+    audioRef.current = audio;
+    audio.loop = true;
+    audio.preload = "auto";
+
+    (async () => {
+      const url = await resolvePreview({
+        id: `demo-${answer.title}`,
+        name: answer.title,
+        artists: [answer.artist],
+      });
+      if (cancelled || !url) return;
+      if (audio.dataset.previewUrl !== url) {
+        audio.dataset.previewUrl = url;
+        audio.src = url;
+      }
+      audio.muted = mutedRef.current;
+      try {
+        await audio.play();
+      } catch {
+        /* muted autoplay usually works; ignore blocks */
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [roundIdx, answer.title, answer.artist]);
+
+  useEffect(() => {
+    if (audioRef.current) audioRef.current.muted = muted;
+  }, [muted]);
+
+  useEffect(() => {
+    return () => {
+      const a = audioRef.current;
+      if (!a) return;
+      a.pause();
+      a.removeAttribute("src");
+      delete a.dataset.previewUrl;
+      audioRef.current = null;
+    };
+  }, []);
 
   const unlocked = STEPS[Math.min(step, STEPS.length - 1)];
   const label = `${answer.title} — ${answer.artist}`;
@@ -146,20 +207,42 @@ export default function DemoPreview() {
     return window.matchMedia("(max-width: 820px)").matches;
   }
 
-  function closeDemo() {
-    setExpanded(false);
-    setDragX(0);
+  function measureClosedX() {
+    const w = panelRef.current?.offsetWidth || 340;
+    return Math.max(0, w - 48);
   }
 
-  function onDemoClick() {
-    if (!isMobileDemo()) return;
-    if (!expanded) setExpanded(true);
+  function openDemo() {
+    setDragX(null);
+    setExpanded(true);
+  }
+
+  function closeDemo() {
+    setDragX(null);
+    setExpanded(false);
   }
 
   function onPointerDown(e) {
-    if (!expanded || !isMobileDemo()) return;
+    if (!isMobileDemo()) return;
     if (e.target.closest?.(".cassette-tooth")) return;
-    drag.current = { active: true, startX: e.clientX, dx: 0 };
+    // Only primary button / touch
+    if (e.pointerType === "mouse" && e.button !== 0) return;
+
+    const closedX = measureClosedX();
+    const originX = expanded ? 0 : closedX;
+    drag.current = {
+      active: true,
+      pointerId: e.pointerId,
+      startClientX: e.clientX,
+      originX,
+      closedX,
+      currentX: originX,
+      moved: false,
+      lastClientX: e.clientX,
+      lastT: performance.now(),
+      velocity: 0,
+    };
+    setDragX(originX);
     try {
       e.currentTarget.setPointerCapture(e.pointerId);
     } catch {
@@ -168,53 +251,117 @@ export default function DemoPreview() {
   }
 
   function onPointerMove(e) {
-    if (!drag.current.active) return;
-    const dx = Math.max(0, e.clientX - drag.current.startX);
-    drag.current.dx = dx;
-    setDragX(dx);
+    if (!drag.current.active || e.pointerId !== drag.current.pointerId) return;
+    const dx = e.clientX - drag.current.startClientX;
+    if (Math.abs(dx) > 8) drag.current.moved = true;
+
+    const now = performance.now();
+    const dt = Math.max(1, now - drag.current.lastT);
+    const vx = ((e.clientX - drag.current.lastClientX) / dt) * 1000;
+    drag.current.velocity = vx;
+    drag.current.lastClientX = e.clientX;
+    drag.current.lastT = now;
+
+    const next = Math.max(0, Math.min(drag.current.closedX, drag.current.originX + dx));
+    drag.current.currentX = next;
+    setDragX(next);
   }
 
-  function onPointerUp() {
+  function finishDrag(e) {
     if (!drag.current.active) return;
-    const dx = drag.current.dx;
+    if (e && drag.current.pointerId != null && e.pointerId !== drag.current.pointerId) return;
     drag.current.active = false;
-    if (dx > 88) closeDemo();
-    else setDragX(0);
+
+    const { closedX, currentX, moved, velocity } = drag.current;
+
+    // Tap (no meaningful drag): toggle open/closed
+    if (!moved) {
+      setDragX(null);
+      setExpanded((v) => !v);
+      return;
+    }
+
+    // Flick or position snap
+    const openEnough = currentX < closedX * 0.55;
+    const flickedOpen = velocity < -520;
+    const flickedClosed = velocity > 520;
+    const shouldOpen = flickedClosed ? false : flickedOpen ? true : openEnough;
+
+    setDragX(null);
+    setExpanded(shouldOpen);
   }
 
-  const dragStyle =
-    expanded && dragX > 0
-      ? {
-          transform: `translateX(${dragX}px)`,
-          transition: "none",
-        }
-      : undefined;
+  function onPointerUp(e) {
+    finishDrag(e);
+  }
+
+  function onPointerCancel(e) {
+    finishDrag(e);
+  }
+
+  // 0 = closed peek, 1 = fully open (for backdrop fade while dragging)
+  const progress =
+    dragX == null
+      ? expanded
+        ? 1
+        : 0
+      : drag.current.closedX <= 0
+        ? 0
+        : 1 - dragX / drag.current.closedX;
+
+  const dragging = dragX != null;
+  const showBackdrop = progress > 0.02;
+
+  const panelStyle = dragging
+    ? {
+        transform: `translateX(${dragX}px)`,
+        transition: "none",
+        filter: `saturate(${0.85 + 0.15 * progress}) brightness(${0.92 + 0.08 * progress})`,
+      }
+    : undefined;
 
   return (
     <>
-      {expanded &&
+      {showBackdrop &&
         createPortal(
           <button
             type="button"
             className="demo-backdrop"
             aria-label="Close live demo"
             onClick={closeDemo}
+            style={{ opacity: 0.42 * progress }}
           />,
           document.body
         )}
       <div
-        className={`demo${expanded ? " demo--expanded" : " demo--peek"}`}
-        onClick={onDemoClick}
+        ref={panelRef}
+        className={`demo${expanded ? " demo--expanded" : " demo--peek"}${
+          dragging ? " demo--dragging" : ""
+        }`}
         onPointerDown={onPointerDown}
         onPointerMove={onPointerMove}
         onPointerUp={onPointerUp}
-        onPointerCancel={onPointerUp}
-        style={dragStyle}
+        onPointerCancel={onPointerCancel}
+        style={panelStyle}
         role="presentation"
       >
-        <div className="demo-peek-tab" aria-hidden="true">
-          demo
-        </div>
+        <button
+          type="button"
+          className="demo-peek-tab"
+          tabIndex={expanded ? -1 : 0}
+          aria-hidden={expanded ? true : undefined}
+          aria-label="Pull open live demo"
+          onKeyDown={(e) => {
+            if (e.key !== "Enter" && e.key !== " ") return;
+            e.preventDefault();
+            if (!isMobileDemo()) return;
+            if (expanded) closeDemo();
+            else openDemo();
+          }}
+        >
+          <span className="demo-peek-tab-fold" aria-hidden="true" />
+          <span className="demo-peek-tab-label">pull me</span>
+        </button>
         <div className="demo-tag">
           <span className="rec-dot" /> LIVE DEMO
         </div>
@@ -236,6 +383,20 @@ export default function DemoPreview() {
               cover={answer.cover}
               label={label}
               interactiveTeeth
+              muteControl={{
+                muted,
+                onToggle: () => {
+                  setMuted((m) => {
+                    const next = !m;
+                    const a = audioRef.current;
+                    if (a) {
+                      a.muted = next;
+                      if (!next) a.play().catch(() => {});
+                    }
+                    return next;
+                  });
+                },
+              }}
             />
           </div>
 
