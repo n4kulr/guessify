@@ -1651,6 +1651,11 @@ button { font-family: var(--font); }
   align-items: center;
   gap: 6px;
 }
+.mp-player-name-text {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
 .mp-crown {
   flex: none;
   display: inline-flex;

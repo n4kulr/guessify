@@ -39,16 +39,25 @@ export default function PlayerRail({ players = [], winnerId, pulseId }) {
     }
   }, [players]);
 
+  const ranked = useMemo(() => {
+    return [...players].sort((a, b) => {
+      const ds = (b.score ?? 0) - (a.score ?? 0);
+      if (ds !== 0) return ds;
+      // Stable-ish tie-break: host first, then name
+      if (a.isHost !== b.isHost) return a.isHost ? -1 : 1;
+      return String(a.name || "").localeCompare(String(b.name || ""));
+    });
+  }, [players]);
+
   const placeById = useMemo(() => {
-    const anyScore = players.some((p) => (p.score ?? 0) > 0);
+    const anyScore = ranked.some((p) => (p.score ?? 0) > 0);
     if (!anyScore) return {};
-    const ranked = [...players].sort((a, b) => (b.score ?? 0) - (a.score ?? 0));
     const map = {};
     ranked.forEach((p, i) => {
       map[p.id] = i + 1;
     });
     return map;
-  }, [players]);
+  }, [ranked]);
 
   if (!players.length) {
     return <p className="mp-empty">waiting for players to scan in…</p>;
@@ -56,7 +65,7 @@ export default function PlayerRail({ players = [], winnerId, pulseId }) {
 
   return (
     <div className="mp-rail">
-      {players.map((p) => {
+      {ranked.map((p) => {
         const flash = flashes[p.id];
         const place = placeById[p.id];
         const medal = place >= 1 && place <= 3 ? place : 0;
@@ -72,11 +81,6 @@ export default function PlayerRail({ players = [], winnerId, pulseId }) {
               size={44}
             />
             <span className="mp-player-name">
-              {p.isHost && (
-                <span className="mp-crown" title="dj" aria-label="dj">
-                  <CrownIcon />
-                </span>
-              )}
               {medal > 0 && (
                 <span
                   className={`mp-place mp-place--${medal}`}
@@ -86,7 +90,12 @@ export default function PlayerRail({ players = [], winnerId, pulseId }) {
                   {medal}
                 </span>
               )}
-              {p.name}
+              <span className="mp-player-name-text">{p.name}</span>
+              {p.isHost && (
+                <span className="mp-crown" title="dj" aria-label="dj">
+                  <CrownIcon />
+                </span>
+              )}
             </span>
             <span className="mp-player-score-wrap">
               {flash && (
