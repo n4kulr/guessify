@@ -33,6 +33,7 @@ Play solo, or **host a game** so friends can join from their phones (nickname on
 | --- | --- | --- |
 | **UI** | React 18 + Vite | Landing, playlist picker, solo game, multiplayer lobby / race |
 | **Auth & library** | Vercel serverless (`api/`) | Spotify OAuth, session cookie, playlists, Liked Songs, track metadata / cover art |
+| **Charts & vibes** | Last.fm `tag.getTopTracks` | Genre / decade / custom tags → track lists (audio still via iTunes) |
 | **Playback** | iTunes Search API + HTML `<audio>` | Free 30s preview MP3s (no API key, no Apple login) |
 | **Realtime rooms** | Cloudflare Workers + [PartyServer](https://github.com/cloudflare/partykit/tree/main/packages/partyserver) + Durable Objects | Authoritative multiplayer state, guesses, first-correct wins |
 | **Client sockets** | [PartySocket](https://www.npmjs.com/package/partysocket) | Browser ↔ Worker WebSocket |
@@ -40,7 +41,7 @@ Play solo, or **host a game** so friends can join from their phones (nickname on
 ### Repo map
 
 ```
-api/                 Spotify OAuth + playlist/liked proxies + iTunes preview lookup
+api/                 Spotify OAuth + playlist/liked proxies + iTunes preview + Last.fm charts
 party/               Multiplayer Worker (room.js + worker entry)
 public/peeps/        Open Peeps bust avatars for multiplayer
 src/
@@ -92,6 +93,7 @@ Import the GitHub repo. Add env vars:
 | `SPOTIFY_CLIENT_ID` | Spotify dashboard |
 | `SPOTIFY_CLIENT_SECRET` | Spotify dashboard |
 | `SESSION_SECRET` | long random string (see below) |
+| `LASTFM_API_KEY` | [Last.fm API account](https://www.last.fm/api/account/create) (Charts & vibes tab) |
 | `VITE_PARTYKIT_HOST` | Cloudflare Worker host, **no** `https://` (after step 4) |
 
 ```bash
