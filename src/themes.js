@@ -32,9 +32,7 @@ export function applyTheme(key) {
 }
 
 export function loadTheme() {
-  let key = DEFAULT_THEME;
-  try { key = localStorage.getItem(KEY) || DEFAULT_THEME; } catch { /* ignore */ }
-  if (!THEMES[key]) key = DEFAULT_THEME;
-  applyTheme(key);
-  return key;
+  // Always open on Olivia; users can still switch for the session.
+  applyTheme(DEFAULT_THEME);
+  return DEFAULT_THEME;
 }
