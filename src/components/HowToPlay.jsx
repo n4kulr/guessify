@@ -59,23 +59,30 @@ export default function HowToPlay({ open, onOpen, onClose }) {
         </div>
 
         <div className="help-body">
+          <h3>why</h3>
           <p>
-            <b>Guessify</b> is a music guessing game built on your Spotify
-            playlists — short snippets, fast guesses, bragging rights.
+            I made Guessify because I used to play this with my friends on the
+            way to tuition — we’d race to guess the radio song the fastest, and
+            our moms would keep score since they were driving.
+          </p>
+
+          <h3>instructions</h3>
+          <p>
+            Log in with <b>Spotify Premium</b> to host. Guests only need the
+            party code — no Spotify required.
           </p>
 
           <h3>host / DJ</h3>
           <p>
-            Log in with <b>Spotify Premium</b>, pick a playlist, and host a game.
-            Audio plays only on the DJ device. Crank the speakers so the room
-            can hear it.
+            Pick a playlist and host a game. Audio plays only on the DJ device.
+            Crank the speakers so the room can hear it.
           </p>
 
           <h3>guests</h3>
           <p>
-            Friends join with the party code — <b>no Spotify needed</b>. Their
-            phones stay silent; they listen to whatever’s coming out of the
-            DJ’s speakers and race to type guesses.
+            Friends join with the party code. Their phones stay silent; they
+            listen to whatever’s coming out of the DJ’s speakers and race to
+            type guesses.
           </p>
 
           <h3>the round</h3>
