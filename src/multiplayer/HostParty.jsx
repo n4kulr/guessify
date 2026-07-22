@@ -36,11 +36,32 @@ export default function HostParty({ code, playlist, me, onExit }) {
       : `/join/${code}`;
 
   useEffect(() => {
-    QRCode.toDataURL(joinUrl, {
-      margin: 1,
-      width: 240,
-      color: { dark: "#111111", light: "#ffffff" },
-    }).then(setQr);
+    let cancelled = false;
+
+    function paintQr() {
+      const cs = getComputedStyle(document.documentElement);
+      const dark = cs.getPropertyValue("--main-color").trim() || "#111111";
+      const light = cs.getPropertyValue("--sub-alt-color").trim() || "#ffffff";
+      QRCode.toDataURL(joinUrl, {
+        margin: 1,
+        width: 240,
+        color: { dark, light },
+        errorCorrectionLevel: "M",
+      }).then((url) => {
+        if (!cancelled) setQr(url);
+      });
+    }
+
+    paintQr();
+    const mo = new MutationObserver(paintQr);
+    mo.observe(document.documentElement, {
+      attributes: true,
+      attributeFilter: ["style"],
+    });
+    return () => {
+      cancelled = true;
+      mo.disconnect();
+    };
   }, [joinUrl]);
 
   useEffect(() => {
