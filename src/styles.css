@@ -1012,17 +1012,19 @@ button { font-family: var(--font); }
   letter-spacing: -0.02em;
   color: var(--main-color);
   text-transform: lowercase;
+  font-family: var(--font);
 }
-.help-section-title {
+.help-body h3.help-section-title {
   margin: 4px 0 10px;
   font-size: 16px;
   font-weight: 700;
   letter-spacing: -0.02em;
   color: var(--main-color);
   text-transform: lowercase;
+  font-family: var(--font);
 }
-.help-section-title + p { margin-top: 0; }
-.help-body .help-section-title:not(:first-child) {
+.help-body h3.help-section-title + p { margin-top: 0; }
+.help-body h3.help-section-title:not(:first-child) {
   margin-top: 18px;
   padding-top: 14px;
   border-top: 1px solid color-mix(in srgb, var(--text-color) 12%, transparent);
