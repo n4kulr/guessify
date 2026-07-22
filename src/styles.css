@@ -1657,6 +1657,31 @@ button { font-family: var(--font); }
   color: var(--main-color);
   line-height: 0;
 }
+.mp-place {
+  flex: none;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  display: inline-grid;
+  place-items: center;
+  font-size: 10px;
+  font-weight: 800;
+  line-height: 1;
+  color: #1a1a1a;
+}
+.mp-place--1 {
+  background: #f0c14a;
+  box-shadow: 0 0 0 1px color-mix(in srgb, #c9a227 70%, transparent);
+}
+.mp-place--2 {
+  background: #c0c6ce;
+  box-shadow: 0 0 0 1px color-mix(in srgb, #8e959e 70%, transparent);
+}
+.mp-place--3 {
+  background: #c47a4a;
+  box-shadow: 0 0 0 1px color-mix(in srgb, #8f5530 70%, transparent);
+  color: #1f1410;
+}
 .mp-player-score-wrap {
   position: relative;
   flex: none;

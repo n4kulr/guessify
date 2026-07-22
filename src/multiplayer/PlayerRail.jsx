@@ -1,5 +1,16 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import PlayerAvatar from "./PlayerAvatar.jsx";
+
+function CrownIcon() {
+  return (
+    <svg viewBox="0 0 16 12" width="14" height="11" aria-hidden="true">
+      <path
+        fill="currentColor"
+        d="M1.2 10.5h13.6L16 3.8l-3.2 2.2L8 1.2 3.2 6 0 3.8l1.2 6.7zm0 0h13.6V12H1.2v-1.5z"
+      />
+    </svg>
+  );
+}
 
 export default function PlayerRail({ players = [], winnerId, pulseId }) {
   const prevScores = useRef({});
@@ -28,17 +39,27 @@ export default function PlayerRail({ players = [], winnerId, pulseId }) {
     }
   }, [players]);
 
+  const placeById = useMemo(() => {
+    const anyScore = players.some((p) => (p.score ?? 0) > 0);
+    if (!anyScore) return {};
+    const ranked = [...players].sort((a, b) => (b.score ?? 0) - (a.score ?? 0));
+    const map = {};
+    ranked.forEach((p, i) => {
+      map[p.id] = i + 1;
+    });
+    return map;
+  }, [players]);
+
   if (!players.length) {
     return <p className="mp-empty">waiting for players to scan in…</p>;
   }
-
-  const leadScore = Math.max(0, ...players.map((p) => p.score ?? 0));
 
   return (
     <div className="mp-rail">
       {players.map((p) => {
         const flash = flashes[p.id];
-        const leading = leadScore > 0 && (p.score ?? 0) === leadScore;
+        const place = placeById[p.id];
+        const medal = place >= 1 && place <= 3 ? place : 0;
         return (
           <div
             key={p.id}
@@ -51,18 +72,21 @@ export default function PlayerRail({ players = [], winnerId, pulseId }) {
               size={44}
             />
             <span className="mp-player-name">
-              {leading && (
-                <span className="mp-crown" title="leading" aria-label="leading">
-                  <svg viewBox="0 0 16 12" width="14" height="11" aria-hidden="true">
-                    <path
-                      fill="currentColor"
-                      d="M1.2 10.5h13.6L16 3.8l-3.2 2.2L8 1.2 3.2 6 0 3.8l1.2 6.7zm0 0h13.6V12H1.2v-1.5z"
-                    />
-                  </svg>
+              {p.isHost && (
+                <span className="mp-crown" title="dj" aria-label="dj">
+                  <CrownIcon />
+                </span>
+              )}
+              {medal > 0 && (
+                <span
+                  className={`mp-place mp-place--${medal}`}
+                  title={`#${medal}`}
+                  aria-label={`place ${medal}`}
+                >
+                  {medal}
                 </span>
               )}
               {p.name}
-              {p.isHost ? " · dj" : ""}
             </span>
             <span className="mp-player-score-wrap">
               {flash && (
