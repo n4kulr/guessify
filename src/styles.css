@@ -1976,7 +1976,6 @@ button { font-family: var(--font); }
   .topbar { padding: 14px 16px; flex-wrap: nowrap; }
   .theme-btn { max-width: min(120px, 28vw); padding: 8px 10px; }
   .game { padding: 18px; }
-  .user-name { display: none; }
   .guess-fields { flex-direction: column; }
   .home-actions { flex-direction: column; width: 100%; }
   .home-actions .btn { width: 100%; justify-content: center; }
