@@ -34,7 +34,7 @@ export default function ThemeSwitcher({ current, onChange }) {
     <div className={`theme-switcher${flash ? " theme-switcher--flash" : ""}`} ref={ref}>
       <button className="theme-btn" onClick={() => setOpen((o) => !o)} title="change theme">
         <span className="theme-dot" style={{ background: "var(--main-color)" }} />
-        {THEMES[current]?.name || "theme"}
+        <span className="theme-btn-label">{THEMES[current]?.name || "theme"}</span>
       </button>
       {!open && <ThemeNudge />}
       {open && (
