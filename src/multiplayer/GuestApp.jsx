@@ -113,13 +113,15 @@ export default function GuestApp({ code }) {
         <p className="section-sub">
           Waiting for {state.hostName} to start — tweak your look anytime.
         </p>
-        <div className="mp-lobby-edit">
-          <p className="profile-label">your look</p>
-          <ProfileEditor name={name} avatar={avatar} onChange={updateProfile} />
+        <div className="mp-lobby-side">
+          <div className="mp-lobby-edit">
+            <p className="profile-label">your look</p>
+            <ProfileEditor name={name} avatar={avatar} onChange={updateProfile} />
+          </div>
+          <h3 className="mp-side-title">players</h3>
+          <PlayerRail players={state.players} />
+          {error && <div className="error-banner">{error}</div>}
         </div>
-        <h3 className="mp-side-title">players</h3>
-        <PlayerRail players={state.players} />
-        {error && <div className="error-banner">{error}</div>}
       </div>
     );
   }

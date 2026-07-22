@@ -174,12 +174,14 @@ export default function HostParty({ code, playlist, me, onExit }) {
         </p>
         <div className="mp-lobby-grid">
           <div className="mp-qr-card">
-            {qr ? (
-              <img src={qr} alt="Join QR code" className="mp-qr" />
-            ) : (
-              <div className="loader">…</div>
-            )}
-            <div className="mp-code">{code}</div>
+            <div className="mp-qr-row">
+              {qr ? (
+                <img src={qr} alt="Join QR code" className="mp-qr" />
+              ) : (
+                <div className="loader">…</div>
+              )}
+              <div className="mp-code">{code}</div>
+            </div>
             <button className="btn btn-mini mp-copy-link" type="button" onClick={copyLink}>
               {copied ? "copied!" : "copy join link"}
             </button>

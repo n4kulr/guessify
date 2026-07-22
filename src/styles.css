@@ -1425,6 +1425,12 @@ button { font-family: var(--font); }
   padding: 20px;
   text-align: center;
 }
+.mp-qr-row {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0;
+}
 .mp-qr { width: 100%; max-width: 240px; border-radius: 10px; display: block; margin: 0 auto; }
 .mp-code {
   margin-top: 14px;
@@ -1783,6 +1789,34 @@ button { font-family: var(--font); }
   }
 
   .mp-lobby-grid { grid-template-columns: 1fr; }
+  .mp-qr-row {
+    flex-direction: row;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 14px;
+    text-align: left;
+  }
+  .mp-qr-card {
+    padding: 14px 16px;
+    text-align: left;
+  }
+  .mp-qr {
+    width: 88px;
+    max-width: 88px;
+    margin: 0;
+    flex: none;
+  }
+  .mp-qr-row .loader {
+    width: 88px;
+    flex: none;
+  }
+  .mp-code {
+    margin-top: 0;
+    font-size: 22px;
+    letter-spacing: 0.16em;
+    line-height: 1.15;
+  }
+  .mp-copy-link { margin-top: 10px; }
   .mp-board {
     grid-template-columns: 1fr;
     width: min(560px, 100%);
