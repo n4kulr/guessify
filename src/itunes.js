@@ -1,5 +1,5 @@
-// Resolve iTunes/Apple Music preview MP3s for Spotify library tracks.
-// Cached by Spotify track id (or title|artist) so repeat plays are instant.
+// Resolve iTunes/Apple Music preview URLs for Spotify library tracks.
+// Cache hits only — failed lookups are retried next play.
 
 const cache = new Map();
 
@@ -12,15 +12,16 @@ export async function resolvePreview(track) {
   const artist = (track.artists || [])[0];
   if (artist) params.set("artist", artist);
 
-  const r = await fetch(`/api/preview?${params}`);
-  if (!r.ok) {
-    cache.set(key, null);
+  try {
+    const r = await fetch(`/api/preview?${params}`);
+    if (!r.ok) return null; // don't cache misses — next attempt may succeed
+    const data = await r.json();
+    const url = data.previewUrl || null;
+    if (url) cache.set(key, url);
+    return url;
+  } catch {
     return null;
   }
-  const data = await r.json();
-  const url = data.previewUrl || null;
-  cache.set(key, url);
-  return url;
 }
 
 export function clearPreviewCache() {
