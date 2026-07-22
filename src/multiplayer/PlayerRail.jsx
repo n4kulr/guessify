@@ -32,10 +32,13 @@ export default function PlayerRail({ players = [], winnerId, pulseId }) {
     return <p className="mp-empty">waiting for players to scan in…</p>;
   }
 
+  const leadScore = Math.max(0, ...players.map((p) => p.score ?? 0));
+
   return (
     <div className="mp-rail">
       {players.map((p) => {
         const flash = flashes[p.id];
+        const leading = leadScore > 0 && (p.score ?? 0) === leadScore;
         return (
           <div
             key={p.id}
@@ -48,6 +51,16 @@ export default function PlayerRail({ players = [], winnerId, pulseId }) {
               size={44}
             />
             <span className="mp-player-name">
+              {leading && (
+                <span className="mp-crown" title="leading" aria-label="leading">
+                  <svg viewBox="0 0 16 12" width="14" height="11" aria-hidden="true">
+                    <path
+                      fill="currentColor"
+                      d="M1.2 10.5h13.6L16 3.8l-3.2 2.2L8 1.2 3.2 6 0 3.8l1.2 6.7zm0 0h13.6V12H1.2v-1.5z"
+                    />
+                  </svg>
+                </span>
+              )}
               {p.name}
               {p.isHost ? " · dj" : ""}
             </span>

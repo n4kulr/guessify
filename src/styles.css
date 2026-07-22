@@ -1506,6 +1506,15 @@ button { font-family: var(--font); }
   overflow: hidden;
   text-overflow: ellipsis;
   text-align: left;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.mp-crown {
+  flex: none;
+  display: inline-flex;
+  color: var(--main-color);
+  line-height: 0;
 }
 .mp-player-score-wrap {
   position: relative;
