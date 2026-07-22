@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { playCassetteButton } from "../cassetteSounds.js";
+import CassetteShell from "./CassetteShell.jsx";
 
 // Self-playing fake rounds so people see the vibe before logging in.
 const ROUNDS = [
@@ -96,18 +96,10 @@ const ROUNDS = [
 
 const STEPS = [1, 2, 4, 7, 11, 16];
 
-const TEETH = [
-  { id: "rew", label: "rewind", icon: "⏮" },
-  { id: "play", label: "play", icon: "▶" },
-  { id: "pause", label: "pause", icon: "⏸" },
-  { id: "ff", label: "fast forward", icon: "⏭" },
-];
-
 export default function DemoPreview() {
   const [roundIdx, setRoundIdx] = useState(0);
   const [step, setStep] = useState(0); // 0..guesses.length (== solved)
   const [done, setDone] = useState(false);
-  const [pressed, setPressed] = useState(null);
   const [expanded, setExpanded] = useState(false);
   const [dragX, setDragX] = useState(0);
   const drag = useRef({ active: false, startX: 0, dx: 0 });
@@ -159,13 +151,6 @@ export default function DemoPreview() {
     setDragX(0);
   }
 
-  function tapTooth(i, e) {
-    e.stopPropagation();
-    setPressed(i);
-    playCassetteButton(i);
-    window.setTimeout(() => setPressed(null), 160);
-  }
-
   function onDemoClick() {
     if (!isMobileDemo()) return;
     if (!expanded) setExpanded(true);
@@ -173,7 +158,7 @@ export default function DemoPreview() {
 
   function onPointerDown(e) {
     if (!expanded || !isMobileDemo()) return;
-    if (e.target.closest?.(".demo-tooth")) return;
+    if (e.target.closest?.(".cassette-tooth")) return;
     drag.current = { active: true, startX: e.clientX, dx: 0 };
     try {
       e.currentTarget.setPointerCapture(e.pointerId);
@@ -245,69 +230,13 @@ export default function DemoPreview() {
           </div>
 
           <div className="demo-stage demo-stage--cassette">
-            <div className={`demo-cassette ${done ? "is-done" : ""}`}>
-              <div className="demo-cassette-shell">
-                <span className="demo-screw demo-screw--tl" aria-hidden="true" />
-                <span className="demo-screw demo-screw--tr" aria-hidden="true" />
-                <span className="demo-screw demo-screw--bl" aria-hidden="true" />
-                <span className="demo-screw demo-screw--br" aria-hidden="true" />
-                <span className="demo-side-mark" aria-hidden="true">
-                  A
-                </span>
-
-                <div
-                  className={`demo-cassette-label ${
-                    done ? "demo-cassette-label--solved" : ""
-                  }`}
-                >
-                  {done ? (
-                    <>
-                      <img
-                        className="demo-cover"
-                        src={answer.cover}
-                        alt=""
-                        width={18}
-                        height={18}
-                        decoding="async"
-                      />
-                      <div className="demo-marquee">
-                        <span className="demo-marquee-track">
-                          <span>{label}</span>
-                          <span aria-hidden="true">{label}</span>
-                        </span>
-                      </div>
-                    </>
-                  ) : (
-                    "??? side a"
-                  )}
-                </div>
-                <div className="demo-cassette-window">
-                  <span
-                    className={`demo-reel demo-reel--left ${done ? "spin-slow" : "spin-fast"}`}
-                    aria-hidden="true"
-                  />
-                  <span
-                    className={`demo-reel demo-reel--right ${done ? "spin-slow" : "spin-fast"}`}
-                    aria-hidden="true"
-                  />
-                </div>
-                <div className="demo-cassette-sprockets">
-                  {TEETH.map((tooth, i) => (
-                    <button
-                      key={tooth.id}
-                      type="button"
-                      className={`demo-tooth ${pressed === i ? "is-pressed" : ""}`}
-                      aria-label={tooth.label}
-                      onClick={(e) => tapTooth(i, e)}
-                    >
-                      <span className="demo-tooth-icon" aria-hidden="true">
-                        {tooth.icon}
-                      </span>
-                    </button>
-                  ))}
-                </div>
-              </div>
-            </div>
+            <CassetteShell
+              done={done}
+              spinning
+              cover={answer.cover}
+              label={label}
+              interactiveTeeth
+            />
           </div>
 
           <div className="demo-progress">

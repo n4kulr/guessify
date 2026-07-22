@@ -4,7 +4,9 @@ import { usePartyRoom } from "./usePartyRoom.js";
 import { useSpotifyPlayer } from "../useSpotifyPlayer.js";
 import { getToken } from "../spotify.js";
 import { STEPS, TOTAL, randomAvatar } from "./constants.js";
-import ScrubbableVinyl from "../components/ScrubbableVinyl.jsx";
+import { loadMediaMode, saveMediaMode } from "../mediaMode.js";
+import GuessMedia from "../components/GuessMedia.jsx";
+import MediaModeToggle from "../components/MediaModeToggle.jsx";
 import PlayerRail from "./PlayerRail.jsx";
 import ProfileEditor from "./ProfileEditor.jsx";
 import GuessPopups from "./GuessPopups.jsx";
@@ -26,8 +28,14 @@ export default function HostParty({ code, playlist, me, onExit }) {
   const { deviceId, status: playerStatus, errorMsg, player } = useSpotifyPlayer();
   const [playBusy, setPlayBusy] = useState(false);
   const [localPlaying, setLocalPlaying] = useState(false);
+  const [mediaMode, setMediaMode] = useState(loadMediaMode);
   const stopTimer = useRef(null);
   const lastTrackRef = useRef(null);
+
+  function changeMediaMode(next) {
+    setMediaMode(next);
+    saveMediaMode(next);
+  }
   const hostedRef = useRef(false);
 
   const joinUrl =
@@ -310,24 +318,19 @@ export default function HostParty({ code, playlist, me, onExit }) {
         pulseId={lastGuesser?.playerId}
       />
 
-      <div className="turntable turntable--game turntable--md">
-        <div className="platter" aria-hidden="true" />
-        <ScrubbableVinyl
-          className={`vinyl--md ${revealed ? "vinyl--revealed" : ""}`}
-          spin={spinning ? "fast" : false}
-          enabled={canControl}
-          title={canControl ? "play / pause · drag to scrub" : undefined}
-          onClick={togglePlay}
-          onScrubStart={stopAudio}
-        >
-          {revealed && track?.cover ? (
-            <img src={track.cover} alt="" className="vinyl-cover" draggable={false} />
-          ) : (
-            <div className="vinyl-label vinyl-label--mystery">?</div>
-          )}
-        </ScrubbableVinyl>
-        <div className={`tonearm ${spinning ? "tonearm--on" : ""}`} />
-      </div>
+      <GuessMedia
+        mode={mediaMode}
+        revealed={revealed}
+        spinning={spinning}
+        cover={track?.cover}
+        title={track?.name}
+        artist={(track?.artists || []).join(", ")}
+        canControl={canControl}
+        interactive={canControl}
+        vinylTitle={canControl ? "play / pause · drag to scrub" : undefined}
+        onTogglePlay={togglePlay}
+        onScrubStart={stopAudio}
+      />
 
       {revealed && state.outcome === "win" && (
         <div className="inline-badge inline-badge--win">
@@ -356,9 +359,9 @@ export default function HostParty({ code, playlist, me, onExit }) {
         </div>
       </div>
 
-      {phase === "play" && (
-        <div className="controls">
-          {playerStatus === "error" ? (
+      <div className={`controls${phase === "play" ? "" : " controls--toggle-only"}`}>
+        {phase === "play" &&
+          (playerStatus === "error" ? (
             <div className="error-banner">{errorMsg}</div>
           ) : (
             <button
@@ -375,9 +378,9 @@ export default function HostParty({ code, playlist, me, onExit }) {
                 ? "playing…"
                 : `play ${unlocked}s`}
             </button>
-          )}
-        </div>
-      )}
+          ))}
+        <MediaModeToggle mode={mediaMode} onChange={changeMediaMode} />
+      </div>
 
       {phase === "play" && (
         <div className="guess-input-wrap">

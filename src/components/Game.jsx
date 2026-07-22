@@ -2,6 +2,9 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { isCorrect, matchesAnyArtist } from "../match.js";
 import { useSpotifyPlayer } from "../useSpotifyPlayer.js";
 import { getToken } from "../spotify.js";
+import { loadMediaMode, saveMediaMode } from "../mediaMode.js";
+import GuessMedia from "./GuessMedia.jsx";
+import MediaModeToggle from "./MediaModeToggle.jsx";
 import ScrubbableVinyl from "./ScrubbableVinyl.jsx";
 import {
   STEPS,
@@ -43,9 +46,15 @@ export default function Game({ playlist, onExit }) {
   const [playBusy, setPlayBusy] = useState(false); // lock while Spotify request is in flight
   const [celebrate, setCelebrate] = useState(false);
   const [scrubbing, setScrubbing] = useState(false);
+  const [mediaMode, setMediaMode] = useState(loadMediaMode);
 
   const { deviceId, status: playerStatus, errorMsg, player } = useSpotifyPlayer();
   const stopTimer = useRef(null);
+
+  function changeMediaMode(next) {
+    setMediaMode(next);
+    saveMediaMode(next);
+  }
 
   const track = rounds[roundIdx];
   const unlocked = STEPS[Math.min(guessNum, MAX_GUESSES - 1)];
@@ -231,40 +240,27 @@ export default function Game({ playlist, onExit }) {
 
       {phase === "play" && (
         <>
-          <div className={`turntable turntable--game turntable--md ${celebrate ? "turntable--celebrate" : ""}`}>
-            {celebrate && (
-              <>
-                <span className="win-ring win-ring--1" aria-hidden="true" />
-                <span className="win-ring win-ring--2" aria-hidden="true" />
-                <span className="win-ring win-ring--3" aria-hidden="true" />
-              </>
-            )}
-            <div className="platter" aria-hidden="true" />
-            <ScrubbableVinyl
-              className={`vinyl--md ${resolved ? "vinyl--revealed" : ""}`}
-              spin={spinning ? "fast" : false}
-              enabled={canControl}
-              title={
-                canControl
-                  ? playing
-                    ? "click to pause · drag to scrub"
-                    : "click to play · drag to scrub"
-                  : undefined
-              }
-              onClick={togglePlay}
-              onScrubStart={onVinylScrubStart}
-              onScrubEnd={onVinylScrubEnd}
-            >
-              {resolved && track.cover ? (
-                <img src={track.cover} alt="" className="vinyl-cover" draggable={false} />
-              ) : (
-                <div className="vinyl-label vinyl-label--mystery">
-                  {outcome === "lose" ? "✗" : "?"}
-                </div>
-              )}
-            </ScrubbableVinyl>
-            <div className={`tonearm ${spinning ? "tonearm--on" : ""}`} />
-          </div>
+          <GuessMedia
+            mode={mediaMode}
+            revealed={resolved}
+            spinning={spinning}
+            celebrate={celebrate}
+            cover={track.cover}
+            title={track.name}
+            artist={(track.artists || []).join(", ")}
+            canControl={canControl}
+            interactive={canControl}
+            vinylTitle={
+              canControl
+                ? playing
+                  ? "click to pause · drag to scrub"
+                  : "click to play · drag to scrub"
+                : undefined
+            }
+            onTogglePlay={togglePlay}
+            onScrubStart={onVinylScrubStart}
+            onScrubEnd={onVinylScrubEnd}
+          />
 
           {outcome === "win" && (
             <div key={`badge-${roundIdx}`} className="inline-badge inline-badge--win">
@@ -301,9 +297,9 @@ export default function Game({ playlist, onExit }) {
             </div>
           </div>
 
-          {!resolved && (
-            <div className="controls">
-              {playerStatus === "error" ? (
+          <div className={`controls${!resolved ? "" : " controls--toggle-only"}`}>
+            {!resolved &&
+              (playerStatus === "error" ? (
                 <div className="error-banner">{errorMsg}</div>
               ) : (
                 <button
@@ -320,9 +316,9 @@ export default function Game({ playlist, onExit }) {
                     ? "playing…"
                     : `play ${unlocked}s`}
                 </button>
-              )}
-            </div>
-          )}
+              ))}
+            <MediaModeToggle mode={mediaMode} onChange={changeMediaMode} />
+          </div>
 
           <div className="guess-rows">
             {Array.from({ length: MAX_GUESSES }).map((_, i) => {

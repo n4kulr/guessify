@@ -4,7 +4,9 @@ import PlayerRail from "./PlayerRail.jsx";
 import ProfileEditor from "./ProfileEditor.jsx";
 import GuessPopups from "./GuessPopups.jsx";
 import { STEPS, TOTAL, randomAvatar } from "./constants.js";
-import ScrubbableVinyl from "../components/ScrubbableVinyl.jsx";
+import { loadMediaMode, saveMediaMode } from "../mediaMode.js";
+import GuessMedia from "../components/GuessMedia.jsx";
+import MediaModeToggle from "../components/MediaModeToggle.jsx";
 
 export default function GuestApp({ code }) {
   const upper = code.toUpperCase();
@@ -14,6 +16,12 @@ export default function GuestApp({ code }) {
   const [titleGuess, setTitleGuess] = useState("");
   const [artistGuess, setArtistGuess] = useState("");
   const [rejoinTried, setRejoinTried] = useState(false);
+  const [mediaMode, setMediaMode] = useState(loadMediaMode);
+
+  function changeMediaMode(next) {
+    setMediaMode(next);
+    saveMediaMode(next);
+  }
 
   const joined = !!playerId;
   const me = state?.players?.find((p) => p.id === playerId);
@@ -161,23 +169,16 @@ export default function GuestApp({ code }) {
           pulseId={state.guesses[state.guesses.length - 1]?.playerId}
         />
 
-        <div className="turntable turntable--game turntable--md">
-          <div className="platter" aria-hidden="true" />
-          <ScrubbableVinyl
-            className={`vinyl--md ${revealed ? "vinyl--revealed" : ""}`}
-            spin={spinning ? "fast" : false}
-            title="drag to scrub"
-          >
-            {revealed && track?.cover ? (
-              <img src={track.cover} alt="" className="vinyl-cover" draggable={false} />
-            ) : (
-              <div className="vinyl-label vinyl-label--mystery">
-                {state.outcome === "lose" ? "✗" : "?"}
-              </div>
-            )}
-          </ScrubbableVinyl>
-          <div className={`tonearm ${spinning ? "tonearm--on" : ""}`} />
-        </div>
+        <GuessMedia
+          mode={mediaMode}
+          revealed={revealed}
+          spinning={spinning}
+          cover={track?.cover}
+          title={track?.name}
+          artist={(track?.artists || []).join(", ")}
+          interactive
+          vinylTitle="drag to scrub"
+        />
 
         {state.outcome === "win" && revealed && (
           <div className="inline-badge inline-badge--win">
@@ -204,6 +205,10 @@ export default function GuestApp({ code }) {
             <span>0:00</span>
             <span>{revealed ? "revealed" : `${unlocked}s unlocked`}</span>
           </div>
+        </div>
+
+        <div className="controls controls--toggle-only">
+          <MediaModeToggle mode={mediaMode} onChange={changeMediaMode} />
         </div>
 
         {state.phase === "play" && (

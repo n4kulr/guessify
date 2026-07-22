@@ -1,11 +1,9 @@
 import DemoPreview from "./DemoPreview.jsx";
 import HeroTurntable from "./HeroTurntable.jsx";
-import CdPlayer from "./CdPlayer.jsx";
 import JoinCodeForm from "../multiplayer/JoinCodeForm.jsx";
 
 export default function Login({ error }) {
   return (
-    <>
     <div className="hero">
       <div className="hero-left">
         <h1 className="hero-title">
@@ -56,7 +54,5 @@ export default function Login({ error }) {
         <DemoPreview />
       </div>
     </div>
-    <CdPlayer />
-    </>
   );
 }

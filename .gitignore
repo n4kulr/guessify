@@ -10,3 +10,6 @@ dist/
 Flat Assets/
 Flat Assets.zip
 .wrangler/
+
+# graphify local-only
+graphify-out/cost.json
