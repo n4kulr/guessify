@@ -1414,7 +1414,7 @@ button { font-family: var(--font); }
 .mp-back { position: absolute; top: 0; left: 0; }
 .mp-lobby-grid {
   display: grid;
-  grid-template-columns: minmax(220px, 280px) 1fr;
+  grid-template-columns: minmax(260px, 320px) 1fr;
   gap: 28px;
   align-items: start;
   margin-top: 10px;
@@ -1422,24 +1422,65 @@ button { font-family: var(--font); }
 .mp-qr-card {
   background: var(--sub-alt-color);
   border-radius: 16px;
-  padding: 20px;
-  text-align: center;
+  padding: 18px;
+  text-align: left;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.mp-qr-join {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
 }
 .mp-qr-row {
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
   align-items: center;
-  gap: 0;
+  gap: 16px;
 }
-.mp-qr { width: 100%; max-width: 240px; border-radius: 10px; display: block; margin: 0 auto; }
+.mp-qr {
+  width: 112px;
+  max-width: 112px;
+  border-radius: 10px;
+  display: block;
+  margin: 0;
+  flex: none;
+  background: #fff;
+}
+.mp-qr-meta {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+}
+.mp-qr-label {
+  font-size: 11px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--sub-color);
+}
 .mp-code {
-  margin-top: 14px;
-  font-size: 28px;
+  margin: 0;
+  font-size: 26px;
   font-weight: 700;
-  letter-spacing: 0.2em;
+  letter-spacing: 0.18em;
   color: var(--main-color);
+  line-height: 1.1;
 }
-.mp-copy-link { margin-top: 12px; }
+.mp-copy-link {
+  margin-top: 2px;
+}
+.mp-qr-look {
+  padding-top: 14px;
+  border-top: 1px solid color-mix(in srgb, var(--text-color) 12%, transparent);
+}
+.mp-qr-look > .profile-label {
+  margin: 0 0 10px;
+  display: block;
+}
 .mp-join-url { font-size: 11px; color: var(--sub-color); word-break: break-all; margin-top: 8px; }
 
 .join-code-form { margin-top: 18px; width: min(100%, 340px); }
@@ -1798,34 +1839,25 @@ button { font-family: var(--font); }
   }
 
   .mp-lobby-grid { grid-template-columns: 1fr; }
-  .mp-qr-row {
-    flex-direction: row;
-    align-items: center;
-    justify-content: flex-start;
-    gap: 14px;
-    text-align: left;
-  }
   .mp-qr-card {
     padding: 14px 16px;
-    text-align: left;
+    gap: 14px;
+  }
+  .mp-qr-row {
+    gap: 14px;
   }
   .mp-qr {
     width: 88px;
     max-width: 88px;
-    margin: 0;
-    flex: none;
   }
   .mp-qr-row .loader {
     width: 88px;
     flex: none;
   }
   .mp-code {
-    margin-top: 0;
     font-size: 22px;
     letter-spacing: 0.16em;
-    line-height: 1.15;
   }
-  .mp-copy-link { margin-top: 10px; }
   .mp-board {
     grid-template-columns: 1fr;
     width: min(560px, 100%);

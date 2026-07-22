@@ -174,21 +174,23 @@ export default function HostParty({ code, playlist, me, onExit }) {
         </p>
         <div className="mp-lobby-grid">
           <div className="mp-qr-card">
-            <div className="mp-qr-row">
-              {qr ? (
-                <img src={qr} alt="Join QR code" className="mp-qr" />
-              ) : (
-                <div className="loader">…</div>
-              )}
-              <div className="mp-code">{code}</div>
+            <div className="mp-qr-join">
+              <div className="mp-qr-row">
+                {qr ? (
+                  <img src={qr} alt="Join QR code" className="mp-qr" />
+                ) : (
+                  <div className="loader">…</div>
+                )}
+                <div className="mp-qr-meta">
+                  <span className="mp-qr-label">party code</span>
+                  <div className="mp-code">{code}</div>
+                  <button className="btn btn-mini mp-copy-link" type="button" onClick={copyLink}>
+                    {copied ? "copied!" : "copy join link"}
+                  </button>
+                </div>
+              </div>
             </div>
-            <button className="btn btn-mini mp-copy-link" type="button" onClick={copyLink}>
-              {copied ? "copied!" : "copy join link"}
-            </button>
-          </div>
-          <div className="mp-lobby-side">
-            <h3 className="mp-side-title">playlists · {playlist.name}</h3>
-            <div className="mp-lobby-edit">
+            <div className="mp-qr-look">
               <p className="profile-label">your look</p>
               <ProfileEditor
                 name={hostName}
@@ -196,6 +198,9 @@ export default function HostParty({ code, playlist, me, onExit }) {
                 onChange={updateHostProfile}
               />
             </div>
+          </div>
+          <div className="mp-lobby-side">
+            <h3 className="mp-side-title">playlists · {playlist.name}</h3>
             <h3 className="mp-side-title">players</h3>
             <PlayerRail players={players} />
             {error && <div className="error-banner">{error}</div>}
