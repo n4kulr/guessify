@@ -2143,15 +2143,21 @@ button { font-family: var(--font); }
 @media (max-width: 720px) {
   .shelf-row {
     flex-direction: column;
-    width: min(100%, 100%);
-    align-items: stretch;
+    width: 100%;
+    align-items: center;
   }
+  .shelf-tray,
   .shelf-row.is-picking .shelf-tray {
-    /* Keep fixed ~3-case width; liner stacks below on narrow screens */
-    flex: 0 0 min(var(--shelf-tray-w), 94vw);
+    /* Column flex: don't use tray width as flex-basis (that became empty height) */
+    flex: none;
     width: min(var(--shelf-tray-w), 94vw);
     max-width: var(--shelf-tray-w);
     align-self: center;
+    margin-inline: auto;
+    padding: 12px 10px 12px;
+  }
+  .shelf-tray-footer {
+    margin-top: 10px;
   }
   .shelf-panel.is-open {
     flex: none;
