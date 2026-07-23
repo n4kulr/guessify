@@ -10,7 +10,7 @@ export default function Login({ error }) {
           guess<span className="hero-title-accent">ify</span>
         </h1>
         <p className="hero-tagline">
-          Your playlists. One-second snippets.
+          <span className="hero-tagline-lead">Your playlists. One-second snippets.</span>
           <br />
           <em className="hero-tagline-hook">name that song!</em>
         </p>
