@@ -1398,6 +1398,17 @@ button { font-family: var(--font); }
   color: transparent;
 }
 
+/* ---- Logged-out: login above blurred teaser shelf ---- */
+.shelf-login {
+  margin: 8px 0 16px;
+}
+.shelf-locked {
+  pointer-events: none;
+  user-select: none;
+  filter: blur(5px);
+  opacity: 0.55;
+}
+
 /* ---- Spotify playlists: horizontal CD shelf ---- */
 .shelf-row {
   --shelf-case: 132px;

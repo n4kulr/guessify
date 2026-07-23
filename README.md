@@ -4,7 +4,7 @@ A record-shop-styled music guessing game. Log in with Spotify to load your playl
 
 Play solo, or **host a game** so friends can join from their phones (nickname only, no Spotify) and race for the first correct title.
 
-**Live:** [guessify-black.vercel.app](https://guessify-black.vercel.app)
+**Live:** [guessify.uk](https://guessify.uk)
 
 ---
 
@@ -103,10 +103,20 @@ node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
 
 `VITE_*` vars are baked in at **build** time — redeploy after changing them.
 
-### 3. Spotify redirect URI
+### 3. Custom domain + Spotify redirect URI
+
+Point `guessify.uk` at the Vercel project (Cloudflare DNS → Vercel, or Vercel Domains). Then set:
+
+| Name | Value |
+| --- | --- |
+| `APP_BASE_URL` | `https://guessify.uk` |
+
+Spotify redirect URI:
 ```
-https://your-app.vercel.app/api/callback
+https://guessify.uk/api/callback
 ```
+
+Keep the old `*.vercel.app` redirect URI too if you still use preview/prod aliases.
 
 ### 4. Multiplayer Worker (Cloudflare)
 PartyKit’s shared `partykit.dev` domain is full; Guessify deploys the room to **your** Cloudflare account via Wrangler.

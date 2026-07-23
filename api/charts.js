@@ -35,7 +35,7 @@ export default async function handler(req, res) {
       `&format=json`;
 
     const r = await fetch(url, {
-      headers: { "User-Agent": "Guessify/1.0 (https://guessify-black.vercel.app)" },
+      headers: { "User-Agent": "Guessify/1.0 (https://guessify.uk)" },
     });
     if (!r.ok) {
       res.status(502).json({ error: "Last.fm request failed." });

@@ -4,6 +4,16 @@ import PlaylistCdShelf from "./PlaylistCdShelf.jsx";
 
 const YOURS_PREVIEW = 6;
 
+/** Teaser CDs behind the login blur (logged-out picker). */
+const TEASER_SHELF = [
+  { id: "t1", name: "Liked Songs", liked: true, owned: true, total: 128 },
+  { id: "t2", name: "Release Radar", owned: true, total: 30 },
+  { id: "t3", name: "Discover Weekly", owned: true, total: 30 },
+  { id: "t4", name: "On Repeat", owned: true, total: 30 },
+  { id: "t5", name: "Daily Mix 1", owned: true, total: 50 },
+  { id: "t6", name: "Road Trip", owned: true, total: 42 },
+];
+
 const CHART_PACKS = [
   { tag: "pop", label: "Pop", blurb: "chart pop", about: "Catchy, radio-friendly songs with big choruses.", artists: ["Dua Lipa", "Sabrina Carpenter", "Olivia Rodrigo", "The Weeknd", "Taylor Swift", "Harry Styles", "Billie Eilish", "Ariana Grande"] },
   { tag: "2000s", label: "2000s", blurb: "decade pack", about: "Hits and radio staples from the 2000s.", artists: ["Beyoncé", "Linkin Park", "Rihanna", "The Killers", "Eminem", "Coldplay", "Usher", "OutKast"] },
@@ -31,7 +41,7 @@ const CHART_PACKS = [
   { tag: "disco", label: "Disco", blurb: "dancefloor", about: "Seventies dance music with four-on-the-floor beats and lush arrangements.", artists: ["ABBA", "Donna Summer", "Bee Gees", "Daft Punk", "Chic", "Gloria Gaynor", "KC and the Sunshine Band", "Sister Sledge"] },
 ];
 
-export default function PlaylistPicker({ onPick }) {
+export default function PlaylistPicker({ onPick, needsLogin = false }) {
   const [data, setData] = useState(null); // { playlists, liked }
   const [error, setError] = useState(null);
   const [loadingId, setLoadingId] = useState(null);
@@ -41,11 +51,12 @@ export default function PlaylistPicker({ onPick }) {
   const [yoursView, setYoursView] = useState("cds"); // cds | list
 
   useEffect(() => {
+    if (needsLogin) return;
     fetch("/api/playlists", { credentials: "include" })
       .then((r) => (r.ok ? r.json() : Promise.reject(r)))
       .then(setData)
       .catch(() => setError("Couldn't load your playlists."));
-  }, []);
+  }, [needsLogin]);
 
   // Liked Songs first, then owned playlists only (locked ones can't be played).
   const yours = useMemo(() => {
@@ -124,6 +135,41 @@ export default function PlaylistPicker({ onPick }) {
 
   function toggleYoursView() {
     setYoursView((v) => (v === "cds" ? "list" : "cds"));
+  }
+
+  if (needsLogin) {
+    return (
+      <div className="picker">
+        <div className="picker-heading">
+          <h2 className="section-title">Pick a record…</h2>
+        </div>
+        <p className="section-sub">Your Spotify playlists only.</p>
+
+        <a className="btn btn-big btn-spotify shelf-login" href="/api/login">
+          <svg
+            className="spotify-logo"
+            viewBox="0 0 24 24"
+            width="22"
+            height="22"
+            aria-hidden="true"
+          >
+            <path
+              fill="currentColor"
+              d="M12 0C5.4 0 0 5.4 0 12s5.4 12 12 12 12-5.4 12-12S18.66 0 12 0zm5.521 17.34c-.24.359-.66.48-1.021.24-2.82-1.74-6.36-2.101-10.561-1.141-.418.122-.779-.179-.899-.539-.12-.421.18-.78.54-.9 4.56-1.021 8.52-.6 11.64 1.32.42.18.479.659.301 1.02zm1.44-3.3c-.301.42-.841.6-1.262.3-3.239-1.98-8.159-2.58-11.939-1.38-.479.12-1.02-.12-1.14-.6-.12-.48.12-1.021.6-1.141C9.6 9.9 15 10.561 18.72 12.84c.361.181.54.78.241 1.2zm.12-3.36C15.24 8.4 8.82 8.16 5.16 9.301c-.6.179-1.2-.181-1.38-.721-.18-.601.18-1.2.72-1.381 4.26-1.26 11.28-1.02 15.721 1.621.539.3.719 1.02.419 1.56-.299.421-1.02.599-1.559.3z"
+            />
+          </svg>
+          Log in with Spotify
+        </a>
+
+        <div className="shelf-locked" aria-hidden="true">
+          <PlaylistCdShelf
+            playlists={TEASER_SHELF}
+            loadingId={null}
+            onChoose={() => {}}
+          />
+        </div>
+      </div>
+    );
   }
 
   if (error) return <div className="panel">{error}</div>;

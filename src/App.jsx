@@ -126,14 +126,24 @@ export default function App() {
 
         {status === "guest" && joinCode && <GuestApp code={joinCode} />}
 
-        {status === "loggedOut" && !joinCode && <Login error={authError} />}
+        {status === "loggedOut" && !joinCode && !picking && (
+          <Login
+            error={authError}
+            onStartSolo={startSolo}
+            onStartMulti={startMulti}
+          />
+        )}
 
         {status === "loggedIn" && !playlist && !picking && (
           <Home me={me} onStartSolo={startSolo} onStartMulti={startMulti} />
         )}
 
-        {status === "loggedIn" && picking && (
-          <PlaylistPicker key={homeNonce} onPick={onPlaylistPicked} />
+        {(status === "loggedIn" || status === "loggedOut") && picking && (
+          <PlaylistPicker
+            key={homeNonce}
+            onPick={onPlaylistPicked}
+            needsLogin={status === "loggedOut"}
+          />
         )}
 
         {status === "loggedIn" && mode === "solo" && playlist && (
