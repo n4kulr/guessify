@@ -1179,13 +1179,9 @@ button { font-family: var(--font); }
   font-weight: 500;
   text-transform: none;
 }
-.record-cover--chart {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: color-mix(in srgb, var(--main-color) 18%, var(--bg-color));
-  font-size: 22px;
-  line-height: 1;
+.chart-card {
+  padding-left: 16px;
+  padding-right: 16px;
 }
 
 .playlists { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 14px; }

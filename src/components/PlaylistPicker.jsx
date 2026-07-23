@@ -3,16 +3,16 @@ import { useEffect, useMemo, useState } from "react";
 const YOURS_PREVIEW = 6;
 
 const CHART_PACKS = [
-  { tag: "pop", label: "Pop", blurb: "chart pop", icon: "🎤" },
-  { tag: "hip-hop", label: "Hip-hop", blurb: "raps & beats", icon: "🎧" },
-  { tag: "rnb", label: "R&B", blurb: "smooth cuts", icon: "🎷" },
-  { tag: "rock", label: "Rock", blurb: "guitars up", icon: "🎸" },
-  { tag: "indie", label: "Indie", blurb: "left of center", icon: "✨" },
-  { tag: "electronic", label: "Electronic", blurb: "synths", icon: "⚡" },
-  { tag: "90s", label: "90s", blurb: "decade pack", icon: "📼" },
-  { tag: "2000s", label: "2000s", blurb: "decade pack", icon: "💿" },
-  { tag: "2010s", label: "2010s", blurb: "decade pack", icon: "📱" },
-  { tag: "disco", label: "Disco", blurb: "dancefloor", icon: "🪩" },
+  { tag: "pop", label: "Pop", blurb: "chart pop" },
+  { tag: "hip-hop", label: "Hip-hop", blurb: "raps & beats" },
+  { tag: "rnb", label: "R&B", blurb: "smooth cuts" },
+  { tag: "rock", label: "Rock", blurb: "guitars up" },
+  { tag: "indie", label: "Indie", blurb: "left of center" },
+  { tag: "electronic", label: "Electronic", blurb: "synths" },
+  { tag: "90s", label: "90s", blurb: "decade pack" },
+  { tag: "2000s", label: "2000s", blurb: "decade pack" },
+  { tag: "2010s", label: "2010s", blurb: "decade pack" },
+  { tag: "disco", label: "Disco", blurb: "dancefloor" },
 ];
 
 export default function PlaylistPicker({ onPick, onBack }) {
@@ -207,11 +207,6 @@ export default function PlaylistPicker({ onPick, onBack }) {
               onClick={() => chooseChart(pack.tag)}
               disabled={loadingId !== null}
             >
-              <div className="record-art">
-                <div className="record-cover record-cover--chart" aria-hidden="true">
-                  {pack.icon}
-                </div>
-              </div>
               <div className="record-meta">
                 <span className="record-name">{pack.label}</span>
                 <span className="record-count">{pack.blurb}</span>
