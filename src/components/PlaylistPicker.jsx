@@ -51,12 +51,12 @@ export default function PlaylistPicker({ onPick, needsLogin = false }) {
   const [yoursView, setYoursView] = useState("cds"); // cds | list
   const [allowInfoOpen, setAllowInfoOpen] = useState(false);
   const allowInfoId = useId();
-  const allowCtaRef = useRef(null);
+  const allowWrapRef = useRef(null);
 
   useEffect(() => {
     if (!allowInfoOpen) return;
     function onDoc(e) {
-      if (!allowCtaRef.current?.contains(e.target)) setAllowInfoOpen(false);
+      if (!allowWrapRef.current?.contains(e.target)) setAllowInfoOpen(false);
     }
     function onKey(e) {
       if (e.key === "Escape") setAllowInfoOpen(false);
@@ -185,10 +185,7 @@ export default function PlaylistPicker({ onPick, needsLogin = false }) {
 
       {needsLogin ? (
         <div className="shelf-gate">
-          <div
-            className={`shelf-cta${allowInfoOpen ? " is-open" : ""}`}
-            ref={allowCtaRef}
-          >
+          <div className="shelf-cta">
             <a className="btn btn-big btn-spotify shelf-login" href="/api/login">
               <svg
                 className="spotify-logo"
@@ -204,31 +201,37 @@ export default function PlaylistPicker({ onPick, needsLogin = false }) {
               </svg>
               Log in with Spotify
             </a>
-            <button
-              type="button"
-              className={`shelf-allow-btn${allowInfoOpen ? " is-open" : ""}`}
-              aria-expanded={allowInfoOpen}
-              aria-controls={allowInfoId}
-              aria-label={
-                allowInfoOpen
-                  ? "Hide Spotify allowlist info"
-                  : "Why playlists might not load"
-              }
-              onClick={() => setAllowInfoOpen((o) => !o)}
+            <div
+              className={`shelf-allow-wrap${allowInfoOpen ? " is-open" : ""}`}
+              ref={allowWrapRef}
+              onMouseEnter={() => setAllowInfoOpen(true)}
+              onMouseLeave={() => setAllowInfoOpen(false)}
             >
-              i
-            </button>
-            {allowInfoOpen && (
+              <button
+                type="button"
+                className={`shelf-allow-btn${allowInfoOpen ? " is-open" : ""}`}
+                aria-expanded={allowInfoOpen}
+                aria-controls={allowInfoId}
+                aria-label={
+                  allowInfoOpen
+                    ? "Hide Spotify allowlist info"
+                    : "Why playlists might not load"
+                }
+                onClick={() => setAllowInfoOpen((o) => !o)}
+              >
+                i
+              </button>
               <div
                 id={allowInfoId}
                 className="shelf-allow-panel"
                 role="note"
+                aria-hidden={!allowInfoOpen}
               >
                 Login will work but the playlists won’t load until I’ve added
                 your Spotify email — Spotify locked third-party apps to an
                 allowlist (with a max of 5) in Feb 2026.
               </div>
-            )}
+            </div>
           </div>
           <div className="shelf-locked" aria-hidden="true">
             <PlaylistCdShelf

@@ -1602,6 +1602,12 @@ button { font-family: var(--font); }
   margin: 0;
   flex: none;
 }
+.shelf-allow-wrap {
+  position: relative;
+  flex: none;
+  display: flex;
+  align-items: center;
+}
 .shelf-allow-btn {
   flex: none;
   width: 36px;
@@ -1621,7 +1627,8 @@ button { font-family: var(--font); }
   transition: color 0.15s ease, background 0.15s ease, border-color 0.15s ease;
 }
 .shelf-allow-btn:hover,
-.shelf-allow-btn.is-open {
+.shelf-allow-wrap.is-open .shelf-allow-btn,
+.shelf-allow-wrap:hover .shelf-allow-btn {
   color: var(--text-color);
   border-color: color-mix(in srgb, var(--text-color) 32%, transparent);
   background: color-mix(in srgb, var(--bg-color) 88%, transparent);
@@ -1633,7 +1640,7 @@ button { font-family: var(--font); }
   position: absolute;
   left: 50%;
   top: calc(100% + 10px);
-  transform: translateX(-50%);
+  transform: translateX(-50%) translateY(4px);
   margin: 0;
   padding: 12px 14px;
   border-radius: 12px;
@@ -1649,6 +1656,20 @@ button { font-family: var(--font); }
   backdrop-filter: blur(8px);
   box-shadow: 0 10px 28px color-mix(in srgb, #000 18%, transparent);
   z-index: 3;
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transition:
+    opacity 0.2s ease,
+    visibility 0.2s ease,
+    transform 0.2s ease;
+}
+.shelf-allow-wrap.is-open .shelf-allow-panel,
+.shelf-allow-wrap:hover .shelf-allow-panel {
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+  transform: translateX(-50%) translateY(0);
 }
 .shelf-locked {
   pointer-events: none;
