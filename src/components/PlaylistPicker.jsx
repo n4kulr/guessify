@@ -193,15 +193,25 @@ export default function PlaylistPicker({ onPick, onBack }) {
         <h3 className="picker-section-title">or describe it!</h3>
         <form className="chart-search" onSubmit={submitChartSearch}>
           <div className="join-code-row">
-            <input
-              className="guess-input join-code-input chart-search-input"
-              placeholder="type your pick…"
-              value={chartQuery}
-              onChange={(e) => setChartQuery(e.target.value)}
-              disabled={loadingId !== null}
-              autoCorrect="off"
-              spellCheck={false}
-            />
+            <label className="chart-search-field">
+              {!chartQuery && (
+                <span className="chart-search-ph" aria-hidden="true">
+                  <span className="chart-search-ph-main">type your pick…</span>
+                  {" "}
+                  <span className="chart-search-ph-hint">(artist/era/album)</span>
+                </span>
+              )}
+              <input
+                className="guess-input join-code-input chart-search-input"
+                placeholder=""
+                value={chartQuery}
+                onChange={(e) => setChartQuery(e.target.value)}
+                disabled={loadingId !== null}
+                autoCorrect="off"
+                spellCheck={false}
+                aria-label="type your pick, artist, era, or album"
+              />
+            </label>
             <button
               type="submit"
               className="btn btn-play"
