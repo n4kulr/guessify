@@ -1165,30 +1165,27 @@ button { font-family: var(--font); }
   margin: 0 0 18px;
 }
 .chart-search {
-  display: flex;
-  gap: 10px;
-  align-items: center;
-  margin: 0 auto 18px;
-  max-width: 420px;
+  width: min(100%, 340px);
+  margin: 0 auto 22px;
 }
+.chart-search .join-code-row { width: 100%; }
 .chart-search-input {
-  flex: 1;
-  min-width: 0;
-  border: 2px solid color-mix(in srgb, var(--text-color) 22%, transparent);
+  letter-spacing: 0.02em;
+  font-weight: 500;
+  text-transform: none;
 }
-.chart-search-input:focus {
-  border-color: var(--main-color);
+.chart-search-input::placeholder {
+  letter-spacing: 0.02em;
+  font-weight: 500;
+  text-transform: none;
 }
 .record-cover--chart {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: color-mix(in srgb, var(--main-color) 22%, var(--bg-color));
-  color: var(--main-color);
-  font-size: 13px;
-  font-weight: 700;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
+  background: color-mix(in srgb, var(--main-color) 18%, var(--bg-color));
+  font-size: 22px;
+  line-height: 1;
 }
 
 .playlists { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 14px; }

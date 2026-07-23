@@ -3,16 +3,16 @@ import { useEffect, useMemo, useState } from "react";
 const YOURS_PREVIEW = 6;
 
 const CHART_PACKS = [
-  { tag: "pop", label: "Pop", blurb: "chart pop" },
-  { tag: "hip-hop", label: "Hip-hop", blurb: "raps & beats" },
-  { tag: "rnb", label: "R&B", blurb: "smooth cuts" },
-  { tag: "rock", label: "Rock", blurb: "guitars up" },
-  { tag: "indie", label: "Indie", blurb: "left of center" },
-  { tag: "electronic", label: "Electronic", blurb: "synths" },
-  { tag: "90s", label: "90s", blurb: "decade pack" },
-  { tag: "2000s", label: "2000s", blurb: "decade pack" },
-  { tag: "2010s", label: "2010s", blurb: "decade pack" },
-  { tag: "disco", label: "Disco", blurb: "dancefloor" },
+  { tag: "pop", label: "Pop", blurb: "chart pop", icon: "🎤" },
+  { tag: "hip-hop", label: "Hip-hop", blurb: "raps & beats", icon: "🎧" },
+  { tag: "rnb", label: "R&B", blurb: "smooth cuts", icon: "🎷" },
+  { tag: "rock", label: "Rock", blurb: "guitars up", icon: "🎸" },
+  { tag: "indie", label: "Indie", blurb: "left of center", icon: "✨" },
+  { tag: "electronic", label: "Electronic", blurb: "synths", icon: "⚡" },
+  { tag: "90s", label: "90s", blurb: "decade pack", icon: "📼" },
+  { tag: "2000s", label: "2000s", blurb: "decade pack", icon: "💿" },
+  { tag: "2010s", label: "2010s", blurb: "decade pack", icon: "📱" },
+  { tag: "disco", label: "Disco", blurb: "dancefloor", icon: "🪩" },
 ];
 
 export default function PlaylistPicker({ onPick, onBack }) {
@@ -180,20 +180,24 @@ export default function PlaylistPicker({ onPick, onBack }) {
       </p>
 
       <form className="chart-search" onSubmit={submitChartSearch}>
-        <input
-          className="guess-input chart-search-input"
-          placeholder="pop, 90s, 1995, indie…"
-          value={chartQuery}
-          onChange={(e) => setChartQuery(e.target.value)}
-          disabled={loadingId !== null}
-        />
-        <button
-          type="submit"
-          className="btn btn-mini"
-          disabled={loadingId !== null || !chartQuery.trim()}
-        >
-          {loadingId?.startsWith("chart:") ? "loading…" : "play"}
-        </button>
+        <div className="join-code-row">
+          <input
+            className="guess-input join-code-input chart-search-input"
+            placeholder="type your pick…"
+            value={chartQuery}
+            onChange={(e) => setChartQuery(e.target.value)}
+            disabled={loadingId !== null}
+            autoCorrect="off"
+            spellCheck={false}
+          />
+          <button
+            type="submit"
+            className="btn btn-play"
+            disabled={loadingId !== null || !chartQuery.trim()}
+          >
+            {loadingId?.startsWith("chart:") ? "…" : "play"}
+          </button>
+        </div>
       </form>
 
       <div className="playlists">
@@ -207,13 +211,13 @@ export default function PlaylistPicker({ onPick, onBack }) {
               disabled={loadingId !== null}
             >
               <div className="record-art">
-                <div className="record-cover record-cover--chart">
-                  {pack.label.slice(0, 2)}
+                <div className="record-cover record-cover--chart" aria-hidden="true">
+                  {pack.icon}
                 </div>
               </div>
               <div className="record-meta">
                 <span className="record-name">{pack.label}</span>
-                <span className="record-count">{pack.blurb} · last.fm</span>
+                <span className="record-count">{pack.blurb}</span>
               </div>
               {loadingId === id && (
                 <span className="record-loading">loading…</span>
