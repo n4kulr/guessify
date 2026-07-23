@@ -74,9 +74,9 @@ export default function PlayerRail({ players = [], winnerId, pulseId }) {
             key={p.id}
             className={`mp-player ${
               p.left ? "left" : !p.connected ? "offline" : ""
-            } ${winnerId === p.id ? "winner" : ""} ${
-              pulseId === p.id ? "pulse" : ""
-            } ${flash ? "mp-player--gain" : ""}`}
+            } ${pulseId === p.id ? "pulse" : ""} ${
+              flash ? "mp-player--gain" : ""
+            }`}
           >
             <PlayerAvatar
               avatar={p.avatar || { color: p.color }}

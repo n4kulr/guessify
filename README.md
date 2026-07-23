@@ -23,8 +23,7 @@ Play solo, or **host a game** so friends can join from their phones (nickname on
 - Guests open `/join/CODE` or type the code on the home screen — no Spotify
 - Everyone picks a nickname, peep avatar (Open Peeps), and accent color
 - **Each player plays the snippet on their own device** (no shared DJ)
-- Anyone can skip to unlock more audio; first correct title wins the round
-- Shared unlock bar advances on wrongs / skips
+- Skip unlocks more audio on your device only; first correct title wins the round
 
 ---
 

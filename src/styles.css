@@ -463,7 +463,19 @@ button { font-family: var(--font); }
   display: block;
 }
 
-.hero-turntable { position: relative; width: 132px; height: 132px; margin: 0 0 28px; }
+.hero-turntable { position: relative; width: 132px; height: 132px; margin: 0; flex: none; }
+.hero-vinyl-row {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  margin: 0 0 26px;
+  width: 100%;
+}
+.hero-vinyl-row .steps {
+  margin: 0;
+  flex: 1;
+  min-width: 0;
+}
 .hero-turntable .vinyl-label {
   padding: 0;
   overflow: hidden;
@@ -522,7 +534,7 @@ button { font-family: var(--font); }
 .drag-nudge {
   position: absolute;
   left: calc(100% + 52px);
-  top: -8px;
+  top: -65px;
   z-index: 4;
   pointer-events: none;
   display: flex;
@@ -882,7 +894,7 @@ button { font-family: var(--font); }
 .cassette-ico-rew::after { left: 5px; }
 .cassette-ico-sound,
 .cassette-ico-muted {
-  width: 13px;
+  width: 14px;
   height: 10px;
 }
 /* Speaker body + cone */
@@ -897,29 +909,31 @@ button { font-family: var(--font); }
   background: currentColor;
   clip-path: polygon(0 28%, 40% 28%, 100% 0, 100% 100%, 40% 72%, 0 72%);
 }
-/* Sound wave */
+/* Sound wave — right-facing arc, vertically centered on the cone */
 .cassette-ico-sound::after {
   content: "";
   position: absolute;
-  left: 9px;
-  top: 1px;
-  width: 4px;
-  height: 8px;
+  left: 7px;
+  top: 50%;
+  width: 7px;
+  height: 7px;
+  box-sizing: border-box;
   border: 1.5px solid currentColor;
-  border-left: 0;
-  border-radius: 0 6px 6px 0;
+  border-color: transparent currentColor transparent transparent;
+  border-radius: 50%;
+  transform: translateY(-50%);
 }
 /* Mute slash */
 .cassette-ico-muted::after {
   content: "";
   position: absolute;
   left: 0;
-  top: 4px;
-  width: 13px;
+  top: 50%;
+  width: 14px;
   height: 1.5px;
   border-radius: 1px;
   background: currentColor;
-  transform: rotate(-40deg);
+  transform: translateY(-50%) rotate(-40deg);
   transform-origin: center;
 }
 .cassette-tooth:hover {
@@ -1408,6 +1422,9 @@ button { font-family: var(--font); }
   z-index: 2;
   margin: 0;
   transform: translate(-50%, -50%);
+  width: max-content;
+  max-width: calc(100% - 32px);
+  box-sizing: border-box;
 }
 .shelf-locked {
   pointer-events: none;
@@ -2419,6 +2436,17 @@ button { font-family: var(--font); }
 
 /* ---------------- game ---------------- */
 .game { width: min(560px, 100%); background: var(--sub-alt-color); border-radius: 18px; padding: 26px; }
+.game.is-shaking {
+  animation: game-shake 0.4s ease;
+}
+@keyframes game-shake {
+  0%, 100% { transform: translateX(0); }
+  15% { transform: translateX(-7px); }
+  30% { transform: translateX(7px); }
+  45% { transform: translateX(-5px); }
+  60% { transform: translateX(5px); }
+  75% { transform: translateX(-2px); }
+}
 .mp-board {
   width: min(920px, 100%);
   display: grid;
@@ -2854,7 +2882,17 @@ button { font-family: var(--font); }
 }
 
 /* ---------------- multiplayer ---------------- */
-.home-actions { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 4px; }
+.home-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 4px;
+  width: min(100%, 340px); /* match .join-code-form */
+}
+.home-actions .btn {
+  flex: 1;
+  justify-content: center;
+}
 .btn-multi {
   background: var(--bg-color);
   color: var(--text-color);
@@ -3008,7 +3046,6 @@ button { font-family: var(--font); }
   text-decoration: line-through;
   text-decoration-thickness: 1.5px;
 }
-.mp-player.winner { box-shadow: 0 0 0 2px var(--main-color); }
 .mp-player.pulse { animation: mp-pulse 0.45s ease; }
 @keyframes mp-pulse {
   0% { transform: scale(1); }
@@ -3236,7 +3273,23 @@ button { font-family: var(--font); }
     display: block;
     width: 112px;
     height: 112px;
-    margin: 0 0 20px;
+    margin: 0;
+  }
+  .hero-vinyl-row {
+    gap: 12px;
+    margin-bottom: 20px;
+  }
+  .hero-vinyl-row .steps {
+    font-size: 12px;
+    gap: 6px;
+  }
+  .hero-vinyl-row .steps b {
+    width: 20px;
+    height: 20px;
+    font-size: 10px;
+  }
+  .hero-vinyl-row .steps li {
+    gap: 8px;
   }
   .hero-title { font-size: clamp(48px, 16vw, 80px); }
   /* Clear the peeked live-demo strip + horizontal "pull me" tab on the right */
@@ -3327,7 +3380,7 @@ button { font-family: var(--font); }
     display: flex;
     align-items: center;
     position: absolute;
-    top: 38%;
+    top: 28%;
     left: 0;
     z-index: 4;
     font: inherit;
@@ -3455,7 +3508,6 @@ button { font-family: var(--font); }
   .hero-right { top: 16%; width: min(320px, 90vw); }
   .hero-right .demo { transform: translateX(calc(100% - 44px)); }
   .hero-right .demo--expanded { transform: translateX(0); }
-  .btn-spotify { width: 100%; justify-content: center; }
   .join-code-form { width: 100%; }
   .guess-media--cassette {
     width: 100%;

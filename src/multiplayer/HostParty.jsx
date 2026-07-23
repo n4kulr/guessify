@@ -3,7 +3,8 @@ import QRCode from "qrcode";
 import { usePartyRoom } from "./usePartyRoom.js";
 import { usePreviewPlayer } from "../usePreviewPlayer.js";
 import { resolvePreview } from "../itunes.js";
-import { STEPS, TOTAL, randomAvatar, normalizeAvatar } from "./constants.js";
+import { STEPS, TOTAL, randomAvatar, normalizeAvatar, unlockSecondsFor } from "./constants.js";
+import { fireConfetti, shakeEl } from "../fx.js";
 import GuessMedia from "../components/GuessMedia.jsx";
 import PlayerRail from "./PlayerRail.jsx";
 import ProfileEditor from "./ProfileEditor.jsx";
@@ -28,6 +29,8 @@ export default function HostParty({ code, playlist, me, onExit }) {
   const [localPlaying, setLocalPlaying] = useState(false);
   const lastTrackRef = useRef(null);
   const lastRevealPlayRef = useRef(null);
+  const rootRef = useRef(null);
+  const lastFxGuess = useRef(-1);
 
   // (host reclaim runs on every socket open — see effect below)
 
@@ -164,10 +167,24 @@ export default function HostParty({ code, playlist, me, onExit }) {
       pause();
       setLocalPlaying(false);
       lastTrackRef.current = state.trackId;
+      lastFxGuess.current = -1;
     }
   }, [state?.trackId]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const unlocked = state?.unlocked ?? STEPS[0];
+  useEffect(() => {
+    const guesses = state?.guesses;
+    if (!guesses?.length || !playerId) return;
+    const i = guesses.length - 1;
+    if (i === lastFxGuess.current) return;
+    const g = guesses[i];
+    if (!g || g.playerId !== playerId || g.skip) return;
+    lastFxGuess.current = i;
+    if (g.win) fireConfetti("full");
+    else if (g.artistOk) fireConfetti("light");
+    else shakeEl(rootRef.current);
+  }, [state?.guesses, playerId]);
+
+  const unlocked = unlockSecondsFor(state?.unlockByPlayer, playerId);
   const phase = state?.phase || "lobby";
   const spinning = localPlaying && (phase === "play" || phase === "reveal");
 
@@ -305,6 +322,7 @@ export default function HostParty({ code, playlist, me, onExit }) {
     send({ type: "skip" });
     setTitleGuess("");
     setArtistGuess("");
+    stopAudio();
   }
 
   // ---- game over ----
@@ -313,7 +331,7 @@ export default function HostParty({ code, playlist, me, onExit }) {
     return (
       <div className="mp-over">
         <h2 className="title">That's a wrap!</h2>
-        <PlayerRail players={ranked} winnerId={ranked[0]?.id} />
+        <PlayerRail players={ranked} />
         <div className="gameover-actions">
           <button className="btn btn-big btn-play" onClick={onExit}>
             back home
@@ -329,7 +347,7 @@ export default function HostParty({ code, playlist, me, onExit }) {
   const lastGuesser = state.guesses[state.guesses.length - 1];
 
   return (
-    <div className="game mp-host mp-board">
+    <div className="game mp-host mp-board" ref={rootRef}>
       <div className="mp-board-main">
       <div className="game-head">
         <button className="btn btn-mini" onClick={onExit}>
@@ -350,7 +368,6 @@ export default function HostParty({ code, playlist, me, onExit }) {
 
       <PlayerRail
         players={state.players}
-        winnerId={state.winnerId}
         pulseId={lastGuesser?.playerId}
       />
 

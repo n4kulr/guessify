@@ -14,6 +14,12 @@ export function titlePointsForGuess(guessNum) {
   return TITLE_POINTS[i];
 }
 
+/** Seconds unlocked for a player's personal skip step (multiplayer). */
+export function unlockSecondsFor(unlockByPlayer, playerId) {
+  const step = unlockByPlayer?.[playerId] ?? 0;
+  return STEPS[Math.min(Math.max(0, step), MAX_GUESSES - 1)];
+}
+
 // Open Peeps bust presets live in /public/peeps/peep-1.svg … peep-105.svg
 export const PEEP_COUNT = 105;
 

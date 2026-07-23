@@ -22,13 +22,14 @@ export default function Login({ error, onStartSolo, onStartMulti }) {
           <em className="hero-tagline-hook">name that song!</em>
         </p>
 
-        <HeroTurntable />
-
-        <ol className="steps">
-          <li><b>1</b> pick a playlist (or Liked Songs)</li>
-          <li><b>2</b> hear a short snippet</li>
-          <li><b>3</b> type the title + artist</li>
-        </ol>
+        <div className="hero-vinyl-row">
+          <HeroTurntable />
+          <ol className="steps">
+            <li><b>1</b> pick a playlist (or Liked Songs)</li>
+            <li><b>2</b> hear a short snippet</li>
+            <li><b>3</b> type the title + artist</li>
+          </ol>
+        </div>
 
         {error && (
           <div className="error-banner">

@@ -1,7 +1,6 @@
 import { Server } from "partyserver";
 import { isCorrect, matchesAnyArtist } from "../src/match.js";
 import {
-  STEPS,
   MAX_GUESSES,
   ROUND_COUNT,
   PLAYER_COLORS,
@@ -20,7 +19,7 @@ const ROOM_TTL_MS = 6 * 60 * 60 * 1000;
 
 /**
  * Multiplayer room (PartyServer / Cloudflare Durable Object).
- * Shared race / unlock state; each client plays iTunes previews locally (no DJ).
+ * Shared race state; unlock/skip is per-player. Each client plays iTunes previews locally (no DJ).
  */
 export class Room extends Server {
   state = null; // set when host claims the room
@@ -239,7 +238,7 @@ export class Room extends Server {
         players: [hostPlayer],
         phase: "lobby", // lobby | play | reveal | over
         roundIdx: 0,
-        guessNum: 0,
+        unlockByPlayer: {},
         guesses: [],
         outcome: null,
         winnerId: null,
@@ -417,7 +416,7 @@ export class Room extends Server {
     }
     this.state.phase = "play";
     this.state.roundIdx = 0;
-    this.state.guessNum = 0;
+    this.state.unlockByPlayer = {};
     this.state.guesses = [];
     this.state.outcome = null;
     this.state.winnerId = null;
@@ -479,7 +478,8 @@ export class Room extends Server {
     });
 
     if (win) {
-      const titlePts = titlePointsForGuess(this.state.guessNum);
+      const step = this.state.unlockByPlayer?.[player.id] ?? 0;
+      const titlePts = titlePointsForGuess(step);
       const earned = titlePts + artistPts;
       this.state.bonus = artistPts;
       this.state.earnedPts = earned;
@@ -492,7 +492,7 @@ export class Room extends Server {
       this.state.bonus = artistPts;
       this.state.earnedPts = artistPts;
     }
-    // Wrong guesses never unlock more audio — only explicit skip does.
+    // Wrong guesses never unlock more audio — only that player's skip does.
 
     this.broadcastState();
     void this.persist();
@@ -506,6 +506,9 @@ export class Room extends Server {
       return;
     }
 
+    if (!this.state.unlockByPlayer) this.state.unlockByPlayer = {};
+    const step = this.state.unlockByPlayer[player.id] ?? 0;
+
     this.state.guesses.push({
       playerId: player.id,
       name: player.name,
@@ -513,22 +516,12 @@ export class Room extends Server {
       avatar: player.avatar,
       skip: true,
     });
-    this.consumeGuess();
+    // Only this player's snippet grows — never shared, never ends the round.
+    if (step < MAX_GUESSES - 1) {
+      this.state.unlockByPlayer[player.id] = step + 1;
+    }
     this.broadcastState();
     void this.persist();
-  }
-
-  consumeGuess() {
-    const next = this.state.guessNum + 1;
-    if (next >= MAX_GUESSES) {
-      this.state.outcome = "lose";
-      this.state.phase = "reveal";
-      this.state.winnerId = null;
-      this.state.earnedPts = 0;
-      this.state.bonus = 0;
-    } else {
-      this.state.guessNum = next;
-    }
   }
 
   async handleNext(sender) {
@@ -548,7 +541,7 @@ export class Room extends Server {
     }
 
     this.state.roundIdx += 1;
-    this.state.guessNum = 0;
+    this.state.unlockByPlayer = {};
     this.state.guesses = [];
     this.state.outcome = null;
     this.state.winnerId = null;
@@ -621,7 +614,6 @@ export class Room extends Server {
 
   snapshot() {
     if (!this.state) return { phase: "empty" };
-    const unlocked = STEPS[Math.min(this.state.guessNum, MAX_GUESSES - 1)];
     return {
       phase: this.state.phase,
       playlistName: this.state.playlistName,
@@ -645,8 +637,7 @@ export class Room extends Server {
       }),
       roundIdx: this.state.roundIdx,
       roundCount: this.state.tracks.length,
-      guessNum: this.state.guessNum,
-      unlocked,
+      unlockByPlayer: { ...(this.state.unlockByPlayer || {}) },
       guesses: this.state.guesses,
       outcome: this.state.outcome,
       winnerId: this.state.winnerId,

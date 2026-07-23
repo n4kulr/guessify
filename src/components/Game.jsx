@@ -1,6 +1,7 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { isCorrect, matchesAnyArtist } from "../match.js";
 import { usePreviewPlayer } from "../usePreviewPlayer.js";
+import { fireConfetti, shakeEl } from "../fx.js";
 import GuessMedia from "./GuessMedia.jsx";
 import ScrubbableVinyl from "./ScrubbableVinyl.jsx";
 import {
@@ -27,6 +28,7 @@ export default function Game({ playlist, onExit }) {
     () => shuffle(playlist.tracks).slice(0, Math.min(ROUND_COUNT, playlist.tracks.length)),
     [playlist]
   );
+  const rootRef = useRef(null);
 
   const [roundIdx, setRoundIdx] = useState(0);
   const [guessNum, setGuessNum] = useState(0);
@@ -143,8 +145,11 @@ export default function Game({ playlist, onExit }) {
       setScore((s) => s + titlePts);
       setOutcome("win");
       setCelebrate(true);
+      fireConfetti("full");
       playSnippet(null); // full preview until next song
     } else {
+      if (artistOk) fireConfetti("light");
+      else shakeEl(rootRef.current);
       if (artistPts) setEarnedPts(artistPts);
       consumeGuess();
     }
@@ -189,7 +194,10 @@ export default function Game({ playlist, onExit }) {
   const playDisabled = !canControl || playBusy;
 
   return (
-    <div className={`game ${outcome === "win" ? "game--win" : ""} ${outcome === "lose" ? "game--lose" : ""}`}>
+    <div
+      ref={rootRef}
+      className={`game ${outcome === "win" ? "game--win" : ""} ${outcome === "lose" ? "game--lose" : ""}`}
+    >
       <div className="game-head">
         <button className="btn btn-mini" onClick={onExit}>
           ← change playlist

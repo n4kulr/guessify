@@ -4,7 +4,8 @@ import { usePreviewPlayer } from "../usePreviewPlayer.js";
 import PlayerRail from "./PlayerRail.jsx";
 import ProfileEditor from "./ProfileEditor.jsx";
 import GuessPopups from "./GuessPopups.jsx";
-import { STEPS, TOTAL, randomAvatar, normalizeAvatar } from "./constants.js";
+import { STEPS, TOTAL, randomAvatar, normalizeAvatar, unlockSecondsFor } from "./constants.js";
+import { fireConfetti, shakeEl } from "../fx.js";
 import GuessMedia from "../components/GuessMedia.jsx";
 
 export default function GuestApp({ code }) {
@@ -19,6 +20,8 @@ export default function GuestApp({ code }) {
   const [localPlaying, setLocalPlaying] = useState(false);
   const lastTrackRef = useRef(null);
   const lastRevealPlayRef = useRef(null);
+  const rootRef = useRef(null);
+  const lastFxGuess = useRef(-1);
 
   const joined = !!playerId;
   const me = state?.players?.find((p) => p.id === playerId);
@@ -70,8 +73,22 @@ export default function GuestApp({ code }) {
       pause();
       setLocalPlaying(false);
       lastTrackRef.current = state.trackId;
+      lastFxGuess.current = -1;
     }
   }, [state?.trackId]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  useEffect(() => {
+    const guesses = state?.guesses;
+    if (!guesses?.length || !playerId) return;
+    const i = guesses.length - 1;
+    if (i === lastFxGuess.current) return;
+    const g = guesses[i];
+    if (!g || g.playerId !== playerId || g.skip) return;
+    lastFxGuess.current = i;
+    if (g.win) fireConfetti("full");
+    else if (g.artistOk) fireConfetti("light");
+    else shakeEl(rootRef.current);
+  }, [state?.guesses, playerId]);
 
   function join() {
     setError(null);
@@ -97,6 +114,7 @@ export default function GuestApp({ code }) {
     send({ type: "skip" });
     setTitleGuess("");
     setArtistGuess("");
+    stopAudio();
   }
 
   async function playSnippet(seconds) {
@@ -128,7 +146,7 @@ export default function GuestApp({ code }) {
       stopAudio();
       return;
     }
-    const unlocked = state?.unlocked ?? STEPS[0];
+    const unlocked = unlockSecondsFor(state?.unlockByPlayer, playerId);
     playSnippet(state?.phase === "reveal" ? null : unlocked);
   }
 
@@ -211,18 +229,18 @@ export default function GuestApp({ code }) {
         <p className="subtitle">
           You finished with <strong>{mine?.score ?? 0}</strong> pts.
         </p>
-        <PlayerRail players={ranked} winnerId={ranked[0]?.id} />
+        <PlayerRail players={ranked} />
       </div>
     );
   }
 
   const revealed = state.phase === "reveal";
-  const unlocked = state.unlocked;
+  const unlocked = unlockSecondsFor(state.unlockByPlayer, playerId);
   const track = state.track;
   const spinning = localPlaying && (state.phase === "play" || state.phase === "reveal");
 
   return (
-    <div className="game mp-guest-game mp-board">
+    <div className="game mp-guest-game mp-board" ref={rootRef}>
       <div className="mp-board-main">
         <div className="now-playing">
           <span className="np-playlist">{state.playlistName}</span>
@@ -233,7 +251,6 @@ export default function GuestApp({ code }) {
 
         <PlayerRail
           players={state.players}
-          winnerId={state.winnerId}
           pulseId={state.guesses[state.guesses.length - 1]?.playerId}
         />
 

@@ -98,7 +98,8 @@ export default function HowToPlay({ open, onOpen, onClose }) {
               First correct <b>title</b> wins the round — earlier guesses score
               more (1000 → 200).
             </li>
-            <li>Anyone can skip to unlock more audio or advance after a reveal.</li>
+            <li>Skip unlocks more audio on your device only.</li>
+            <li>Anyone can advance after a reveal.</li>
           </ul>
 
           <p className="help-solo">
