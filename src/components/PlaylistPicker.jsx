@@ -217,14 +217,13 @@ export default function PlaylistPicker({ onPick }) {
 
       <div className="chart-search-block">
         <h3 className="picker-section-title">or describe it!</h3>
+        <p className="section-sub chart-search-sub">(artist/era/album)</p>
         <form className="chart-search" onSubmit={submitChartSearch}>
           <div className="join-code-row">
             <label className="chart-search-field">
               {!chartQuery && (
                 <span className="chart-search-ph" aria-hidden="true">
                   <span className="chart-search-ph-main">type your pick…</span>
-                  {" "}
-                  <span className="chart-search-ph-hint">(artist/era/album)</span>
                 </span>
               )}
               <input
