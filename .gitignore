@@ -13,3 +13,4 @@ Flat Assets.zip
 
 # graphify local-only
 graphify-out/cost.json
+.env*
