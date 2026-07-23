@@ -1598,7 +1598,7 @@ button { font-family: var(--font); }
   opacity: 0.72;
 }
 
-/* paper peeks out — height matched to tray via --cd-panel-h */
+/* paper peeks out — sized to outer tray, inset via --cd-panel-* */
 .cd-panel {
   flex: 0 0 0;
   width: 0;
@@ -1859,11 +1859,13 @@ button { font-family: var(--font); }
   }
   .cd-panel.is-open {
     flex: none;
-    width: 100%;
+    width: var(--cd-panel-w, calc(100% - 16px));
     max-width: none;
-    margin-left: 0;
+    margin-left: var(--cd-panel-side, 8px);
+    margin-right: var(--cd-panel-side, 8px);
     margin-top: 0;
     height: auto;
+    align-self: center;
   }
   .cd-insert {
     height: auto;

@@ -147,25 +147,22 @@ export default function ChartCdSpindle({ packs, loadingId, onChoose }) {
     const tray = trayRef.current;
     const row = rowRef.current;
     if (!tray || !row) return;
-    function syncHeight() {
-      // Match insert to the case well (not caption/hint). Nudge up without growing past the well bottom.
-      const inner = tray.querySelector(".cd-tray-inner");
-      if (!inner) return;
-      const nudge = 6;
-      const top = Math.max(0, inner.offsetTop - nudge);
-      const height = inner.offsetHeight + (inner.offsetTop - top);
-      row.style.setProperty("--cd-panel-top", `${top}px`);
-      row.style.setProperty("--cd-panel-h", `${height}px`);
+    function syncSize() {
+      // Match the outer cd-tray box, then inset so the insert looks like it slides out.
+      const peek = 16;
+      const inset = peek / 2;
+      row.style.setProperty("--cd-panel-top", `${inset}px`);
+      row.style.setProperty("--cd-panel-h", `${Math.max(0, tray.offsetHeight - peek)}px`);
+      row.style.setProperty("--cd-panel-side", `${inset}px`);
+      row.style.setProperty("--cd-panel-w", `${Math.max(0, tray.offsetWidth - peek)}px`);
     }
-    syncHeight();
-    const ro = new ResizeObserver(syncHeight);
+    syncSize();
+    const ro = new ResizeObserver(syncSize);
     ro.observe(tray);
-    const inner = tray.querySelector(".cd-tray-inner");
-    if (inner) ro.observe(inner);
-    window.addEventListener("resize", syncHeight);
+    window.addEventListener("resize", syncSize);
     return () => {
       ro.disconnect();
-      window.removeEventListener("resize", syncHeight);
+      window.removeEventListener("resize", syncSize);
     };
   }, [panelOpen, packs.length]);
 
