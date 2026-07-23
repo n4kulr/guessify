@@ -1153,10 +1153,10 @@ button { font-family: var(--font); }
   margin: 18px auto 0;
 }
 .picker-section-title {
-  font-size: 18px;
+  font-size: 26px;
   font-weight: 700;
   text-align: center;
-  margin: 36px 0 6px;
+  margin: 36px 0 18px;
 }
 .picker-section-sub {
   text-align: center;
