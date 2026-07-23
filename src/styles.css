@@ -1517,6 +1517,10 @@ button { font-family: var(--font); }
   max-width: calc(100% - 32px);
   box-sizing: border-box;
 }
+/* Keep centering when .btn:active scales — otherwise it jumps bottom-right. */
+.shelf-login:active {
+  transform: translate(-50%, -50%) scale(0.97);
+}
 .shelf-locked {
   pointer-events: none;
   user-select: none;
@@ -3443,7 +3447,7 @@ button { font-family: var(--font); }
 }
 .spotlight-head {
   display: flex;
-  align-items: baseline;
+  align-items: center;
   gap: 10px;
   flex-wrap: wrap;
 }

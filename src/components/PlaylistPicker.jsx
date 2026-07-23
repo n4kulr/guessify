@@ -162,6 +162,14 @@ export default function PlaylistPicker({ onPick, needsLogin = false }) {
       </div>
       <p className="section-sub">Your Spotify playlists only.</p>
 
+      {needsLogin && (
+        <div className="error-banner shelf-spotify-warn" role="note">
+          Login won’t work unless I’ve added your Spotify email — Spotify
+          locked third-party apps to an allowlist in Feb 2026. Drop your
+          Spotify email in feedback (bottom-right) and I’ll whitelist you.
+        </div>
+      )}
+
       {note && <div className="error-banner">{note}</div>}
 
       {needsLogin ? (
