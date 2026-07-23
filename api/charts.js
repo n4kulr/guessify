@@ -1,12 +1,8 @@
-import { requireSession } from "./_lib.js";
-
 const LASTFM = "https://ws.audioscrobbler.com/2.0/";
 
 // Tag → top tracks via Last.fm (metadata only). Audio still comes from iTunes.
+// No Spotify session — charts are the open path for logged-out play.
 export default async function handler(req, res) {
-  const auth = await requireSession(req, res);
-  if (!auth) return;
-
   const key = process.env.LASTFM_API_KEY;
   if (!key) {
     res.status(503).json({

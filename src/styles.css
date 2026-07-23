@@ -1398,9 +1398,17 @@ button { font-family: var(--font); }
   color: transparent;
 }
 
-/* ---- Logged-out: login above blurred teaser shelf ---- */
+/* ---- Logged-out: Spotify CTA over blurred playlist shelf ---- */
+.shelf-gate {
+  position: relative;
+}
 .shelf-login {
-  margin: 8px 0 16px;
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  z-index: 2;
+  margin: 0;
+  transform: translate(-50%, -50%);
 }
 .shelf-locked {
   pointer-events: none;
