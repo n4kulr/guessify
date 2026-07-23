@@ -4,14 +4,16 @@ export const MAX_GUESSES = STEPS.length;
 export const TOTAL = STEPS[STEPS.length - 1];
 export const ROUND_COUNT = 5;
 
-// Exaggerated arcade scoring (thousands over a full game).
-// Guess 1 → 1000 … guess 6 → 200; correct artist → +200 once per round.
-export const TITLE_POINTS = [1000, 800, 600, 400, 300, 200];
+// Song first → 500. Artist first → 200; song after that → 200 more.
+export const TITLE_POINTS_SONG_FIRST = 500;
+export const TITLE_POINTS_AFTER_ARTIST = 200;
 export const ARTIST_BONUS = 200;
+/** Max points from one round (song first + artist). */
+export const ROUND_MAX_POINTS = TITLE_POINTS_SONG_FIRST + ARTIST_BONUS;
 
-export function titlePointsForGuess(guessNum) {
-  const i = Math.min(Math.max(0, Number(guessNum) || 0), TITLE_POINTS.length - 1);
-  return TITLE_POINTS[i];
+/** Title points depend on whether artist was already claimed before this guess. */
+export function titlePointsForGuess({ artistAlreadyClaimed } = {}) {
+  return artistAlreadyClaimed ? TITLE_POINTS_AFTER_ARTIST : TITLE_POINTS_SONG_FIRST;
 }
 
 /**

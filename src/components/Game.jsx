@@ -11,7 +11,7 @@ import {
   ROUND_COUNT,
   titlePointsForGuess,
   ARTIST_BONUS,
-  TITLE_POINTS,
+  ROUND_MAX_POINTS,
 } from "../multiplayer/constants.js";
 
 function shuffle(arr) {
@@ -130,8 +130,9 @@ export default function Game({ playlist, onExit }) {
     setArtistGuess("");
     stopAudio();
 
+    const artistWasClaimed = artistBonusTaken;
     let artistPts = 0;
-    if (artistOk && !artistBonusTaken) {
+    if (artistOk && !artistWasClaimed) {
       artistPts = ARTIST_BONUS;
       setArtistBonusTaken(true);
       setBonus(artistPts);
@@ -139,7 +140,7 @@ export default function Game({ playlist, onExit }) {
     }
 
     if (win) {
-      const titlePts = titlePointsForGuess(guessNum);
+      const titlePts = titlePointsForGuess({ artistAlreadyClaimed: artistWasClaimed });
       const earned = titlePts + artistPts;
       setEarnedPts(earned);
       setScore((s) => s + titlePts);
@@ -190,7 +191,7 @@ export default function Game({ playlist, onExit }) {
     if (phase === "over") fireConfetti("victory");
   }, [phase]);
 
-  const maxScore = rounds.length * (TITLE_POINTS[0] + ARTIST_BONUS);
+  const maxScore = rounds.length * ROUND_MAX_POINTS;
   const spinning = (playing || celebrate) && !scrubbing;
   // Play button: only start a snippet — greyed out while playing / busy.
   // Pause lives on the vinyl (click).

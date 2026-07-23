@@ -456,8 +456,9 @@ export class Room extends Server {
     const win = titleOk;
 
     // First correct artist fills it for the whole room (+bonus once).
+    const artistWasClaimed = !!this.state.artistClaimedBy;
     let artistPts = 0;
-    if (artistOk && !this.state.artistClaimedBy) {
+    if (artistOk && !artistWasClaimed) {
       this.state.artistClaimedBy = player.id;
       this.state.revealedArtist = (track.artists || []).join(", ");
       artistPts = ARTIST_BONUS;
@@ -478,8 +479,7 @@ export class Room extends Server {
     });
 
     if (win) {
-      const step = this.state.unlockByPlayer?.[player.id] ?? 0;
-      const titlePts = titlePointsForGuess(step);
+      const titlePts = titlePointsForGuess({ artistAlreadyClaimed: artistWasClaimed });
       const earned = titlePts + artistPts;
       this.state.bonus = artistPts;
       this.state.earnedPts = earned;
@@ -516,9 +516,17 @@ export class Room extends Server {
       avatar: player.avatar,
       skip: true,
     });
-    // Only this player's snippet grows — never shared, never ends the round.
+
     if (step < MAX_GUESSES - 1) {
+      // Only this player's snippet grows.
       this.state.unlockByPlayer[player.id] = step + 1;
+    } else {
+      // Already at full unlock — same as solo: out of skips ends the round.
+      this.state.outcome = "lose";
+      this.state.phase = "reveal";
+      this.state.winnerId = null;
+      this.state.earnedPts = 0;
+      this.state.bonus = 0;
     }
     this.broadcastState();
     void this.persist();

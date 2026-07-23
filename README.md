@@ -61,18 +61,15 @@ Avatars: 105 Open Peeps busts in `public/peeps/` (from Flat Assets); lobby is ni
 
 ## Scoring
 
-Each round has **6 guesses**. Unlock steps: **1 → 2 → 4 → 7 → 11 → 16** seconds.
+Skip unlocks more of the snippet (solo / your device in party): **1 → 2 → 4 → 7 → 11 → 16** seconds.
 
-| Guess attempt | Points (title) |
+| What you get right | Points |
 | --- | --- |
-| 1st | 1000 |
-| 2nd | 800 |
-| 3rd | 600 |
-| 4th | 400 |
-| 5th | 300 |
-| 6th | 200 |
+| Title first (artist not yet claimed) | **500** |
+| Artist first | **200** |
+| Title after artist was already claimed | **200** |
 
-Correct **artist** (independent fuzzy match) → **+200** bonus (once per round).
+Title + artist in one guess (artist not yet claimed) → **700**. Max per round → **700**.
 
 ---
 

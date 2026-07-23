@@ -93,11 +93,11 @@ export default function HowToPlay({ open, onOpen, onClose }) {
           <h3>the round</h3>
           <ul>
             <li>A snippet unlocks more of the track over time.</li>
-            <li>Guess the <b>artist</b> for a +200 bonus (once per round).</li>
             <li>
-              First correct <b>title</b> wins the round — earlier guesses score
-              more (1000 → 200).
+              Correct <b>title</b> first → <b>500</b>. Correct <b>artist</b> first
+              → <b>200</b>; title after that → another <b>200</b>.
             </li>
+            <li>First correct title wins the round (party).</li>
             <li>Skip unlocks more audio on your device only.</li>
             <li>Anyone can advance after a reveal.</li>
           </ul>
