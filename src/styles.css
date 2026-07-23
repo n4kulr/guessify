@@ -410,7 +410,7 @@ button { font-family: var(--font); }
 .hero-title-accent { color: var(--main-color); }
 .hero-tagline {
   font-size: 17px; line-height: 1.6; max-width: 42ch;
-  margin: 18px 0 26px; color: var(--sub-color);
+  margin: 18px 0 26px 8px; color: var(--sub-color);
 }
 .hero-tagline em {
   color: var(--text-color);

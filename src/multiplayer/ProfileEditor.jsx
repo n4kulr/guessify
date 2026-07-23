@@ -22,6 +22,7 @@ export default function ProfileEditor({
   );
   const [accentOpen, setAccentOpen] = useState(false);
   const accentRef = useRef(null);
+  const didEmitInit = useRef(false);
 
   useEffect(() => {
     if (nameProp && nameProp !== name) setName(nameProp);
@@ -32,6 +33,14 @@ export default function ProfileEditor({
     if (avatarProp) setAvatar(normalizeAvatar(avatarProp));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [avatarProp?.peep, avatarProp?.color]);
+
+  // Publish the starting look once so parent state matches what we show.
+  useEffect(() => {
+    if (didEmitInit.current) return;
+    didEmitInit.current = true;
+    onChange?.({ name, avatar });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   useEffect(() => {
     if (!accentOpen) return;

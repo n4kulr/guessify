@@ -79,7 +79,7 @@ export default function PlayerRail({ players = [], winnerId, pulseId }) {
             } ${flash ? "mp-player--gain" : ""}`}
           >
             <PlayerAvatar
-              avatar={p.avatar || { peep: 1, color: p.color }}
+              avatar={p.avatar || { color: p.color }}
               size={44}
             />
             <span className="mp-player-name">

@@ -18,7 +18,7 @@ export default function GuessPopups({ guesses = [], myId }) {
           className={`mp-guess-popup ${g.win ? "win" : g.skip ? "skip" : "miss"}`}
         >
           <PlayerAvatar
-            avatar={g.avatar || { peep: 1, color: g.color }}
+            avatar={g.avatar || { color: g.color }}
             size={44}
             className="mp-guess-popup-avatar"
           />

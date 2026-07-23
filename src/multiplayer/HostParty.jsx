@@ -2,7 +2,8 @@ import { useEffect, useRef, useState } from "react";
 import QRCode from "qrcode";
 import { usePartyRoom } from "./usePartyRoom.js";
 import { usePreviewPlayer } from "../usePreviewPlayer.js";
-import { STEPS, TOTAL, randomAvatar } from "./constants.js";
+import { resolvePreview } from "../itunes.js";
+import { STEPS, TOTAL, randomAvatar, normalizeAvatar } from "./constants.js";
 import { loadMediaMode, saveMediaMode } from "../mediaMode.js";
 import GuessMedia from "../components/GuessMedia.jsx";
 import MediaModeToggle from "../components/MediaModeToggle.jsx";
@@ -51,6 +52,38 @@ export default function HostParty({ code, playlist, me, onExit }) {
       }
     : null;
   const canPlay = !!(playTrack?.previewUrl || playTrack?.name);
+
+  // Guests only hear audio via room.previewUrl. Host has playlist metadata and
+  // can resolve via /api/preview — publish that URL so every device can play.
+  useEffect(() => {
+    const roundPhase = state?.phase;
+    if (status !== "connected") return;
+    if (roundPhase !== "play" && roundPhase !== "reveal") return;
+    if (!state?.trackId || state?.track?.previewUrl) return;
+    if (!hostMeta?.name) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const url = await resolvePreview({
+          id: state.trackId,
+          name: hostMeta.name,
+          artists: hostMeta.artists,
+        });
+        if (!cancelled && url) {
+          send({
+            type: "setPreview",
+            trackId: state.trackId,
+            previewUrl: url,
+          });
+        }
+      } catch {
+        /* ignore */
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [status, state?.phase, state?.trackId, state?.track?.previewUrl, hostMeta?.name]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     let cancelled = false;
@@ -108,7 +141,7 @@ export default function HostParty({ code, playlist, me, onExit }) {
   useEffect(() => {
     if (!mePlayer) return;
     setHostName(mePlayer.name || hostName);
-    if (mePlayer.avatar) setHostAvatar(mePlayer.avatar);
+    if (mePlayer.avatar) setHostAvatar(normalizeAvatar(mePlayer.avatar));
   }, [mePlayer?.id, mePlayer?.name, mePlayer?.avatar?.peep, mePlayer?.avatar?.color]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
@@ -197,8 +230,7 @@ export default function HostParty({ code, playlist, me, onExit }) {
         </button>
         <h2 className="section-title">Party lobby</h2>
         <p className="section-sub">
-          Friends scan the QR, or open guessify and type the code. Everyone plays
-          the snippet on their own device — race to guess first.
+          Friends scan the QR, or open guessify and type the code.
         </p>
         <div className="mp-lobby-grid">
           <div className="mp-qr-card">

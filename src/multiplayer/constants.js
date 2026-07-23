@@ -37,10 +37,23 @@ export function peepSrc(peep) {
   return `/peeps/peep-${n}.svg`;
 }
 
+/** Uniform int in [0, maxExclusive). Prefers crypto; falls back to Math.random. */
+function randomInt(maxExclusive) {
+  const max = Math.max(0, Math.floor(maxExclusive));
+  if (max <= 0) return 0;
+  const cryptoObj = typeof globalThis !== "undefined" ? globalThis.crypto : null;
+  if (cryptoObj?.getRandomValues) {
+    const buf = new Uint32Array(1);
+    cryptoObj.getRandomValues(buf);
+    return buf[0] % max;
+  }
+  return Math.floor(Math.random() * max);
+}
+
 export function randomAvatar() {
   return {
-    peep: 1 + Math.floor(Math.random() * PEEP_COUNT),
-    color: PLAYER_COLORS[Math.floor(Math.random() * PLAYER_COLORS.length)],
+    peep: 1 + randomInt(PEEP_COUNT),
+    color: PLAYER_COLORS[randomInt(PLAYER_COLORS.length)],
   };
 }
 
@@ -49,7 +62,7 @@ export function normalizeAvatar(raw, fallbackColor = PLAYER_COLORS[0]) {
   // Migrate old eyes/mouth avatars → random peep
   let peep = Number(a.peep);
   if (!Number.isFinite(peep) || peep < 1 || peep > PEEP_COUNT) {
-    peep = 1 + Math.floor(Math.random() * PEEP_COUNT);
+    peep = 1 + randomInt(PEEP_COUNT);
   }
   const color =
     typeof a.color === "string" && /^#[0-9a-fA-F]{6}$/.test(a.color)

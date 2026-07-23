@@ -4,7 +4,7 @@ import { usePreviewPlayer } from "../usePreviewPlayer.js";
 import PlayerRail from "./PlayerRail.jsx";
 import ProfileEditor from "./ProfileEditor.jsx";
 import GuessPopups from "./GuessPopups.jsx";
-import { STEPS, TOTAL, randomAvatar } from "./constants.js";
+import { STEPS, TOTAL, randomAvatar, normalizeAvatar } from "./constants.js";
 import { loadMediaMode, saveMediaMode } from "../mediaMode.js";
 import GuessMedia from "../components/GuessMedia.jsx";
 import MediaModeToggle from "../components/MediaModeToggle.jsx";
@@ -29,9 +29,15 @@ export default function GuestApp({ code }) {
 
   const joined = !!playerId;
   const me = state?.players?.find((p) => p.id === playerId);
-  const playTrack = state?.track?.previewUrl
-    ? { id: state.trackId || state.track.id, previewUrl: state.track.previewUrl }
+  const playTrack = state?.track
+    ? {
+        id: state.trackId || state.track.id,
+        name: state.track.name || undefined,
+        artists: state.track.artists || undefined,
+        previewUrl: state.track.previewUrl || undefined,
+      }
     : null;
+  // Guests rely on the room's previewUrl (host publishes if the worker lookup fails).
   const canPlay = !!playTrack?.previewUrl;
 
   useEffect(() => {
@@ -48,7 +54,7 @@ export default function GuestApp({ code }) {
   useEffect(() => {
     if (!me) return;
     setName(me.name || "");
-    if (me.avatar) setAvatar(me.avatar);
+    if (me.avatar) setAvatar(normalizeAvatar(me.avatar));
   }, [me?.id, me?.name, me?.avatar?.peep, me?.avatar?.color]);
 
   useEffect(() => {

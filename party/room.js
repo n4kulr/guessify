@@ -36,6 +36,9 @@ export class Room extends Server {
         p.connId = null;
         p.connected = false;
         if (!p.left && !p.disconnectedAt) p.disconnectedAt = Date.now();
+        // Ensure every player has a peep (migrate legacy eyes/mouth avatars once).
+        p.avatar = normalizeAvatar(p.avatar, p.color || PLAYER_COLORS[0]);
+        p.color = p.avatar.color;
       }
       await this.scheduleLeaveAlarm();
     }
@@ -174,9 +177,28 @@ export class Room extends Server {
       case "profile":
         this.handleProfile(msg, sender);
         break;
+      case "setPreview":
+        this.handleSetPreview(msg, sender);
+        break;
       default:
         break;
     }
+  }
+
+  /** Host (or any player) can publish a resolved preview URL for the current round. */
+  handleSetPreview(msg, sender) {
+    if (!this.state) return;
+    if (!this.playerFor(sender)) return;
+    const trackId = this.state.tracks[this.state.roundIdx]?.id;
+    if (!trackId) return;
+    if (msg.trackId && msg.trackId !== trackId) return;
+    const url = String(msg.previewUrl || "").trim();
+    if (!url || !/^https?:\/\//i.test(url)) return;
+    if (this.state.previewUrl === url) return;
+    this.state.previewUrl = url;
+    if (msg.previewArt) this.state.previewArt = String(msg.previewArt);
+    this.broadcastState();
+    void this.persist();
   }
 
   handleHost(msg, sender) {
@@ -546,11 +568,19 @@ export class Room extends Server {
     this.state.previewUrl = null;
     this.state.previewArt = null;
     if (!t?.name) return;
+    // Prefer a preview the host already attached to the track payload.
+    if (t.previewUrl) {
+      this.state.previewUrl = t.previewUrl;
+      this.state.previewArt = t.previewArt || null;
+      return;
+    }
     try {
       const pick = await resolveItunesPreview(t.name, (t.artists || [])[0] || "");
       if (pick) {
         this.state.previewUrl = pick.previewUrl;
         this.state.previewArt = pick.artworkUrl;
+        t.previewUrl = pick.previewUrl;
+        t.previewArt = pick.artworkUrl;
       }
     } catch (e) {
       console.error("preview resolve failed", e);
@@ -568,14 +598,15 @@ export class Room extends Server {
   publicTrack() {
     const t = this.state.tracks[this.state.roundIdx];
     if (!t) return null;
+    const previewUrl = this.state.previewUrl || t.previewUrl || null;
     const revealed = this.state.phase === "reveal" || this.state.phase === "over";
     if (revealed) {
       return {
         id: t.id,
         name: t.name,
         artists: t.artists,
-        cover: t.cover || this.state.previewArt || null,
-        previewUrl: this.state.previewUrl || null,
+        cover: t.cover || this.state.previewArt || t.previewArt || null,
+        previewUrl,
       };
     }
     // Hide answer fields; expose preview so each device can play locally.
@@ -584,7 +615,7 @@ export class Room extends Server {
       cover: null,
       name: null,
       artists: null,
-      previewUrl: this.state.previewUrl || null,
+      previewUrl,
     };
   }
 
@@ -596,17 +627,22 @@ export class Room extends Server {
       playlistName: this.state.playlistName,
       hostName: this.state.hostName,
       hostConnected: this.state.hostConnected,
-      players: this.state.players.map((p) => ({
-        id: p.id,
-        name: p.name,
-        color: p.color,
-        avatar: p.avatar || normalizeAvatar(null, p.color),
-        score: p.score,
-        wins: p.wins,
-        connected: p.connected,
-        left: !!p.left,
-        isHost: !!p.isHost,
-      })),
+      players: this.state.players.map((p) => {
+        const avatar = normalizeAvatar(p.avatar, p.color);
+        p.avatar = avatar;
+        p.color = avatar.color;
+        return {
+          id: p.id,
+          name: p.name,
+          color: p.color,
+          avatar,
+          score: p.score,
+          wins: p.wins,
+          connected: p.connected,
+          left: !!p.left,
+          isHost: !!p.isHost,
+        };
+      }),
       roundIdx: this.state.roundIdx,
       roundCount: this.state.tracks.length,
       guessNum: this.state.guessNum,
