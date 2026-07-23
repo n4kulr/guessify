@@ -1227,53 +1227,97 @@ button { font-family: var(--font); }
 .chart-search-input::placeholder {
   color: transparent;
 }
-/* ---- describe-it: top-down CD storage tray (jewel-case spines) ---- */
+/* ---- describe-it: worn CD storage tray (jewel-case spines) ---- */
 .cd-tray {
-  --cd-spine-len: 120px;
-  --cd-gap: 2px;
-  --cd-dur: 0.32s;
+  --cd-spine-len: 128px;
+  --cd-gap: 1px;
+  --cd-dur: 0.34s;
   --cd-ease: cubic-bezier(0.22, 1, 0.36, 1);
   --cd-pull: 12px;
+  position: relative;
   width: min(560px, 100%);
   margin: 6px auto 4px;
-  padding: 14px 14px 10px;
-  border-radius: 14px;
+  padding: 16px 14px 12px;
+  border-radius: 10px;
   background:
     linear-gradient(
       180deg,
-      color-mix(in srgb, var(--text-color) 8%, var(--sub-alt-color)),
-      color-mix(in srgb, #000 22%, var(--sub-alt-color))
+      color-mix(in srgb, var(--text-color) 14%, var(--sub-alt-color)) 0%,
+      var(--sub-alt-color) 40%,
+      color-mix(in srgb, #000 28%, var(--sub-alt-color)) 100%
     );
-  border: 1px solid color-mix(in srgb, var(--text-color) 12%, transparent);
+  border: 1px solid color-mix(in srgb, var(--text-color) 18%, transparent);
   box-shadow:
-    0 16px 36px color-mix(in srgb, #000 30%, transparent),
-    inset 0 1px 0 color-mix(in srgb, #fff 8%, transparent),
-    inset 0 -2px 8px color-mix(in srgb, #000 25%, transparent);
+    0 22px 48px color-mix(in srgb, #000 45%, transparent),
+    inset 0 1px 0 color-mix(in srgb, #fff 12%, transparent),
+    inset 0 -3px 10px color-mix(in srgb, #000 35%, transparent);
+}
+.cd-tray::before {
+  content: "";
+  position: absolute;
+  inset: 4px;
+  border-radius: 8px;
+  pointer-events: none;
+  background:
+    radial-gradient(ellipse at 8% 12%, color-mix(in srgb, #fff 4%, transparent), transparent 40%),
+    radial-gradient(ellipse at 92% 88%, color-mix(in srgb, #000 25%, transparent), transparent 45%),
+    radial-gradient(ellipse at 95% 8%, color-mix(in srgb, #000 18%, transparent), transparent 35%);
 }
 .cd-tray-inner {
   position: relative;
-  padding: 14px 10px;
-  border-radius: 8px;
+  padding: 14px 12px 16px;
+  border-radius: 6px;
   background:
+    repeating-linear-gradient(
+      90deg,
+      transparent 0 17px,
+      color-mix(in srgb, #fff 1.5%, transparent) 17px 18px
+    ),
     linear-gradient(
       180deg,
-      color-mix(in srgb, #000 35%, transparent),
-      color-mix(in srgb, #000 12%, transparent) 10%,
-      color-mix(in srgb, #000 12%, transparent) 90%,
-      color-mix(in srgb, #000 35%, transparent)
-    ),
-    color-mix(in srgb, var(--bg-color) 55%, #1a1a1a);
+      color-mix(in srgb, #000 55%, var(--bg-color)) 0%,
+      color-mix(in srgb, #000 35%, var(--bg-color)) 50%,
+      color-mix(in srgb, #000 45%, var(--bg-color)) 100%
+    );
   box-shadow:
-    inset 0 0 0 1px color-mix(in srgb, #000 40%, transparent),
-    inset 0 8px 16px color-mix(in srgb, #000 35%, transparent);
+    inset 0 0 0 1px color-mix(in srgb, #000 55%, transparent),
+    inset 0 10px 22px color-mix(in srgb, #000 45%, transparent),
+    inset 0 -6px 14px color-mix(in srgb, #000 30%, transparent);
   overflow: visible;
 }
+.cd-tray-inner::before {
+  content: "";
+  position: absolute;
+  left: 8px;
+  right: 8px;
+  top: 6px;
+  height: 3px;
+  border-radius: 1px;
+  background: linear-gradient(180deg, #2a2b2e, #121314);
+  opacity: 0.45;
+  pointer-events: none;
+}
+.cd-tray-inner::after {
+  content: "";
+  position: absolute;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  left: 10px;
+  bottom: 10px;
+  background: radial-gradient(circle at 40% 35%, #555, #222 55%, #0a0a0a 70%);
+  box-shadow:
+    0 0 0 1px color-mix(in srgb, #000 50%, transparent),
+    inset 0 1px 1px color-mix(in srgb, #fff 12%, transparent);
+  opacity: 0.8;
+  pointer-events: none;
+}
 .cd-tray-caption {
-  margin: 10px 0 0;
+  margin: 12px 0 0;
   text-align: center;
   font-size: 12px;
   color: var(--sub-color);
-  letter-spacing: 0.04em;
+  letter-spacing: 0.06em;
 }
 .cd-spines {
   list-style: none;
@@ -1286,6 +1330,8 @@ button { font-family: var(--font); }
   gap: var(--cd-gap);
   width: 100%;
   height: var(--cd-spine-len);
+  position: relative;
+  z-index: 1;
 }
 .cd-spine-slot {
   position: relative;
@@ -1295,122 +1341,283 @@ button { font-family: var(--font); }
   z-index: 0;
 }
 .cd-spine-slot:hover,
-.cd-spine-slot:focus-within {
-  z-index: 3;
+.cd-spine-slot:focus-within,
+.cd-spine-slot.is-out {
+  z-index: 5;
 }
 .cd-spine {
+  --w-scale: 1;
+  --tilt: 0deg;
+  --depth: 0px;
   --cd-base: #cfcfc8;
   --cd-hi: #f2f2ec;
   --cd-lo: #9a9a94;
   --cd-ink: #1a1a1a;
+  --cd-tint: transparent;
+  --cd-cloud: 0;
   position: absolute;
-  inset: 0;
-  display: block;
-  width: 100%;
+  left: 50%;
+  bottom: var(--depth);
+  width: calc(100% * var(--w-scale));
   height: 100%;
+  transform: translateX(-50%) rotate(var(--tilt));
   padding: 0;
   margin: 0;
-  border: 1px solid color-mix(in srgb, #000 22%, transparent);
-  border-radius: 3px;
+  border: none;
+  border-radius: 2px 2px 1px 1px;
   cursor: pointer;
   overflow: hidden;
   color: var(--cd-ink);
   background:
     linear-gradient(
       90deg,
+      color-mix(in srgb, #fff 45%, transparent) 0 1px,
+      transparent 1px 2px,
+      transparent calc(100% - 2px),
+      color-mix(in srgb, #000 25%, transparent) calc(100% - 1px)
+    ),
+    linear-gradient(
+      90deg,
       var(--cd-hi) 0%,
-      var(--cd-base) 42%,
+      var(--cd-base) 38%,
+      color-mix(in srgb, var(--cd-base) 70%, #000) 52%,
+      var(--cd-base) 62%,
       var(--cd-lo) 100%
     );
   box-shadow:
-    1px 0 0 color-mix(in srgb, #fff 30%, transparent),
-    1px 1px 2px color-mix(in srgb, #000 25%, transparent),
-    inset 1px 0 0 color-mix(in srgb, #fff 45%, transparent);
-  transform: translateY(0);
+    inset 1px 0 0 color-mix(in srgb, #fff 35%, transparent),
+    inset -1px 0 0 color-mix(in srgb, #000 28%, transparent),
+    inset 0 0 0 1px color-mix(in srgb, #000 18%, transparent),
+    1px 1px 2px color-mix(in srgb, #000 30%, transparent);
   transition:
     transform var(--cd-dur) var(--cd-ease),
+    bottom var(--cd-dur) var(--cd-ease),
     box-shadow var(--cd-dur) var(--cd-ease),
     filter var(--cd-dur) ease;
 }
-/* tiny scratches / dust */
+.cd-spine::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(
+      90deg,
+      transparent 0%,
+      transparent 46%,
+      color-mix(in srgb, #000 12%, transparent) 50%,
+      transparent 54%,
+      transparent 100%
+    ),
+    linear-gradient(
+      180deg,
+      color-mix(in srgb, #fff 8%, transparent),
+      transparent 12%,
+      transparent 88%,
+      color-mix(in srgb, #000 10%, transparent)
+    ),
+    var(--cd-tint);
+  mix-blend-mode: multiply;
+  opacity: 0.55;
+  pointer-events: none;
+}
 .cd-spine::before {
   content: "";
   position: absolute;
   inset: 0;
-  border-radius: inherit;
   background:
-    linear-gradient(
-      10deg,
-      transparent 0%,
-      color-mix(in srgb, #fff 28%, transparent) 18%,
-      transparent 22%,
-      transparent 70%,
-      color-mix(in srgb, #000 10%, transparent) 78%,
-      transparent 100%
-    ),
     repeating-linear-gradient(
-      8deg,
-      transparent 0 11px,
-      color-mix(in srgb, #000 5%, transparent) 11px 12px
-    );
-  opacity: 0.4;
+      7deg,
+      transparent 0 10px,
+      color-mix(in srgb, #000 4%, transparent) 10px 11px
+    ),
+    radial-gradient(ellipse at 30% 40%, color-mix(in srgb, #000 8%, transparent), transparent 40%),
+    radial-gradient(ellipse at 70% 70%, color-mix(in srgb, #fff 6%, transparent), transparent 35%);
+  opacity: calc(0.25 + var(--cd-cloud));
   pointer-events: none;
-  z-index: 0;
+  z-index: 1;
 }
 .cd-spine--clear {
-  --cd-base: color-mix(in srgb, var(--text-color) 18%, #d8d8d2);
-  --cd-hi: color-mix(in srgb, #fff 55%, transparent);
-  --cd-lo: color-mix(in srgb, #888 35%, #bdbdb8);
-  --cd-ink: #111;
+  --cd-base: #d8d8d2; --cd-hi: #f6f6f2; --cd-lo: #b0b0aa; --cd-ink: #111;
+  --cd-tint: color-mix(in srgb, #c8d2dc 12%, transparent);
 }
 .cd-spine--white { --cd-base: #efefe9; --cd-hi: #fafaf6; --cd-lo: #d0d0ca; --cd-ink: #222; }
 .cd-spine--black { --cd-base: #2a2a2a; --cd-hi: #3a3a3a; --cd-lo: #141414; --cd-ink: #e8e8e2; }
 .cd-spine--grey { --cd-base: #9e9e98; --cd-hi: #b8b8b2; --cd-lo: #7a7a74; --cd-ink: #1c1c1c; }
-.cd-spine--smoke { --cd-base: #6e726f; --cd-hi: #8a8e8b; --cd-lo: #4f5350; --cd-ink: #f0f0ea; }
+.cd-spine--smoke {
+  --cd-base: #6e726f; --cd-hi: #8a8e8b; --cd-lo: #4f5350; --cd-ink: #f0f0ea;
+  --cd-tint: color-mix(in srgb, #28322d 20%, transparent);
+}
 .cd-spine--amber { --cd-base: #c4a574; --cd-hi: #dec49a; --cd-lo: #9e7f52; --cd-ink: #1f160c; }
-.cd-spine--slate { --cd-base: #5c6b7a; --cd-hi: #7a8a99; --cd-lo: #3f4c58; --cd-ink: #f2f4f6; }
-.cd-spine--frost {
-  --cd-base: color-mix(in srgb, var(--main-color) 22%, #d5d5cf);
-  --cd-hi: color-mix(in srgb, var(--main-color) 12%, #f0f0ea);
-  --cd-lo: color-mix(in srgb, var(--main-color) 18%, #a8a8a2);
-  --cd-ink: #1a1a1a;
+.cd-spine--slate {
+  --cd-base: #5c6b7a; --cd-hi: #7a8a99; --cd-lo: #3f4c58; --cd-ink: #f2f4f6;
+  --cd-tint: color-mix(in srgb, #507096 15%, transparent);
+}
+.cd-spine--frost { --cd-base: #d5d0c0; --cd-hi: #ebe6d6; --cd-lo: #a8a392; --cd-ink: #1a1a1a; }
+.cd-spine--blue {
+  --cd-base: #7a9bb8; --cd-hi: #9bb6ce; --cd-lo: #5a7a94; --cd-ink: #0e1820;
+  --cd-tint: color-mix(in srgb, #3c78b4 18%, transparent);
+}
+.cd-spine--purple {
+  --cd-base: #8a7a9e; --cd-hi: #a898b8; --cd-lo: #6a5a7e; --cd-ink: #140e1a;
+  --cd-tint: color-mix(in srgb, #7846a0 16%, transparent);
+}
+.cd-spine--yellowed {
+  --cd-base: #d4c48a; --cd-hi: #e8d9a8; --cd-lo: #b8a66a; --cd-ink: #2a220e;
+  --cd-cloud: 0.35;
+  --cd-tint: color-mix(in srgb, #b49628 20%, transparent);
+}
+.cd-spine--faded { filter: saturate(0.65) brightness(1.05); }
+.cd-spine--faded .cd-spine-title { opacity: 0.55; }
+.cd-spine--new { filter: brightness(1.06) contrast(1.05); }
+.cd-spine--new::before { opacity: 0.1; }
+.cd-spine--used { --cd-cloud: 0.45; }
+.cd-crack {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 10px;
+  height: 14px;
+  background:
+    linear-gradient(135deg, transparent 45%, color-mix(in srgb, #fff 55%, transparent) 48%, transparent 52%),
+    linear-gradient(160deg, transparent 40%, color-mix(in srgb, #000 25%, transparent) 50%, transparent 55%);
+  z-index: 4;
+  pointer-events: none;
 }
 .cd-spine-title {
   position: absolute;
   left: 50%;
-  top: 50%;
-  z-index: 1;
-  width: calc(var(--cd-spine-len) - 14px);
+  top: 46%;
+  z-index: 3;
+  width: calc(var(--cd-spine-len) - 20px);
   margin: 0;
   font-size: 10px;
   font-weight: 700;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.06em;
   text-transform: uppercase;
-  line-height: 1.1;
+  line-height: 1.15;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
   text-align: center;
   color: var(--cd-ink);
-  /* sideways — tilt head left to read */
   transform: translate(-50%, -50%) rotate(-90deg);
   pointer-events: none;
 }
-.cd-spine:hover:not(:disabled),
-.cd-spine:focus-visible {
-  transform: translateY(calc(-1 * var(--cd-pull)));
-  box-shadow:
-    0 6px 14px color-mix(in srgb, #000 40%, transparent),
-    0 0 0 1px color-mix(in srgb, var(--main-color) 55%, transparent),
-    inset 1px 0 0 color-mix(in srgb, #fff 45%, transparent);
-  filter: brightness(1.05);
+.cd-spine-sub {
+  position: absolute;
+  left: 50%;
+  top: 72%;
+  z-index: 3;
+  width: calc(var(--cd-spine-len) - 36px);
+  font-size: 7px;
+  font-weight: 400;
+  letter-spacing: 0.04em;
+  text-align: center;
+  color: color-mix(in srgb, var(--cd-ink) 55%, transparent);
+  transform: translate(-50%, -50%) rotate(-90deg);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  pointer-events: none;
+  opacity: 0.75;
 }
+.cd-spine--font-hand .cd-spine-title {
+  font-family: "Caveat", "Segoe Print", cursive;
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  text-transform: none;
+}
+.cd-spine--font-serif .cd-spine-title {
+  font-family: "Libre Baskerville", Georgia, serif;
+  font-size: 9px;
+  font-weight: 400;
+  letter-spacing: 0.02em;
+  text-transform: none;
+  font-style: italic;
+}
+.cd-spine--font-mono .cd-spine-title {
+  font-family: "IBM Plex Mono", ui-monospace, monospace;
+  font-size: 8px;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+}
+.cd-spine--font-thin .cd-spine-title {
+  font-weight: 300;
+  letter-spacing: 0.14em;
+  font-size: 9px;
+}
+.cd-spine--font-condensed .cd-spine-title {
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  font-size: 10px;
+  transform: translate(-50%, -50%) rotate(-90deg) scaleX(0.88);
+}
+.cd-spine--title-tilt .cd-spine-title {
+  transform: translate(-50%, -50%) rotate(-88.5deg);
+}
+.cd-sticker {
+  position: absolute;
+  z-index: 5;
+  font-family: var(--font);
+  font-size: 5.5px;
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: 0.02em;
+  padding: 2px 3px;
+  pointer-events: none;
+  white-space: nowrap;
+  box-shadow: 0 1px 1px color-mix(in srgb, #000 25%, transparent);
+}
+.cd-sticker--square {
+  border-radius: 1px;
+  background: #f2e6a0;
+  color: #222;
+}
+.cd-sticker--round {
+  border-radius: 50%;
+  width: 11px;
+  height: 11px;
+  padding: 0;
+  display: grid;
+  place-items: center;
+  background: #e85d5d;
+  color: #fff;
+  font-size: 6px;
+}
+.cd-sticker--round.star { background: var(--main-color); color: #222; }
+.cd-sticker--round.heart { background: #d94f7a; }
+.cd-sticker--price {
+  background: #fff;
+  color: #c0392b;
+  border: 1px solid #c0392b;
+  border-radius: 1px;
+  font-size: 5px;
+}
+.cd-sticker--lib {
+  background: #2c5aa0;
+  color: #fff;
+  border-radius: 0;
+  font-size: 5px;
+  letter-spacing: 0.08em;
+}
+.cd-sticker--peel {
+  clip-path: polygon(0 0, 100% 0, 100% 70%, 85% 100%, 0 100%);
+  opacity: 0.85;
+}
+.cd-spine:hover:not(:disabled),
+.cd-spine:focus-visible,
+.cd-spine-slot.is-out .cd-spine,
 .cd-spine.is-selected {
-  transform: translateY(calc(-1 * var(--cd-pull) - 2px));
+  bottom: calc(var(--depth) + var(--cd-pull));
+  transform: translateX(-50%) rotate(calc(var(--tilt) + 0.6deg)) scaleX(1.03);
   box-shadow:
-    0 10px 20px color-mix(in srgb, #000 45%, transparent),
-    0 0 0 1.5px var(--main-color),
-    inset 1px 0 0 color-mix(in srgb, #fff 45%, transparent);
+    inset 1px 0 0 color-mix(in srgb, #fff 40%, transparent),
+    inset -1px 0 0 color-mix(in srgb, #000 28%, transparent),
+    0 8px 18px color-mix(in srgb, #000 45%, transparent),
+    0 0 0 1px color-mix(in srgb, var(--main-color) 50%, transparent);
+  filter: brightness(1.04);
+  outline: none;
 }
 .cd-spine:disabled {
   cursor: wait;
@@ -1419,15 +1626,14 @@ button { font-family: var(--font); }
 
 @media (max-width: 520px) {
   .cd-tray {
-    --cd-spine-len: 100px;
+    --cd-spine-len: 110px;
     --cd-pull: 10px;
     width: min(100%, 100%);
     padding: 10px 6px 8px;
   }
-  .cd-spine-title { font-size: 9px; letter-spacing: 0.05em; }
+  .cd-spine-title { font-size: 9px; }
+  .cd-spine--font-hand .cd-spine-title { font-size: 13px; }
 }
-
-
 
 .playlists { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 14px; }
 .record-card {
