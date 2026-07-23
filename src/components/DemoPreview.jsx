@@ -4,14 +4,21 @@ import CassetteShell from "./CassetteShell.jsx";
 import { resolvePreview } from "../itunes.js";
 
 // Self-playing fake rounds so people see the vibe before logging in.
+// Guess shape mirrors Game.jsx rows: title / artist / ok flags / win.
 const ROUNDS = [
   {
     guesses: [
-      { text: "taylor swift?", correct: false },
-      { text: "drake?", correct: false },
-      { text: "daniel caesar?", correct: false },
-      { text: "skipped", correct: false },
-      { text: "infrunami", correct: true },
+      { title: "?", artist: "taylor swift", titleOk: false, artistOk: false },
+      { title: "?", artist: "drake", titleOk: false, artistOk: false },
+      { title: "blond", artist: "frank ocean", titleOk: false, artistOk: false },
+      { title: "dark red", artist: "steve lacy", titleOk: false, artistOk: true },
+      {
+        title: "infrunami",
+        artist: "steve lacy",
+        titleOk: true,
+        artistOk: true,
+        win: true,
+      },
     ],
     answer: {
       title: "Infrunami",
@@ -22,10 +29,16 @@ const ROUNDS = [
   },
   {
     guesses: [
-      { text: "young thug?", correct: false },
-      { text: "playboi carti?", correct: false },
-      { text: "the weeknd?", correct: false },
-      { text: "marvin's room", correct: true },
+      { title: "?", artist: "young thug", titleOk: false, artistOk: false },
+      { title: "?", artist: "playboi carti", titleOk: false, artistOk: false },
+      { title: "the hills", artist: "the weeknd", titleOk: false, artistOk: false },
+      {
+        title: "marvin's room",
+        artist: "drake",
+        titleOk: true,
+        artistOk: true,
+        win: true,
+      },
     ],
     answer: {
       title: "Marvin's Room",
@@ -36,10 +49,16 @@ const ROUNDS = [
   },
   {
     guesses: [
-      { text: "billie eilish?", correct: false },
-      { text: "olivia rodrigo?", correct: false },
-      { text: "taylor swift?", correct: false },
-      { text: "it's nice to have a friend", correct: true },
+      { title: "?", artist: "billie eilish", titleOk: false, artistOk: false },
+      { title: "drivers license", artist: "olivia rodrigo", titleOk: false, artistOk: false },
+      { title: "lover", artist: "taylor swift", titleOk: false, artistOk: true },
+      {
+        title: "it's nice to have a friend",
+        artist: "taylor swift",
+        titleOk: true,
+        artistOk: true,
+        win: true,
+      },
     ],
     answer: {
       title: "It's Nice To Have A Friend",
@@ -50,11 +69,17 @@ const ROUNDS = [
   },
   {
     guesses: [
-      { text: "post malone?", correct: false },
-      { text: "ed sheeran?", correct: false },
-      { text: "frank ocean?", correct: false },
-      { text: "skipped", correct: false },
-      { text: "house of balloons", correct: true },
+      { title: "?", artist: "post malone", titleOk: false, artistOk: false },
+      { title: "shape of you", artist: "ed sheeran", titleOk: false, artistOk: false },
+      { title: "novacane", artist: "frank ocean", titleOk: false, artistOk: false },
+      { title: "wicked games", artist: "the weeknd", titleOk: false, artistOk: true },
+      {
+        title: "house of balloons",
+        artist: "the weeknd",
+        titleOk: true,
+        artistOk: true,
+        win: true,
+      },
     ],
     answer: {
       title: "House of Balloons",
@@ -65,11 +90,16 @@ const ROUNDS = [
   },
   {
     guesses: [
-      { text: "ariana grande?", correct: false },
-      { text: "doja cat?", correct: false },
-      { text: "lil uzi vert?", correct: false },
-      { text: "skipped", correct: false },
-      { text: "thinkin bout you", correct: true },
+      { title: "?", artist: "ariana grande", titleOk: false, artistOk: false },
+      { title: "kiss me more", artist: "doja cat", titleOk: false, artistOk: false },
+      { title: "pink + white", artist: "frank ocean", titleOk: false, artistOk: true },
+      {
+        title: "thinkin bout you",
+        artist: "frank ocean",
+        titleOk: true,
+        artistOk: true,
+        win: true,
+      },
     ],
     answer: {
       title: "Thinkin Bout You",
@@ -80,11 +110,17 @@ const ROUNDS = [
   },
   {
     guesses: [
-      { text: "the weeknd?", correct: false },
-      { text: "justin bieber?", correct: false },
-      { text: "beach house?", correct: false },
-      { text: "skipped", correct: false },
-      { text: "lovers rock", correct: true },
+      { title: "?", artist: "the weeknd", titleOk: false, artistOk: false },
+      { title: "?", artist: "justin bieber", titleOk: false, artistOk: false },
+      { title: "space song", artist: "beach house", titleOk: false, artistOk: false },
+      { title: "cigarettes out the window", artist: "tv girl", titleOk: false, artistOk: true },
+      {
+        title: "lovers rock",
+        artist: "tv girl",
+        titleOk: true,
+        artistOk: true,
+        win: true,
+      },
     ],
     answer: {
       title: "Lovers Rock",
@@ -426,16 +462,32 @@ export default function DemoPreview() {
               </div>
             ) : (
               <div className="demo-rows" key={roundIdx}>
-                {script.map((g, i) => (
-                  <div
-                    key={i}
-                    className={`demo-row ${
-                      i < step ? (g.correct ? "hit" : "miss") : i === step ? "cursor" : ""
-                    }`}
-                  >
-                    {i < step ? g.text : i === step ? "guessing…" : ""}
-                  </div>
-                ))}
+                {script.map((g, i) => {
+                  const filled = i < step;
+                  const active = !done && i === step;
+                  let cls = "guess-row demo-guess-row";
+                  if (filled) cls += g.win ? " correct" : " wrong";
+                  if (active) cls += " active";
+                  return (
+                    <div key={i} className={cls}>
+                      {filled ? (
+                        <>
+                          <span className={`gr-field ${g.titleOk ? "ok" : "no"}`}>
+                            {g.title || "?"}
+                          </span>
+                          <span className="gr-sep">by</span>
+                          <span className={`gr-field ${g.artistOk ? "ok" : "no"}`}>
+                            {g.artist || "?"}
+                          </span>
+                        </>
+                      ) : active ? (
+                        "your guess…"
+                      ) : (
+                        ""
+                      )}
+                    </div>
+                  );
+                })}
               </div>
             )}
           </div>
