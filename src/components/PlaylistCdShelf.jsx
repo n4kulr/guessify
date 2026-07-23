@@ -9,6 +9,18 @@ function toneOf(i) {
   return TONES[i % TONES.length];
 }
 
+function topArtists(tracks, limit = 4) {
+  const out = [];
+  for (const t of tracks || []) {
+    for (const a of t.artists || []) {
+      if (!a || out.includes(a)) continue;
+      out.push(a);
+      if (out.length >= limit) return out;
+    }
+  }
+  return out;
+}
+
 function useDragScroll(scrollRef, surfaceRef) {
   useEffect(() => {
     const el = scrollRef.current;
@@ -23,7 +35,6 @@ function useDragScroll(scrollRef, surfaceRef) {
     function onDown(e) {
       if (e.pointerType === "touch") return;
       if (e.button !== 0) return;
-      // Stop browser image-drag so mouse can scroll the shelf.
       if (e.target?.closest?.("img, button")) {
         e.preventDefault();
       }
@@ -99,6 +110,8 @@ function useDragScroll(scrollRef, surfaceRef) {
 export default function PlaylistCdShelf({ playlists, loadingId, onChoose }) {
   const busy = loadingId !== null;
   const [picked, setPicked] = useState(null);
+  const [preview, setPreview] = useState(null); // { artists, loading }
+  const previewCache = useRef(new Map());
   const scrollRef = useRef(null);
   const trayRef = useRef(null);
   const rowRef = useRef(null);
@@ -140,6 +153,40 @@ export default function PlaylistCdShelf({ playlists, loadingId, onChoose }) {
     };
   }, [panelOpen, playlists.length]);
 
+  useEffect(() => {
+    if (!pickedPlaylist) {
+      setPreview(null);
+      return;
+    }
+    const cached = previewCache.current.get(pickedPlaylist.id);
+    if (cached) {
+      setPreview({ loading: false, artists: cached });
+      return;
+    }
+
+    let cancelled = false;
+    setPreview({ loading: true, artists: [] });
+    const url = pickedPlaylist.liked
+      ? "/api/liked"
+      : `/api/playlist/${pickedPlaylist.id}`;
+
+    fetch(url, { credentials: "include" })
+      .then((r) => r.json().then((d) => ({ ok: r.ok, d })))
+      .then(({ ok, d }) => {
+        if (cancelled) return;
+        const artists = ok ? topArtists(d.tracks) : [];
+        if (ok) previewCache.current.set(pickedPlaylist.id, artists);
+        setPreview({ loading: false, artists });
+      })
+      .catch(() => {
+        if (!cancelled) setPreview({ loading: false, artists: [] });
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [pickedPlaylist]);
+
   function selectPack(id) {
     if (busy) return;
     setPicked((cur) => (cur === id ? null : id));
@@ -157,6 +204,7 @@ export default function PlaylistCdShelf({ playlists, loadingId, onChoose }) {
   const panelClass = ["shelf-panel", panelOpen ? "is-open" : ""]
     .filter(Boolean)
     .join(" ");
+  const artists = preview?.artists || [];
 
   return (
     <div
@@ -224,12 +272,32 @@ export default function PlaylistCdShelf({ playlists, loadingId, onChoose }) {
             ].join(" ")}
           >
             <div className="cd-insert-head">
-              <h2 className="cd-insert-title hand">{pickedPlaylist.name}</h2>
+              <h2 className="cd-insert-title shelf-hand">
+                {pickedPlaylist.name}
+              </h2>
               <p className="cd-insert-meta">
                 {pickedPlaylist.total} tracks · burned for you
               </p>
             </div>
-            <div className="cd-insert-body shelf-insert-body" />
+            <div className="cd-insert-body shelf-insert-body">
+              {preview?.loading ? (
+                <p className="cd-insert-feat">Loading…</p>
+              ) : artists.length > 0 ? (
+                <div className="cd-insert-feat-block">
+                  <p className="cd-insert-feat">Featuring</p>
+                  <ol className="cd-insert-tracks">
+                    {artists.map((name, i) => (
+                      <li key={name}>
+                        <span className="n">
+                          {String(i + 1).padStart(2, "0")}
+                        </span>
+                        <span>{name}</span>
+                      </li>
+                    ))}
+                  </ol>
+                </div>
+              ) : null}
+            </div>
             <div className="cd-insert-actions">
               <button
                 type="button"
