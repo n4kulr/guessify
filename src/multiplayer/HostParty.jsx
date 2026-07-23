@@ -15,7 +15,11 @@ import GuessPopups from "./GuessPopups.jsx";
  * on each device (no shared DJ).
  */
 export default function HostParty({ code, playlist, me, onExit }) {
-  const { state, status, error, send, playerId } = usePartyRoom(code);
+  const { state, status, error, send, playerId: socketPlayerId } = usePartyRoom(code);
+  // Prefer roster host id — handshake/sessionStorage can lag or go stale, which
+  // leaves unlockByPlayer lookups stuck at 1s while skip popups still show.
+  const playerId =
+    state?.players?.find((p) => p.isHost)?.id || socketPlayerId || null;
   const [qr, setQr] = useState(null);
   const [copied, setCopied] = useState(false);
   const [titleGuess, setTitleGuess] = useState("");
@@ -183,7 +187,7 @@ export default function HostParty({ code, playlist, me, onExit }) {
     if (state?.phase === "over") fireConfetti("victory");
   }, [state?.phase]);
 
-  const unlocked = unlockSecondsFor(state?.unlockByPlayer, playerId);
+  const unlocked = unlockSecondsFor(state?.unlockByPlayer, playerId, state);
   const phase = state?.phase || "lobby";
   const spinning = localPlaying && (phase === "play" || phase === "reveal");
 

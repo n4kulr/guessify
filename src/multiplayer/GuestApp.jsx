@@ -145,7 +145,7 @@ export default function GuestApp({ code }) {
       stopAudio();
       return;
     }
-    const unlocked = unlockSecondsFor(state?.unlockByPlayer, playerId);
+    const unlocked = unlockSecondsFor(state?.unlockByPlayer, playerId, state);
     playSnippet(state?.phase === "reveal" ? null : unlocked);
   }
 
@@ -234,7 +234,7 @@ export default function GuestApp({ code }) {
   }
 
   const revealed = state.phase === "reveal";
-  const unlocked = unlockSecondsFor(state.unlockByPlayer, playerId);
+  const unlocked = unlockSecondsFor(state.unlockByPlayer, playerId, state);
   const track = state.track;
   const spinning = localPlaying && (state.phase === "play" || state.phase === "reveal");
 

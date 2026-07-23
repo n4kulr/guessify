@@ -14,10 +14,29 @@ export function titlePointsForGuess(guessNum) {
   return TITLE_POINTS[i];
 }
 
-/** Seconds unlocked for a player's personal skip step (multiplayer). */
-export function unlockSecondsFor(unlockByPlayer, playerId) {
-  const step = unlockByPlayer?.[playerId] ?? 0;
-  return STEPS[Math.min(Math.max(0, step), MAX_GUESSES - 1)];
+/**
+ * Seconds unlocked for a player's personal skip step (multiplayer).
+ * Prefers unlockByPlayer[playerId]; falls back to legacy shared unlocked /
+ * own skip count so a stale Party Worker still grows the bar.
+ */
+export function unlockSecondsFor(unlockByPlayer, playerId, legacy) {
+  if (
+    unlockByPlayer != null &&
+    playerId &&
+    Object.prototype.hasOwnProperty.call(unlockByPlayer, playerId)
+  ) {
+    const step = unlockByPlayer[playerId] ?? 0;
+    return STEPS[Math.min(Math.max(0, step), MAX_GUESSES - 1)];
+  }
+  if (playerId && legacy?.guesses?.length) {
+    const skips = legacy.guesses.filter((g) => g.playerId === playerId && g.skip).length;
+    if (skips > 0) return STEPS[Math.min(skips, MAX_GUESSES - 1)];
+  }
+  if (typeof legacy?.unlocked === "number") return legacy.unlocked;
+  if (typeof legacy?.guessNum === "number") {
+    return STEPS[Math.min(Math.max(0, legacy.guessNum), MAX_GUESSES - 1)];
+  }
+  return STEPS[0];
 }
 
 // Open Peeps bust presets live in /public/peeps/peep-1.svg … peep-105.svg
