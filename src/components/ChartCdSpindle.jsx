@@ -310,19 +310,19 @@ export default function ChartCdSpindle({ packs, loadingId, onChoose }) {
             <div className="cd-insert-actions">
               <button
                 type="button"
-                className="cd-insert-play"
-                onClick={confirmPlay}
-                disabled={busy}
-              >
-                ► Put in Player
-              </button>
-              <button
-                type="button"
                 className="cd-insert-back"
                 onClick={putBack}
                 disabled={busy}
               >
                 Put Back
+              </button>
+              <button
+                type="button"
+                className="cd-insert-play"
+                onClick={confirmPlay}
+                disabled={busy}
+              >
+                ► Put in Player
               </button>
             </div>
           </div>

@@ -1807,6 +1807,7 @@ button { font-family: var(--font); }
   display: flex;
   flex-wrap: nowrap;
   align-items: center;
+  justify-content: space-between;
   gap: 14px;
   flex: none;
   margin: 0 -14px 0 -18px;
