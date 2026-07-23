@@ -87,11 +87,12 @@ export default function GuestApp({ code }) {
   }
 
   if (!joined) {
+    const canJoin = !!name.trim() && status === "connected";
     return (
       <div className="mp-guest panel">
         <div className="sticker">room {upper}</div>
         <h2 className="title">join the party</h2>
-        <p className="subtitle">
+        <p className="subtitle mp-join-sub">
           Pick a look, then jump in — even mid-game. No Spotify needed.
         </p>
         <div className="mp-lobby-edit">
@@ -99,15 +100,25 @@ export default function GuestApp({ code }) {
           <ProfileEditor name={name} avatar={avatar} onChange={updateProfile} />
         </div>
         {error && <div className="error-banner">{error}</div>}
-        <button
-          className="btn btn-big btn-play"
-          style={{ marginTop: 14 }}
-          disabled={!name.trim() || status !== "connected"}
-          onClick={join}
-        >
-          <span className="btn-disc" aria-hidden="true" />
-          {status === "connecting" ? "connecting…" : "join party"}
-        </button>
+        <div className="mp-join-actions">
+          {canJoin && (
+            <button
+              type="button"
+              className="btn btn-big btn-play mp-join-play"
+              onClick={join}
+              aria-label="join party"
+            >
+              <span className="btn-play-icon" aria-hidden="true" />
+            </button>
+          )}
+          <button
+            className="btn btn-big btn-play"
+            disabled={!canJoin}
+            onClick={join}
+          >
+            {status === "connecting" ? "connecting…" : "join party"}
+          </button>
+        </div>
       </div>
     );
   }

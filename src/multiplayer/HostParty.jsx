@@ -440,7 +440,7 @@ export default function HostParty({ code, playlist, me, onExit }) {
 
       {error && <div className="error-banner">{error}</div>}
       <p className="fineprint mp-host-hint">
-        You're in the race too — only you can skip to unlock more audio for everyone.
+        only you can skip to unlock more audio for everyone.
       </p>
       </div>
 
