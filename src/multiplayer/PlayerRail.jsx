@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import PlayerAvatar from "./PlayerAvatar.jsx";
-import { TOTAL, unlockSecondsFor } from "./constants.js";
+import { STEPS, TOTAL, unlockSecondsFor } from "./constants.js";
 
 function CrownIcon() {
   return (
@@ -14,8 +14,8 @@ function CrownIcon() {
 }
 
 /**
- * Ranked player chips. When `unlockByPlayer` is set, a hairline under each
- * name shows how much of the track that player has unlocked via skip.
+ * Ranked player chips. When `unlockByPlayer` is set, a light full-chip fill
+ * (+ step ticks) shows how much of the track that player has unlocked via skip.
  */
 export default function PlayerRail({
   players = [],
@@ -88,12 +88,36 @@ export default function PlayerRail({
         return (
           <div
             key={p.id}
-            className={`mp-player ${
+            className={`mp-player ${showUnlock ? "mp-player--unlock" : ""} ${
               p.left ? "left" : !p.connected ? "offline" : ""
             } ${pulseId === p.id ? "pulse" : ""} ${
               flash ? "mp-player--gain" : ""
             }`}
+            style={
+              showUnlock
+                ? { "--mp-unlock-accent": accent }
+                : undefined
+            }
           >
+            {showUnlock && (
+              <div
+                className="mp-player-unlock"
+                title={`${secs}s unlocked`}
+                aria-label={`${p.name}: ${secs}s unlocked`}
+              >
+                <div
+                  className="mp-player-unlock-fill"
+                  style={{ width: `${pct}%` }}
+                />
+                {STEPS.map((s) => (
+                  <span
+                    key={s}
+                    className="mp-player-unlock-tick"
+                    style={{ left: `${(s / TOTAL) * 100}%` }}
+                  />
+                ))}
+              </div>
+            )}
             <PlayerAvatar
               avatar={p.avatar || { color: p.color }}
               size={44}
@@ -116,21 +140,6 @@ export default function PlayerRail({
                   </span>
                 )}
               </span>
-              {showUnlock && (
-                <div
-                  className="mp-player-unlock"
-                  title={`${secs}s unlocked`}
-                  aria-label={`${p.name}: ${secs}s unlocked`}
-                >
-                  <div
-                    className="mp-player-unlock-fill"
-                    style={{
-                      width: `${pct}%`,
-                      background: accent,
-                    }}
-                  />
-                </div>
-              )}
             </div>
             <span className="mp-player-score-wrap">
               {flash && (

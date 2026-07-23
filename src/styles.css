@@ -3272,12 +3272,18 @@ button { font-family: var(--font); }
 }
 .mp-empty { color: var(--sub-color); font-size: 13px; margin: 0; text-align: left; }
 .mp-player {
+  position: relative;
   display: flex; align-items: center; gap: 10px;
   background: var(--bg-color); border-radius: 12px; padding: 8px 12px 8px 8px;
   width: 100%;
   min-width: 0;
   box-sizing: border-box;
+  overflow: hidden;
   transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+.mp-player > :not(.mp-player-unlock) {
+  position: relative;
+  z-index: 1;
 }
 .mp-player.offline { opacity: 0.45; }
 .mp-player.left {
@@ -3318,20 +3324,36 @@ button { font-family: var(--font); }
   overflow: hidden;
   text-overflow: ellipsis;
 }
-/* Hairline: how much of the track this player has unlocked via skip */
+/* Full-chip unlock wash + step ticks (skip ladder) */
 .mp-player-unlock {
-  height: 2px;
-  width: 100%;
-  max-width: 9.5rem;
-  border-radius: 999px;
-  background: color-mix(in srgb, var(--text-color) 12%, transparent);
-  overflow: hidden;
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background: color-mix(in srgb, var(--text-color) 5%, transparent);
 }
 .mp-player-unlock-fill {
+  position: absolute;
+  inset: 0 auto 0 0;
   height: 100%;
-  border-radius: inherit;
-  opacity: 0.45;
+  background: color-mix(
+    in srgb,
+    var(--mp-unlock-accent, var(--main-color)) 22%,
+    transparent
+  );
   transition: width 0.4s cubic-bezier(0.22, 1, 0.36, 1);
+}
+.mp-player-unlock-tick {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 1px;
+  transform: translateX(-50%);
+  background: color-mix(in srgb, var(--text-color) 16%, transparent);
+}
+.mp-player-unlock-tick:last-child {
+  /* end of track — soft edge instead of a hard right line */
+  opacity: 0.35;
 }
 .mp-crown {
   flex: none;
