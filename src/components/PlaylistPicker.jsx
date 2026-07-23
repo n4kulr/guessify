@@ -174,28 +174,29 @@ export default function PlaylistPicker({ onPick, onBack }) {
         </>
       )}
 
-      <h3 className="picker-section-title">or describe it!</h3>
-
-      <form className="chart-search" onSubmit={submitChartSearch}>
-        <div className="join-code-row">
-          <input
-            className="guess-input join-code-input chart-search-input"
-            placeholder="type your pick…"
-            value={chartQuery}
-            onChange={(e) => setChartQuery(e.target.value)}
-            disabled={loadingId !== null}
-            autoCorrect="off"
-            spellCheck={false}
-          />
-          <button
-            type="submit"
-            className="btn btn-play"
-            disabled={loadingId !== null || !chartQuery.trim()}
-          >
-            {loadingId?.startsWith("chart:") ? "…" : "play"}
-          </button>
-        </div>
-      </form>
+      <div className="chart-search-block">
+        <h3 className="picker-section-title">or describe it!</h3>
+        <form className="chart-search" onSubmit={submitChartSearch}>
+          <div className="join-code-row">
+            <input
+              className="guess-input join-code-input chart-search-input"
+              placeholder="type your pick…"
+              value={chartQuery}
+              onChange={(e) => setChartQuery(e.target.value)}
+              disabled={loadingId !== null}
+              autoCorrect="off"
+              spellCheck={false}
+            />
+            <button
+              type="submit"
+              className="btn btn-play"
+              disabled={loadingId !== null || !chartQuery.trim()}
+            >
+              {loadingId?.startsWith("chart:") ? "…" : "play"}
+            </button>
+          </div>
+        </form>
+      </div>
 
       <div className="playlists">
         {CHART_PACKS.map((pack) => {

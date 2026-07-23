@@ -1155,8 +1155,9 @@ button { font-family: var(--font); }
 .picker-section-title {
   font-size: 26px;
   font-weight: 700;
-  text-align: center;
-  margin: 36px 0 18px;
+  margin: 0;
+  line-height: 1.15;
+  white-space: nowrap;
 }
 .picker-section-sub {
   text-align: center;
@@ -1164,9 +1165,19 @@ button { font-family: var(--font); }
   font-size: 13px;
   margin: 0 0 18px;
 }
+.chart-search-block {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 12px 16px;
+  margin: 36px 0 22px;
+}
 .chart-search {
   width: min(100%, 340px);
-  margin: 0 auto 22px;
+  margin: 0;
+  flex: 1 1 240px;
+  max-width: 340px;
 }
 .chart-search .join-code-row { width: 100%; }
 .chart-search-input {
