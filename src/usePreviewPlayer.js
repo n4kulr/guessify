@@ -4,10 +4,14 @@ import { resolvePreview } from "./itunes.js";
 /**
  * Plays iTunes 30s preview MP3s in a plain <audio> element.
  * No Spotify Premium, no Web Playback SDK, no device registration.
+ *
+ * Pass `seconds` to cut after that many seconds, or `null`/`Infinity`
+ * to play through to the end of the preview.
  */
 export function usePreviewPlayer() {
   const audioRef = useRef(null);
   const stopTimer = useRef(null);
+  const endedHandlerRef = useRef(null);
   const onStopRef = useRef(null);
   const currentUrlRef = useRef(null);
   const [errorMsg, setErrorMsg] = useState(null);
@@ -18,6 +22,10 @@ export function usePreviewPlayer() {
     audioRef.current = audio;
     return () => {
       clearTimeout(stopTimer.current);
+      if (endedHandlerRef.current) {
+        audio.removeEventListener("ended", endedHandlerRef.current);
+        endedHandlerRef.current = null;
+      }
       audio.pause();
       audio.removeAttribute("src");
       audioRef.current = null;
@@ -29,8 +37,17 @@ export function usePreviewPlayer() {
     stopTimer.current = null;
   }
 
+  function clearEnded() {
+    const a = audioRef.current;
+    if (a && endedHandlerRef.current) {
+      a.removeEventListener("ended", endedHandlerRef.current);
+    }
+    endedHandlerRef.current = null;
+  }
+
   const pause = useCallback(() => {
     clearStop();
+    clearEnded();
     const a = audioRef.current;
     if (a) {
       a.pause();
@@ -57,6 +74,7 @@ export function usePreviewPlayer() {
     if (!audio) throw new Error("audio missing");
 
     clearStop();
+    clearEnded();
     onStopRef.current = onStop || null;
 
     if (currentUrlRef.current !== url) {
@@ -93,6 +111,19 @@ export function usePreviewPlayer() {
     } catch (e) {
       setErrorMsg("Couldn't play preview — check autoplay / sound settings.");
       throw e;
+    }
+
+    const playFull = seconds == null || seconds === Infinity;
+    if (playFull) {
+      const onEnded = () => {
+        endedHandlerRef.current = null;
+        const cb = onStopRef.current;
+        onStopRef.current = null;
+        cb?.();
+      };
+      endedHandlerRef.current = onEnded;
+      audio.addEventListener("ended", onEnded);
+      return;
     }
 
     const secs = Math.max(0.5, Number(seconds) || 1);

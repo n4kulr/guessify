@@ -75,7 +75,9 @@ export default function Game({ playlist, onExit }) {
   }
 
   async function playSnippet(seconds) {
-    if (!track || playBusy || playing) return;
+    if (!track) return;
+    pause();
+    setPlaying(false);
     setPlayBusy(true);
     try {
       await play(track, seconds, { onStop: () => setPlaying(false) });
@@ -93,7 +95,7 @@ export default function Game({ playlist, onExit }) {
       stopAudio();
       return;
     }
-    const secs = resolved ? Math.max(unlocked, 8) : unlocked;
+    const secs = resolved ? null : unlocked;
     await playSnippet(secs);
   }
 
@@ -113,6 +115,7 @@ export default function Game({ playlist, onExit }) {
     const nextNum = guessNum + 1;
     if (nextNum >= MAX_GUESSES) {
       setOutcome("lose");
+      playSnippet(null); // full preview until next song
     } else {
       setGuessNum(nextNum);
     }
@@ -148,7 +151,7 @@ export default function Game({ playlist, onExit }) {
       setScore((s) => s + titlePts);
       setOutcome("win");
       setCelebrate(true);
-      playSnippet(Math.max(unlocked, 8));
+      playSnippet(null); // full preview until next song
     } else {
       if (artistPts) setEarnedPts(artistPts);
       consumeGuess();
@@ -351,8 +354,8 @@ export default function Game({ playlist, onExit }) {
                 </div>
               </div>
               <button className="btn btn-big btn-play" onClick={nextRound}>
-                <span className="btn-disc" aria-hidden="true" />
-                {roundIdx + 1 >= rounds.length ? "see results →" : "next record →"}
+                <span className="btn-play-icon" aria-hidden="true" />
+                {roundIdx + 1 >= rounds.length ? "see results →" : "next song →"}
               </button>
             </div>
           ) : (

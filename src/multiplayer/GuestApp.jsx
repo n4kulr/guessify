@@ -21,6 +21,7 @@ export default function GuestApp({ code }) {
   const [playBusy, setPlayBusy] = useState(false);
   const [localPlaying, setLocalPlaying] = useState(false);
   const lastTrackRef = useRef(null);
+  const lastRevealPlayRef = useRef(null);
 
   function changeMediaMode(next) {
     setMediaMode(next);
@@ -73,12 +74,12 @@ export default function GuestApp({ code }) {
 
   useEffect(() => {
     if (!state?.trackId) return;
-    if (lastTrackRef.current !== state.trackId || state.phase !== "play") {
+    if (lastTrackRef.current !== state.trackId) {
       pause();
       setLocalPlaying(false);
       lastTrackRef.current = state.trackId;
     }
-  }, [state?.trackId, state?.phase]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [state?.trackId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   function join() {
     setError(null);
@@ -107,7 +108,9 @@ export default function GuestApp({ code }) {
   }
 
   async function playSnippet(seconds) {
-    if (!canPlay || playBusy || localPlaying) return;
+    if (!canPlay) return;
+    pause();
+    setLocalPlaying(false);
     setPlayBusy(true);
     try {
       await play(playTrack, seconds, {
@@ -134,8 +137,17 @@ export default function GuestApp({ code }) {
       return;
     }
     const unlocked = state?.unlocked ?? STEPS[0];
-    playSnippet(state?.phase === "reveal" ? Math.max(unlocked, 8) : unlocked);
+    playSnippet(state?.phase === "reveal" ? null : unlocked);
   }
+
+  const phase = state?.phase;
+  const revealPlayKey = `${state?.roundIdx ?? ""}-${phase}`;
+  useEffect(() => {
+    if (phase !== "reveal" || !canPlay) return;
+    if (lastRevealPlayRef.current === revealPlayKey) return;
+    lastRevealPlayRef.current = revealPlayKey;
+    playSnippet(null);
+  }, [phase, revealPlayKey, canPlay]); // eslint-disable-line react-hooks/exhaustive-deps
 
   if (status === "error") {
     return (
@@ -215,7 +227,7 @@ export default function GuestApp({ code }) {
   const revealed = state.phase === "reveal";
   const unlocked = state.unlocked;
   const track = state.track;
-  const spinning = localPlaying && state.phase === "play";
+  const spinning = localPlaying && (state.phase === "play" || state.phase === "reveal");
 
   return (
     <div className="game mp-guest-game mp-board">
@@ -354,8 +366,8 @@ export default function GuestApp({ code }) {
                 send({ type: "next" });
               }}
             >
-              <span className="btn-disc" aria-hidden="true" />
-              {state.roundIdx + 1 >= state.roundCount ? "see results →" : "next record →"}
+              <span className="btn-play-icon" aria-hidden="true" />
+              {state.roundIdx + 1 >= state.roundCount ? "see results →" : "next song →"}
             </button>
           </div>
         )}

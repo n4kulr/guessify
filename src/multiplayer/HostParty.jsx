@@ -30,6 +30,7 @@ export default function HostParty({ code, playlist, me, onExit }) {
   const [localPlaying, setLocalPlaying] = useState(false);
   const [mediaMode, setMediaMode] = useState(loadMediaMode);
   const lastTrackRef = useRef(null);
+  const lastRevealPlayRef = useRef(null);
 
   function changeMediaMode(next) {
     setMediaMode(next);
@@ -166,19 +167,21 @@ export default function HostParty({ code, playlist, me, onExit }) {
 
   useEffect(() => {
     if (!state?.trackId) return;
-    if (lastTrackRef.current !== state.trackId || state.phase !== "play") {
+    if (lastTrackRef.current !== state.trackId) {
       pause();
       setLocalPlaying(false);
       lastTrackRef.current = state.trackId;
     }
-  }, [state?.trackId, state?.phase]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [state?.trackId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const unlocked = state?.unlocked ?? STEPS[0];
   const phase = state?.phase || "lobby";
-  const spinning = localPlaying && phase === "play";
+  const spinning = localPlaying && (phase === "play" || phase === "reveal");
 
   async function playSnippet(seconds) {
-    if (!canPlay || playBusy || localPlaying) return;
+    if (!canPlay) return;
+    pause();
+    setLocalPlaying(false);
     setPlayBusy(true);
     try {
       await play(playTrack, seconds, {
@@ -206,8 +209,17 @@ export default function HostParty({ code, playlist, me, onExit }) {
       stopAudio();
       return;
     }
-    playSnippet(phase === "reveal" ? Math.max(unlocked, 8) : unlocked);
+    playSnippet(phase === "reveal" ? null : unlocked);
   }
+
+  // After a round resolves, play the full preview until next song (or end).
+  const revealPlayKey = `${state?.roundIdx ?? ""}-${phase}`;
+  useEffect(() => {
+    if (phase !== "reveal" || !canPlay) return;
+    if (lastRevealPlayRef.current === revealPlayKey) return;
+    lastRevealPlayRef.current = revealPlayKey;
+    playSnippet(null);
+  }, [phase, revealPlayKey, canPlay]); // eslint-disable-line react-hooks/exhaustive-deps
 
   async function copyLink() {
     try {
@@ -472,8 +484,8 @@ export default function HostParty({ code, playlist, me, onExit }) {
               send({ type: "next" });
             }}
           >
-            <span className="btn-disc" aria-hidden="true" />
-            {state.roundIdx + 1 >= state.roundCount ? "see results →" : "next record →"}
+            <span className="btn-play-icon" aria-hidden="true" />
+            {state.roundIdx + 1 >= state.roundCount ? "see results →" : "next song →"}
           </button>
         </div>
       )}
