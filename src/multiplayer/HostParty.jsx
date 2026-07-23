@@ -372,6 +372,7 @@ export default function HostParty({ code, playlist, me, onExit }) {
       <PlayerRail
         players={state.players}
         pulseId={lastGuesser?.playerId}
+        unlockByPlayer={state.unlockByPlayer || {}}
       />
 
       <GuessMedia

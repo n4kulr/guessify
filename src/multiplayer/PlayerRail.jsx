@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import PlayerAvatar from "./PlayerAvatar.jsx";
+import { TOTAL, unlockSecondsFor } from "./constants.js";
 
 function CrownIcon() {
   return (
@@ -12,9 +13,19 @@ function CrownIcon() {
   );
 }
 
-export default function PlayerRail({ players = [], winnerId, pulseId }) {
+/**
+ * Ranked player chips. When `unlockByPlayer` is set, a hairline under each
+ * name shows how much of the track that player has unlocked via skip.
+ */
+export default function PlayerRail({
+  players = [],
+  winnerId,
+  pulseId,
+  unlockByPlayer = null,
+}) {
   const prevScores = useRef({});
   const [flashes, setFlashes] = useState({}); // id -> { pts, key }
+  const showUnlock = unlockByPlayer != null;
 
   useEffect(() => {
     const nextFlashes = {};
@@ -69,6 +80,11 @@ export default function PlayerRail({ players = [], winnerId, pulseId }) {
         const flash = flashes[p.id];
         const place = placeById[p.id];
         const medal = place >= 1 && place <= 3 ? place : 0;
+        const secs = showUnlock
+          ? unlockSecondsFor(unlockByPlayer, p.id)
+          : null;
+        const pct = secs != null ? (secs / TOTAL) * 100 : 0;
+        const accent = p.avatar?.color || p.color || "var(--main-color)";
         return (
           <div
             key={p.id}
@@ -82,23 +98,40 @@ export default function PlayerRail({ players = [], winnerId, pulseId }) {
               avatar={p.avatar || { color: p.color }}
               size={44}
             />
-            <span className="mp-player-name">
-              {medal > 0 && (
-                <span
-                  className={`mp-place mp-place--${medal}`}
-                  title={`#${medal}`}
-                  aria-label={`place ${medal}`}
+            <div className="mp-player-meta">
+              <span className="mp-player-name">
+                {medal > 0 && (
+                  <span
+                    className={`mp-place mp-place--${medal}`}
+                    title={`#${medal}`}
+                    aria-label={`place ${medal}`}
+                  >
+                    {medal}
+                  </span>
+                )}
+                <span className="mp-player-name-text">{p.name}</span>
+                {p.isHost && (
+                  <span className="mp-crown" title="dj" aria-label="dj">
+                    <CrownIcon />
+                  </span>
+                )}
+              </span>
+              {showUnlock && (
+                <div
+                  className="mp-player-unlock"
+                  title={`${secs}s unlocked`}
+                  aria-label={`${p.name}: ${secs}s unlocked`}
                 >
-                  {medal}
-                </span>
+                  <div
+                    className="mp-player-unlock-fill"
+                    style={{
+                      width: `${pct}%`,
+                      background: accent,
+                    }}
+                  />
+                </div>
               )}
-              <span className="mp-player-name-text">{p.name}</span>
-              {p.isHost && (
-                <span className="mp-crown" title="dj" aria-label="dj">
-                  <CrownIcon />
-                </span>
-              )}
-            </span>
+            </div>
             <span className="mp-player-score-wrap">
               {flash && (
                 <span key={flash.key} className="mp-points-flash">

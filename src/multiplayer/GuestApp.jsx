@@ -251,6 +251,7 @@ export default function GuestApp({ code }) {
         <PlayerRail
           players={state.players}
           pulseId={state.guesses[state.guesses.length - 1]?.playerId}
+          unlockByPlayer={state.unlockByPlayer || {}}
         />
 
         <GuessMedia

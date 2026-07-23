@@ -548,7 +548,12 @@ export default function OnlineRace({ profile, onExit }) {
           </span>
         </div>
 
-        <PlayerRail players={players} pulseId={lastGuesser?.playerId} winnerId={winnerId} />
+        <PlayerRail
+          players={players}
+          pulseId={lastGuesser?.playerId}
+          winnerId={winnerId}
+          unlockByPlayer={{ [youId]: myStep }}
+        />
 
         <GuessMedia
           mode="vinyl"
