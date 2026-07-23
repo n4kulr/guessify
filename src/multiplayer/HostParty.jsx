@@ -11,8 +11,8 @@ import ProfileEditor from "./ProfileEditor.jsx";
 import GuessPopups from "./GuessPopups.jsx";
 
 /**
- * Host multiplayer session — one PartySocket for lobby + DJ board so the
- * host never drops the room when the game starts.
+ * Host multiplayer session — picks playlist / starts game; audio plays locally
+ * on each device (no shared DJ).
  */
 export default function HostParty({ code, playlist, me, onExit }) {
   const { state, status, error, send, playerId } = usePartyRoom(code);
@@ -41,7 +41,16 @@ export default function HostParty({ code, playlist, me, onExit }) {
       ? `${window.location.origin}/join/${code}`
       : `/join/${code}`;
 
-  const hostTrack = playlist?.tracks?.find((t) => t.id === state?.trackId) || null;
+  const hostMeta = playlist?.tracks?.find((t) => t.id === state?.trackId) || null;
+  const playTrack = state?.track
+    ? {
+        id: state.trackId || state.track.id,
+        name: hostMeta?.name || state.track.name,
+        artists: hostMeta?.artists || state.track.artists,
+        previewUrl: state.track.previewUrl || undefined,
+      }
+    : null;
+  const canPlay = !!(playTrack?.previewUrl || playTrack?.name);
 
   useEffect(() => {
     let cancelled = false;
@@ -121,31 +130,26 @@ export default function HostParty({ code, playlist, me, onExit }) {
     if (lastTrackRef.current !== state.trackId || state.phase !== "play") {
       pause();
       setLocalPlaying(false);
-      if (state.phase !== "play") send({ type: "playState", playing: false });
       lastTrackRef.current = state.trackId;
     }
   }, [state?.trackId, state?.phase]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const unlocked = state?.unlocked ?? STEPS[0];
-  const canControl = !!hostTrack;
   const phase = state?.phase || "lobby";
   const spinning = localPlaying && phase === "play";
 
   async function playSnippet(seconds) {
-    if (!hostTrack || playBusy || localPlaying) return;
+    if (!canPlay || playBusy || localPlaying) return;
     setPlayBusy(true);
     try {
-      await play(hostTrack, seconds, {
+      await play(playTrack, seconds, {
         onStop: () => {
           setLocalPlaying(false);
-          send({ type: "playState", playing: false });
         },
       });
       setLocalPlaying(true);
-      send({ type: "playState", playing: true });
     } catch {
       setLocalPlaying(false);
-      send({ type: "playState", playing: false });
     } finally {
       setPlayBusy(false);
     }
@@ -154,12 +158,11 @@ export default function HostParty({ code, playlist, me, onExit }) {
   function stopAudio() {
     pause();
     setLocalPlaying(false);
-    send({ type: "playState", playing: false });
     setPlayBusy(false);
   }
 
   function togglePlay() {
-    if (!canControl || playBusy) return;
+    if (!canPlay || playBusy) return;
     if (localPlaying) {
       stopAudio();
       return;
@@ -173,7 +176,6 @@ export default function HostParty({ code, playlist, me, onExit }) {
       setCopied(true);
       setTimeout(() => setCopied(false), 1800);
     } catch {
-      // Fallback for older browsers / insecure contexts
       window.prompt("Copy this join link:", joinUrl);
     }
   }
@@ -189,8 +191,8 @@ export default function HostParty({ code, playlist, me, onExit }) {
         </button>
         <h2 className="section-title">Party lobby</h2>
         <p className="section-sub">
-          Friends scan the QR, or open guessify and type the code. You DJ the audio
-          and can race guesses too.
+          Friends scan the QR, or open guessify and type the code. Everyone plays
+          the snippet on their own device — race to guess first.
         </p>
         <div className="mp-lobby-grid">
           <div className="mp-qr-card">
@@ -278,7 +280,7 @@ export default function HostParty({ code, playlist, me, onExit }) {
     );
   }
 
-  // ---- DJ board (play / reveal) ----
+  // ---- play / reveal board ----
   const revealed = phase === "reveal";
   const track = state.track;
   const lastGuesser = state.guesses[state.guesses.length - 1];
@@ -316,9 +318,9 @@ export default function HostParty({ code, playlist, me, onExit }) {
         cover={track?.cover}
         title={track?.name}
         artist={(track?.artists || []).join(", ")}
-        canControl={canControl}
-        interactive={canControl}
-        vinylTitle={canControl ? "play / pause · drag to scrub" : undefined}
+        canControl={canPlay}
+        interactive={canPlay}
+        vinylTitle={canPlay ? "play / pause · drag to scrub" : undefined}
         onTogglePlay={togglePlay}
         onScrubStart={stopAudio}
       />
@@ -357,7 +359,7 @@ export default function HostParty({ code, playlist, me, onExit }) {
             <button
               className="btn btn-big btn-play"
               onClick={() => playSnippet(unlocked)}
-              disabled={!canControl || localPlaying || playBusy}
+              disabled={!canPlay || localPlaying || playBusy}
             >
               <span className="btn-disc" aria-hidden="true" />
               {playBusy
@@ -440,7 +442,7 @@ export default function HostParty({ code, playlist, me, onExit }) {
 
       {error && <div className="error-banner">{error}</div>}
       <p className="fineprint mp-host-hint">
-        only you can skip to unlock more audio for everyone.
+        audio plays only on your device · anyone can skip or advance
       </p>
       </div>
 

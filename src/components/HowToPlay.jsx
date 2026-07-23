@@ -78,17 +78,16 @@ export default function HowToPlay({ open, onOpen, onClose }) {
             only need the party code.
           </p>
 
-          <h3>host / DJ</h3>
+          <h3>host</h3>
           <p>
-            Pick a playlist and host a game. Audio plays only on the DJ device.
-            Crank the speakers so the room can hear it.
+            Pick a playlist and host a game. Share the QR or room code so friends
+            can join.
           </p>
 
           <h3>guests</h3>
           <p>
-            Friends join with the party code. Their phones stay silent; they
-            listen to whatever’s coming out of the DJ’s speakers and race to
-            type guesses.
+            Friends join with the party code — no Spotify needed. Everyone plays
+            the snippet on their own phone and races to type guesses.
           </p>
 
           <h3>the round</h3>
@@ -99,10 +98,11 @@ export default function HowToPlay({ open, onOpen, onClose }) {
               First correct <b>title</b> wins the round — earlier guesses score
               more (1000 → 200).
             </li>
+            <li>Anyone can skip to unlock more audio or advance after a reveal.</li>
           </ul>
 
           <p className="help-solo">
-            Playing alone? Same vibe — you are the DJ and the guesser.
+            Playing alone? Same vibe — you play and guess on one device.
           </p>
         </div>
       </div>

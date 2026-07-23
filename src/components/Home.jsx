@@ -36,7 +36,7 @@ export default function Home({ me, onStartSolo, onStartMulti }) {
         <JoinCodeForm />
 
         <p className="fineprint">
-          host: DJ + race on this device · friends join with the code
+          host: friends join with the code · everyone plays on their own device
         </p>
       </div>
 

@@ -11,10 +11,11 @@ import {
   titlePointsForGuess,
   ARTIST_BONUS,
 } from "../src/multiplayer/constants.js";
+import { resolveItunesPreview } from "./itunesPreview.js";
 
 /**
  * Multiplayer room (PartyServer / Cloudflare Durable Object).
- * Host DJs Spotify audio and races guesses with guests. First correct title wins.
+ * Shared race / unlock state; each client plays iTunes previews locally (no DJ).
  */
 export class Room extends Server {
   state = null; // set when host claims the room
@@ -61,7 +62,7 @@ export class Room extends Server {
         this.handleJoin(msg, sender);
         break;
       case "start":
-        this.handleStart(sender);
+        await this.handleStart(sender);
         break;
       case "guess":
         this.handleGuess(msg, sender);
@@ -70,10 +71,7 @@ export class Room extends Server {
         this.handleSkip(sender);
         break;
       case "next":
-        this.handleNext(sender);
-        break;
-      case "playState":
-        this.handlePlayState(msg, sender);
+        await this.handleNext(sender);
         break;
       case "rejoin":
         this.handleRejoin(msg, sender);
@@ -128,7 +126,8 @@ export class Room extends Server {
         winnerId: null,
         bonus: 0,
         earnedPts: 0,
-        playing: false,
+        previewUrl: null,
+        previewArt: null,
         revealedArtist: null,
         artistClaimedBy: null,
         colorIdx: 1,
@@ -266,7 +265,7 @@ export class Room extends Server {
     this.broadcastState();
   }
 
-  handleStart(sender) {
+  async handleStart(sender) {
     if (!this.isHost(sender)) return;
     if (!this.state || this.state.phase !== "lobby") return;
     if (this.state.players.filter((p) => p.connected).length < 1) {
@@ -281,9 +280,9 @@ export class Room extends Server {
     this.state.winnerId = null;
     this.state.bonus = 0;
     this.state.earnedPts = 0;
-    this.state.playing = false;
     this.state.revealedArtist = null;
     this.state.artistClaimedBy = null;
+    await this.resolveCurrentPreview();
     this.broadcastState();
   }
 
@@ -343,7 +342,6 @@ export class Room extends Server {
       this.state.winnerId = player.id;
       this.state.outcome = "win";
       this.state.phase = "reveal";
-      this.state.playing = false;
       player.score += titlePts;
       player.wins += 1;
     } else {
@@ -360,13 +358,11 @@ export class Room extends Server {
 
   handleSkip(sender) {
     if (!this.state || this.state.phase !== "play") return;
-    // Only the DJ can unlock more audio via skip.
-    if (!this.isHost(sender)) {
-      sender.send(JSON.stringify({ type: "error", error: "Only the DJ can skip." }));
+    const player = this.playerFor(sender);
+    if (!player) {
+      sender.send(JSON.stringify({ type: "error", error: "Join the race first." }));
       return;
     }
-    const player = this.playerFor(sender);
-    if (!player) return;
 
     this.state.guesses.push({
       playerId: player.id,
@@ -384,7 +380,6 @@ export class Room extends Server {
     if (next >= MAX_GUESSES) {
       this.state.outcome = "lose";
       this.state.phase = "reveal";
-      this.state.playing = false;
       this.state.winnerId = null;
       this.state.earnedPts = 0;
       this.state.bonus = 0;
@@ -393,13 +388,17 @@ export class Room extends Server {
     }
   }
 
-  handleNext(sender) {
-    if (!this.isHost(sender)) return;
+  async handleNext(sender) {
     if (!this.state || this.state.phase !== "reveal") return;
+    if (!this.playerFor(sender)) {
+      sender.send(JSON.stringify({ type: "error", error: "Join the race first." }));
+      return;
+    }
 
     if (this.state.roundIdx + 1 >= this.state.tracks.length) {
       this.state.phase = "over";
-      this.state.playing = false;
+      this.state.previewUrl = null;
+      this.state.previewArt = null;
       this.broadcastState();
       return;
     }
@@ -411,17 +410,28 @@ export class Room extends Server {
     this.state.winnerId = null;
     this.state.bonus = 0;
     this.state.earnedPts = 0;
-    this.state.playing = false;
     this.state.revealedArtist = null;
     this.state.artistClaimedBy = null;
     this.state.phase = "play";
+    await this.resolveCurrentPreview();
     this.broadcastState();
   }
 
-  handlePlayState(msg, sender) {
-    if (!this.isHost(sender) || !this.state) return;
-    this.state.playing = !!msg.playing;
-    this.broadcastState();
+  async resolveCurrentPreview() {
+    if (!this.state) return;
+    const t = this.state.tracks[this.state.roundIdx];
+    this.state.previewUrl = null;
+    this.state.previewArt = null;
+    if (!t?.name) return;
+    try {
+      const pick = await resolveItunesPreview(t.name, (t.artists || [])[0] || "");
+      if (pick) {
+        this.state.previewUrl = pick.previewUrl;
+        this.state.previewArt = pick.artworkUrl;
+      }
+    } catch (e) {
+      console.error("preview resolve failed", e);
+    }
   }
 
   isHost(conn) {
@@ -441,10 +451,18 @@ export class Room extends Server {
         id: t.id,
         name: t.name,
         artists: t.artists,
-        cover: t.cover,
+        cover: t.cover || this.state.previewArt || null,
+        previewUrl: this.state.previewUrl || null,
       };
     }
-    return { id: t.id, cover: null, name: null, artists: null };
+    // Hide answer fields; expose preview so each device can play locally.
+    return {
+      id: t.id,
+      cover: null,
+      name: null,
+      artists: null,
+      previewUrl: this.state.previewUrl || null,
+    };
   }
 
   snapshot() {
@@ -474,11 +492,9 @@ export class Room extends Server {
       winnerId: this.state.winnerId,
       bonus: this.state.bonus,
       earnedPts: this.state.earnedPts,
-      playing: this.state.playing,
       revealedArtist: this.state.revealedArtist || null,
       artistClaimedBy: this.state.artistClaimedBy || null,
       track: this.publicTrack(),
-      // Host uses this id to look up metadata locally and resolve an iTunes preview.
       trackId: this.state.tracks[this.state.roundIdx]?.id || null,
     };
   }

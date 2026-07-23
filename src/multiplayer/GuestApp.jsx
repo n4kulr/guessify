@@ -1,5 +1,6 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { usePartyRoom } from "./usePartyRoom.js";
+import { usePreviewPlayer } from "../usePreviewPlayer.js";
 import PlayerRail from "./PlayerRail.jsx";
 import ProfileEditor from "./ProfileEditor.jsx";
 import GuessPopups from "./GuessPopups.jsx";
@@ -17,6 +18,10 @@ export default function GuestApp({ code }) {
   const [artistGuess, setArtistGuess] = useState("");
   const [rejoinTried, setRejoinTried] = useState(false);
   const [mediaMode, setMediaMode] = useState(loadMediaMode);
+  const { errorMsg, play, pause } = usePreviewPlayer();
+  const [playBusy, setPlayBusy] = useState(false);
+  const [localPlaying, setLocalPlaying] = useState(false);
+  const lastTrackRef = useRef(null);
 
   function changeMediaMode(next) {
     setMediaMode(next);
@@ -25,6 +30,10 @@ export default function GuestApp({ code }) {
 
   const joined = !!playerId;
   const me = state?.players?.find((p) => p.id === playerId);
+  const playTrack = state?.track?.previewUrl
+    ? { id: state.trackId || state.track.id, previewUrl: state.track.previewUrl }
+    : null;
+  const canPlay = !!playTrack?.previewUrl;
 
   useEffect(() => {
     if (status !== "connected" || rejoinTried || joined) return;
@@ -37,22 +46,34 @@ export default function GuestApp({ code }) {
     }
   }, [status, rejoinTried, joined, upper]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // After join/rejoin, mirror server profile into local editor.
   useEffect(() => {
     if (!me) return;
     setName(me.name || "");
     if (me.avatar) setAvatar(me.avatar);
   }, [me?.id, me?.name, me?.avatar?.peep, me?.avatar?.color]);
 
-  // Shared artist lock — fill for everyone once claimed.
   useEffect(() => {
     if (state?.revealedArtist) setArtistGuess(state.revealedArtist);
   }, [state?.revealedArtist]);
 
-  // Clear artist field when a new round starts.
   useEffect(() => {
     if (!state?.revealedArtist) setArtistGuess("");
   }, [state?.roundIdx]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  useEffect(() => {
+    return () => {
+      pause();
+    };
+  }, [pause]);
+
+  useEffect(() => {
+    if (!state?.trackId) return;
+    if (lastTrackRef.current !== state.trackId || state.phase !== "play") {
+      pause();
+      setLocalPlaying(false);
+      lastTrackRef.current = state.trackId;
+    }
+  }, [state?.trackId, state?.phase]); // eslint-disable-line react-hooks/exhaustive-deps
 
   function join() {
     setError(null);
@@ -72,6 +93,43 @@ export default function GuestApp({ code }) {
     send({ type: "guess", title, artist });
     setTitleGuess("");
     setArtistGuess("");
+  }
+
+  function skipGuess() {
+    send({ type: "skip" });
+    setTitleGuess("");
+    setArtistGuess("");
+  }
+
+  async function playSnippet(seconds) {
+    if (!canPlay || playBusy || localPlaying) return;
+    setPlayBusy(true);
+    try {
+      await play(playTrack, seconds, {
+        onStop: () => setLocalPlaying(false),
+      });
+      setLocalPlaying(true);
+    } catch {
+      setLocalPlaying(false);
+    } finally {
+      setPlayBusy(false);
+    }
+  }
+
+  function stopAudio() {
+    pause();
+    setLocalPlaying(false);
+    setPlayBusy(false);
+  }
+
+  function togglePlay() {
+    if (!canPlay || playBusy) return;
+    if (localPlaying) {
+      stopAudio();
+      return;
+    }
+    const unlocked = state?.unlocked ?? STEPS[0];
+    playSnippet(state?.phase === "reveal" ? Math.max(unlocked, 8) : unlocked);
   }
 
   if (status === "error") {
@@ -152,7 +210,7 @@ export default function GuestApp({ code }) {
   const revealed = state.phase === "reveal";
   const unlocked = state.unlocked;
   const track = state.track;
-  const spinning = state.playing && state.phase === "play";
+  const spinning = localPlaying && state.phase === "play";
 
   return (
     <div className="game mp-guest-game mp-board">
@@ -177,8 +235,11 @@ export default function GuestApp({ code }) {
           cover={track?.cover}
           title={track?.name}
           artist={(track?.artists || []).join(", ")}
-          interactive
-          vinylTitle="drag to scrub"
+          canControl={canPlay}
+          interactive={canPlay}
+          vinylTitle={canPlay ? "play / pause · drag to scrub" : undefined}
+          onTogglePlay={togglePlay}
+          onScrubStart={stopAudio}
         />
 
         {state.outcome === "win" && revealed && (
@@ -208,7 +269,26 @@ export default function GuestApp({ code }) {
           </div>
         </div>
 
-        <div className="controls controls--toggle-only">
+        <div className={`controls${state.phase === "play" ? "" : " controls--toggle-only"}`}>
+          {state.phase === "play" && (
+            <>
+              {errorMsg && <div className="error-banner">{errorMsg}</div>}
+              <button
+                className="btn btn-big btn-play"
+                onClick={() => playSnippet(unlocked)}
+                disabled={!canPlay || localPlaying || playBusy}
+              >
+                <span className="btn-disc" aria-hidden="true" />
+                {playBusy
+                  ? "starting…"
+                  : localPlaying
+                  ? "playing…"
+                  : canPlay
+                  ? `play ${unlocked}s`
+                  : "loading audio…"}
+              </button>
+            </>
+          )}
           <MediaModeToggle mode={mediaMode} onChange={changeMediaMode} />
         </div>
 
@@ -231,7 +311,11 @@ export default function GuestApp({ code }) {
                 onKeyDown={(e) => e.key === "Enter" && submitGuess()}
               />
             </div>
-            <div className="guess-actions guess-actions--guess-only">
+            <div className="guess-actions">
+              <button className="btn btn-skip" onClick={skipGuess}>
+                <span className="btn-label">skip</span>
+                <span className="btn-hint">+audio</span>
+              </button>
               <button
                 className="btn btn-guess"
                 onClick={submitGuess}
@@ -258,9 +342,21 @@ export default function GuestApp({ code }) {
                 )}
               </div>
             </div>
-            <p className="fineprint">waiting for host to continue…</p>
+            <button
+              className="btn btn-big btn-play"
+              onClick={() => {
+                stopAudio();
+                send({ type: "next" });
+              }}
+            >
+              <span className="btn-disc" aria-hidden="true" />
+              {state.roundIdx + 1 >= state.roundCount ? "see results →" : "next record →"}
+            </button>
           </div>
         )}
+
+        {error && <div className="error-banner">{error}</div>}
+        <p className="fineprint">audio plays only on your device · anyone can skip or advance</p>
       </div>
 
       <GuessPopups guesses={state.guesses} myId={playerId} />

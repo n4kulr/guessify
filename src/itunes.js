@@ -4,7 +4,9 @@
 const cache = new Map();
 
 export async function resolvePreview(track) {
-  if (!track?.name) return null;
+  if (!track) return null;
+  if (track.previewUrl) return track.previewUrl;
+  if (!track.name) return null;
   const key = track.id || `${track.name}|${(track.artists || [])[0] || ""}`;
   if (cache.has(key)) return cache.get(key);
 
