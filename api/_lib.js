@@ -45,8 +45,17 @@ export function decrypt(str) {
 
 // --- request/response helpers ---
 export function getBase(req) {
-  const proto = String(req.headers["x-forwarded-proto"] || "https").split(",")[0];
-  const host = req.headers["x-forwarded-host"] || req.headers.host;
+  // Prefer a fixed public URL so OAuth redirect_uri + cookies stay on one host
+  // (preview/custom domains otherwise break state cookies → login loops).
+  const configured = (process.env.APP_BASE_URL || "").replace(/\/$/, "");
+  if (configured) return configured;
+
+  const proto = String(req.headers["x-forwarded-proto"] || "https")
+    .split(",")[0]
+    .trim();
+  const host = String(req.headers["x-forwarded-host"] || req.headers.host || "")
+    .split(",")[0]
+    .trim();
   return `${proto}://${host}`;
 }
 
@@ -62,6 +71,10 @@ function cookie(name, value, { maxAge } = {}) {
 }
 
 export function appendCookie(res, str) {
+  if (typeof res.appendHeader === "function") {
+    res.appendHeader("Set-Cookie", str);
+    return;
+  }
   const prev = res.getHeader("Set-Cookie");
   const arr = prev ? (Array.isArray(prev) ? prev : [prev]) : [];
   arr.push(str);
@@ -80,8 +93,30 @@ export function writeSession(res, session) {
 export function clearSession(res) {
   appendCookie(res, cookie("gs", "", { maxAge: 0 }));
 }
+
+/** Prefer req.cookies; fall back to parsing Cookie header (safer across runtimes). */
+export function getCookies(req) {
+  if (req.cookies && typeof req.cookies === "object") return req.cookies;
+  const raw = req.headers?.cookie;
+  if (!raw || typeof raw !== "string") return {};
+  const out = {};
+  for (const part of raw.split(";")) {
+    const i = part.indexOf("=");
+    if (i < 0) continue;
+    const k = part.slice(0, i).trim();
+    const v = part.slice(i + 1).trim();
+    if (!k) continue;
+    try {
+      out[k] = decodeURIComponent(v);
+    } catch {
+      out[k] = v;
+    }
+  }
+  return out;
+}
+
 export function readSession(req) {
-  const c = req.cookies?.gs;
+  const c = getCookies(req).gs;
   return c ? decrypt(c) : null;
 }
 

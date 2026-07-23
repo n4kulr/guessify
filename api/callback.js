@@ -1,5 +1,6 @@
 import {
   getBase,
+  getCookies,
   redirect,
   tokenRequest,
   writeSession,
@@ -12,7 +13,7 @@ export default async function handler(req, res) {
 
   if (error) return redirect(res, `${base}/?error=${encodeURIComponent(error)}`);
 
-  const saved = req.cookies?.gs_state;
+  const saved = getCookies(req).gs_state;
   if (!state || !saved || state !== saved) {
     return redirect(res, `${base}/?error=state_mismatch`);
   }

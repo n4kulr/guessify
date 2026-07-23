@@ -3,6 +3,14 @@ import HeroTurntable from "./HeroTurntable.jsx";
 import JoinCodeForm from "../multiplayer/JoinCodeForm.jsx";
 
 export default function Login({ error }) {
+  const errorHint = {
+    state_mismatch:
+      "login got interrupted (cookie/host mismatch). try again from this same link.",
+    token_exchange_failed:
+      "Spotify didn’t hand back a token. try again in a minute.",
+    access_denied: "Spotify login was cancelled.",
+  }[error];
+
   return (
     <div className="hero">
       <div className="hero-left">
@@ -25,7 +33,7 @@ export default function Login({ error }) {
 
         {error && (
           <div className="error-banner">
-            couldn't log you in ({error}). give it another spin.
+            {errorHint || `couldn't log you in (${error}). give it another spin.`}
           </div>
         )}
 
