@@ -420,6 +420,9 @@ button { font-family: var(--font); }
   font-size: 1.35em;
   letter-spacing: 0.01em;
 }
+.hero-tagline-hook {
+  margin-left: 0.35em;
+}
 
 .hero-turntable { position: relative; width: 132px; height: 132px; margin: 0 0 28px; }
 .hero-turntable .vinyl-label {

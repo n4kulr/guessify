@@ -12,7 +12,7 @@ export default function Login({ error }) {
         <p className="hero-tagline">
           Your playlists. One-second snippets.
           <br />
-          <em>name that song!</em>
+          <em className="hero-tagline-hook">name that song!</em>
         </p>
 
         <HeroTurntable />
