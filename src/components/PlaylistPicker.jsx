@@ -138,9 +138,8 @@ export default function PlaylistPicker({ onPick, onBack }) {
           ← home
         </button>
       )}
-      <h2 className="section-title">Pick a record…</h2>
-      {yours.length > 0 ? (
-        <div className="section-sub yours-sub">
+      <div className="picker-heading">
+        {yours.length > 0 && (
           <button
             type="button"
             className="view-toggle"
@@ -150,11 +149,10 @@ export default function PlaylistPicker({ onPick, onBack }) {
           >
             {cdsMode ? "CD" : "Button"}
           </button>
-          <span>Your Spotify playlists only.</span>
-        </div>
-      ) : (
-        <p className="section-sub">Your Spotify playlists only.</p>
-      )}
+        )}
+        <h2 className="section-title">Pick a record…</h2>
+      </div>
+      <p className="section-sub">Your Spotify playlists only.</p>
 
       {note && <div className="error-banner">{note}</div>}
 

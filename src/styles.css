@@ -1158,16 +1158,15 @@ button { font-family: var(--font); }
 /* ---------------- playlist picker ---------------- */
 .picker { width: min(var(--maxw), 100%); position: relative; }
 .picker-back { position: absolute; top: 0; left: 0; }
-.section-title { font-size: 26px; font-weight: 700; text-align: center; margin: 4px 0; }
-.section-sub { text-align: center; color: var(--sub-color); margin-bottom: 26px; font-size: 14px; }
-.section-sub.yours-sub {
+.picker-heading {
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 10px;
-  margin-bottom: 26px;
+  margin: 4px 0;
 }
-.section-sub.yours-sub span { color: var(--sub-color); }
+.section-title { font-size: 26px; font-weight: 700; text-align: center; margin: 0; }
+.section-sub { text-align: center; color: var(--sub-color); margin-bottom: 26px; font-size: 14px; }
 
 .picker-more {
   display: block;
@@ -1177,11 +1176,11 @@ button { font-family: var(--font); }
   appearance: none;
   min-width: 0;
   height: auto;
-  padding: 0 2px;
-  border: none;
-  border-radius: 0;
+  padding: 3px 7px;
+  border: 1px solid color-mix(in srgb, var(--text-color) 22%, transparent);
+  border-radius: 6px;
   background: transparent;
-  color: color-mix(in srgb, var(--sub-color) 70%, transparent);
+  color: color-mix(in srgb, var(--sub-color) 80%, transparent);
   cursor: pointer;
   flex: none;
   font: inherit;
@@ -1190,12 +1189,13 @@ button { font-family: var(--font); }
   letter-spacing: 0.06em;
   line-height: 1.2;
   text-transform: uppercase;
-  transition: color 0.15s ease;
+  transition: color 0.15s ease, border-color 0.15s ease;
 }
 .view-toggle:hover,
 .view-toggle[aria-pressed="true"] {
   background: transparent;
   color: var(--sub-color);
+  border-color: color-mix(in srgb, var(--text-color) 38%, transparent);
 }
 .picker-section-title {
   font-size: 26px;
@@ -1269,6 +1269,9 @@ button { font-family: var(--font); }
 /* ---- Spotify playlists: horizontal CD shelf ---- */
 .shelf-row {
   --shelf-case: 132px;
+  --shelf-gap: 10px;
+  /* 3 face-out cases + gaps + tray/inner/cases horizontal padding (24+16+8) */
+  --shelf-tray-w: calc((3 * var(--shelf-case)) + (2 * var(--shelf-gap)) + 48px);
   display: flex;
   align-items: flex-start;
   justify-content: center;
@@ -1279,8 +1282,9 @@ button { font-family: var(--font); }
 .shelf-tray {
   position: relative;
   z-index: 2;
-  flex: 0 0 min(280px, 42vw);
-  max-width: 300px;
+  flex: 0 0 min(var(--shelf-tray-w), 94vw);
+  max-width: var(--shelf-tray-w);
+  width: min(var(--shelf-tray-w), 94vw);
   margin: 0;
   padding: 14px 12px 16px;
   border-radius: 10px;
@@ -1298,9 +1302,10 @@ button { font-family: var(--font); }
     inset 0 -3px 10px color-mix(in srgb, #000 35%, transparent);
 }
 .shelf-row.is-picking .shelf-tray {
-  /* Keep fixed width like the genre CD case — don't stretch when paper opens */
-  flex: 0 0 min(280px, 42vw);
-  max-width: 300px;
+  /* Fixed width — don't stretch when the liner opens */
+  flex: 0 0 min(var(--shelf-tray-w), 94vw);
+  max-width: var(--shelf-tray-w);
+  width: min(var(--shelf-tray-w), 94vw);
 }
 .shelf-tray-inner {
   height: calc(var(--shelf-case) + 16px + 18px);
@@ -1330,7 +1335,7 @@ button { font-family: var(--font); }
   height: calc(var(--shelf-case) + 8px);
   display: flex;
   align-items: stretch;
-  gap: 10px;
+  gap: var(--shelf-gap);
   overflow-x: auto;
   overflow-y: hidden;
   scroll-snap-type: x proximity;
@@ -1392,11 +1397,11 @@ button { font-family: var(--font); }
   align-items: center;
   justify-content: center;
   padding: 0 8px;
-  font-family: "Patrick Hand", "Segoe Print", cursive;
+  font-family: var(--font);
   font-style: normal;
-  font-weight: 400;
-  font-size: 15px;
-  letter-spacing: 0.01em;
+  font-weight: 500;
+  font-size: 11px;
+  letter-spacing: 0.02em;
   text-transform: none;
   white-space: nowrap;
   overflow: hidden;
@@ -1491,15 +1496,14 @@ button { font-family: var(--font); }
   transform: none;
   pointer-events: auto;
 }
-.shelf-insert .cd-insert-title.shelf-hand {
-  font-family: "Patrick Hand", "Segoe Print", cursive;
+.shelf-insert .cd-insert-title {
+  font-family: var(--font);
   font-style: normal;
-  font-weight: 400;
-  font-size: 24px;
+  font-weight: 600;
+  font-size: 18px;
   text-transform: none;
   letter-spacing: 0.01em;
-  text-decoration: underline;
-  text-underline-offset: 4px;
+  text-decoration: none;
 }
 .shelf-insert-body {
   flex: 1 1 auto;
@@ -2139,9 +2143,11 @@ button { font-family: var(--font); }
     align-items: stretch;
   }
   .shelf-row.is-picking .shelf-tray {
-    flex: none;
-    width: 100%;
-    max-width: none;
+    /* Keep fixed ~3-case width; liner stacks below on narrow screens */
+    flex: 0 0 min(var(--shelf-tray-w), 94vw);
+    width: min(var(--shelf-tray-w), 94vw);
+    max-width: var(--shelf-tray-w);
+    align-self: center;
   }
   .shelf-panel.is-open {
     flex: none;

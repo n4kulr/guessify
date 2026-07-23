@@ -272,7 +272,7 @@ export default function PlaylistCdShelf({ playlists, loadingId, onChoose }) {
             ].join(" ")}
           >
             <div className="cd-insert-head">
-              <h2 className="cd-insert-title shelf-hand">
+              <h2 className="cd-insert-title">
                 {pickedPlaylist.name}
               </h2>
               <p className="cd-insert-meta">
