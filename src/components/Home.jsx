@@ -12,8 +12,7 @@ export default function Home({ me, onStartSolo, onStartMulti }) {
           guess<span className="hero-title-accent">ify</span>
         </h1>
         <p className="hero-tagline">
-          Hey {name} — drop the needle on one of your playlists and see how
-          fast you can <em>name that song</em>.
+          Hey {name} — <em>name that song!</em>
         </p>
 
         <HeroTurntable />
