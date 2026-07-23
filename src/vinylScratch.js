@@ -1,5 +1,6 @@
 // DJ vinyl scrub synthesizer (Web Audio, no assets).
 // Direction-aware pitch, snappy attack, vinyl grit + tonal "wick".
+// Always full level — never scaled by getVolume() (song previews only).
 
 export function createScratchEngine() {
   let ctx = null;
@@ -63,7 +64,7 @@ export function createScratchEngine() {
     toneGain.gain.value = 0;
 
     master = ctx.createGain();
-    master.gain.value = 0.85;
+    master.gain.value = 1;
 
     noiseSrc.connect(noiseBright);
     noiseBright.connect(noiseFilter);
@@ -229,7 +230,7 @@ export function playNeedleDrop() {
   toneGain.gain.exponentialRampToValueAtTime(0.0001, now + dur * 0.85);
 
   const master = c.createGain();
-  master.gain.value = 0.55;
+  master.gain.value = 1;
 
   src.connect(filter);
   filter.connect(noiseGain);

@@ -1,4 +1,5 @@
 // Short cassette-deck blips (Web Audio, no assets).
+// Always full level — never scaled by getVolume() (song previews only).
 
 let ctx = null;
 
@@ -16,7 +17,7 @@ function resume() {
   return c;
 }
 
-function tone({ freq, dur = 0.08, type = "square", gain = 0.08, slideTo }) {
+function tone({ freq, dur = 0.08, type = "square", gain = 0.14, slideTo }) {
   const c = resume();
   if (!c) return;
   const now = c.currentTime;
@@ -36,7 +37,7 @@ function tone({ freq, dur = 0.08, type = "square", gain = 0.08, slideTo }) {
   osc.stop(now + dur + 0.02);
 }
 
-function noiseBurst({ dur = 0.06, gain = 0.05, freq = 1200 }) {
+function noiseBurst({ dur = 0.06, gain = 0.1, freq = 1200 }) {
   const c = resume();
   if (!c) return;
   const now = c.currentTime;
@@ -65,22 +66,22 @@ function noiseBurst({ dur = 0.06, gain = 0.05, freq = 1200 }) {
 export function playCassetteButton(i) {
   switch (i) {
     case 0: // rewind — descending whir
-      tone({ freq: 420, slideTo: 180, dur: 0.22, type: "sawtooth", gain: 0.05 });
-      noiseBurst({ dur: 0.12, gain: 0.03, freq: 900 });
+      tone({ freq: 420, slideTo: 180, dur: 0.22, type: "sawtooth", gain: 0.12 });
+      noiseBurst({ dur: 0.12, gain: 0.08, freq: 900 });
       break;
     case 1: // play — soft clack + gentle start
-      noiseBurst({ dur: 0.04, gain: 0.06, freq: 1800 });
-      tone({ freq: 220, slideTo: 280, dur: 0.14, type: "triangle", gain: 0.06 });
+      noiseBurst({ dur: 0.04, gain: 0.14, freq: 1800 });
+      tone({ freq: 220, slideTo: 280, dur: 0.14, type: "triangle", gain: 0.14 });
       break;
     case 2: // pause — muted dual click
-      tone({ freq: 160, dur: 0.05, type: "square", gain: 0.045 });
-      setTimeout(() => tone({ freq: 140, dur: 0.04, type: "square", gain: 0.03 }), 45);
+      tone({ freq: 160, dur: 0.05, type: "square", gain: 0.12 });
+      setTimeout(() => tone({ freq: 140, dur: 0.04, type: "square", gain: 0.08 }), 45);
       break;
     case 3: // ff — ascending whir
-      tone({ freq: 200, slideTo: 520, dur: 0.22, type: "sawtooth", gain: 0.05 });
-      noiseBurst({ dur: 0.12, gain: 0.03, freq: 1400 });
+      tone({ freq: 200, slideTo: 520, dur: 0.22, type: "sawtooth", gain: 0.12 });
+      noiseBurst({ dur: 0.12, gain: 0.08, freq: 1400 });
       break;
     default:
-      noiseBurst({ dur: 0.05, gain: 0.04, freq: 1000 });
+      noiseBurst({ dur: 0.05, gain: 0.1, freq: 1000 });
   }
 }

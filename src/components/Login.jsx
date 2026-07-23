@@ -61,10 +61,6 @@ export default function Login({ error, onStartSolo, onStartMulti, onStartOnline 
         </div>
 
         <JoinCodeForm />
-
-        <p className="fineprint">
-          login for your playlists · guests just need a party code
-        </p>
       </div>
 
       <div className="hero-right">

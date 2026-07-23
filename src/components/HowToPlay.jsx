@@ -68,7 +68,8 @@ export default function HowToPlay({ open, onOpen, onClose }) {
           <p>
             I made Guessify because I used to play this with my school friends
             while our parents drove us to tuition — we’d race to guess the radio
-            song the fastest, and it got very competitive.
+            song. I still to this day challenge my uni friends to this game,
+            which is what made me start this project.
           </p>
 
           <h3 className="help-section-title">instructions</h3>

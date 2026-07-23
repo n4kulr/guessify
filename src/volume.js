@@ -19,7 +19,8 @@ function readStored() {
 
 let volume = readStored();
 
-/** 0–1 master volume for preview / demo audio. */
+/** 0–1 volume for song previews only (game + live demo track).
+ *  UI SFX (cassette teeth, vinyl scrub) ignore this and stay full. */
 export function getVolume() {
   return volume;
 }

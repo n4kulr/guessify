@@ -19,42 +19,54 @@ import {
 
 const HOT_TAGS = ["pop", "hip-hop", "rnb", "2010s", "k-pop", "afrobeats", "latin", "indie"];
 
-const OPPONENT_NAMES = [
-  "Mila",
-  "DJ_Jay",
-  "KaiBrooks",
-  "remy.wav",
-  "ZoeSaysHi",
-  "ashhhhh",
-  "LeoThe3rd",
-  "iris_99",
-  "NateFromOhio",
-  "OmarQ",
-  "bea bean",
-  "Finnigan",
-  "LUX",
-  "AriaMoon",
-  "xXShadowXx",
-  "chartgoblin",
-  "Priya",
-  "tommyTwoTimes",
-  "softboy2001",
-  "Jess",
-  "theRealSam",
-  "AnyaK",
-  "pluto_",
-  "CoffeeDad",
-  "yuki.tanaka",
-  "BASSHEAD",
-  "Nikhil",
-  "moonchild",
-  "TaliaRose",
-  "gabe",
-  "SashaV",
-  "vinyl_thief",
-  "JordanLee",
-  "Maya!",
-  "Ravi_07",
+/** Lobby name pools by archetype — mix lengths + styles so it doesn't read generated. */
+const NAME_ARCHETYPES = {
+  compounds: [
+    "lampmoth", "dampsocks", "wetcardboard", "gravyboat", "softserve",
+    "tinfoilhat", "mosscovered", "quietstorm", "brickwall", "papercut",
+  ],
+  numbered: [
+    "kian04", "noodle07", "marlo23", "zaine17", "obie06",
+    "tam0k", "vex21", "rhys09", "juno12", "cass88",
+  ],
+  stylized: [
+    "kaii", "jvnior", "syyd", "mattr", "nikaa",
+    "roshhh", "drewww", "elll", "beniii", "aris_",
+  ],
+  ironic: [
+    "notdrake", "certifiedyapper", "localmenace", "mildlyhungry", "guyfromthebus",
+    "professionalliar", "tunnelvision", "spotifywrapped2019", "sorryimlate", "thirdplace",
+  ],
+  short: ["oz", "jnk", "vrm", "dux", "kro"],
+  underscore: ["_slugbait", "x_hollow", "bean_", "__rue", "low_res"],
+  caps: [
+    "SilentJoy", "PaperTiger", "BlueHourGlass", "NorthFacing", "TapeDeck",
+    "Vagrant", "MidnightRun", "GhostOfTuesday", "SlowBurn", "Ferro",
+  ],
+  camel: [
+    "ZaneRuns", "KiraPlays", "MattOnMic", "AceOfLows", "RyeBread",
+    "TheRealOtis", "JustNoahThings", "CallMeVee", "DevWithADream", "NotYourGuy",
+  ],
+  // Spaces / periods / birth years — strong “real person” signal. Cap 1–2 per lobby.
+  dad: [
+    "Greg_Sullivan", "David Holt", "Paul.Mercer", "AndrewJTan", "SteveWilkinson",
+    "MartinB", "Chris O'Dea", "RobertLeung", "TonyMcGrath", "Ian_Fraser",
+    "DaveM1968", "Karen_1972", "Mike74", "JenniferA1969", "Rick_1965",
+    "PeterK1971", "Sue1970", "GaryW66", "Lisa_M_1973", "BigMike62",
+    "GregFishes", "DadOfThree", "GolfDad74", "Coach_Reilly", "PapaBear1967",
+    "SundayCyclist", "HandymanHal", "Grillmaster_Ken", "BBQ_Bruce", "RetiredRon",
+  ],
+};
+
+const NON_DAD_KEYS = [
+  "compounds",
+  "numbered",
+  "stylized",
+  "ironic",
+  "short",
+  "underscore",
+  "caps",
+  "camel",
 ];
 
 function shuffle(arr) {
@@ -66,21 +78,98 @@ function shuffle(arr) {
   return a;
 }
 
-function pickName(used) {
-  const pool = shuffle(OPPONENT_NAMES.filter((n) => !used.has(n.toLowerCase())));
-  const name = pool[0] || `player${Math.floor(Math.random() * 90) + 10}`;
-  used.add(name.toLowerCase());
-  return name.slice(0, 16);
+function hasNumberSuffix(name) {
+  return /\d/.test(name);
 }
 
-function makeOpponents(count = 3) {
+/**
+ * Build a lobby roster: mix archetypes + lengths, ≤2 dad names, ≤2 number-ish
+ * handles, always at least one short handle and ≥3 archetypes.
+ */
+function pickLobbyNames(count = 5) {
   const used = new Set();
-  const out = [];
-  for (let i = 0; i < count; i++) {
-    const name = pickName(used);
-    const avatar = normalizeAvatar(randomAvatar(), PLAYER_COLORS[(i + 1) % PLAYER_COLORS.length]);
-    out.push({
-      id: `op-${i}-${name}`,
+  const picked = [];
+  const archetypesUsed = new Set();
+  let dadCount = 0;
+  let numberishCount = 0;
+
+  function takeFrom(key, { require = false } = {}) {
+    const pool = shuffle(
+      (NAME_ARCHETYPES[key] || []).filter((n) => !used.has(n.toLowerCase()))
+    );
+    for (const name of pool) {
+      const numberish = hasNumberSuffix(name);
+      if (numberish && numberishCount >= 2) continue;
+      if (key === "dad" && dadCount >= 2) continue;
+      used.add(name.toLowerCase());
+      picked.push(name);
+      archetypesUsed.add(key);
+      if (key === "dad") dadCount += 1;
+      if (numberish) numberishCount += 1;
+      return true;
+    }
+    if (require) {
+      // Fallback: any unused name from this pool ignoring soft caps.
+      const any = (NAME_ARCHETYPES[key] || []).find((n) => !used.has(n.toLowerCase()));
+      if (any) {
+        used.add(any.toLowerCase());
+        picked.push(any);
+        archetypesUsed.add(key);
+        if (key === "dad") dadCount += 1;
+        if (hasNumberSuffix(any)) numberishCount += 1;
+        return true;
+      }
+    }
+    return false;
+  }
+
+  // Always: one short handle + one dad (spaces/years sell the lobby).
+  takeFrom("short", { require: true });
+  if (count >= 3) takeFrom("dad", { require: true });
+
+  // Fill from shuffled non-dad archetypes so we hit ≥3 groups.
+  const restKeys = shuffle(NON_DAD_KEYS.filter((k) => k !== "short"));
+  let guard = 0;
+  while (picked.length < count && guard++ < 80) {
+    // Prefer unused archetypes until we have three.
+    const preferFresh = archetypesUsed.size < 3;
+    const keys = preferFresh
+      ? [...restKeys.filter((k) => !archetypesUsed.has(k)), ...restKeys]
+      : restKeys;
+    let got = false;
+    for (const key of keys) {
+      if (picked.length >= count) break;
+      if (takeFrom(key)) {
+        got = true;
+        break;
+      }
+    }
+    if (!got) {
+      // Last resort: any remaining name from any pool.
+      const all = shuffle(
+        Object.values(NAME_ARCHETYPES)
+          .flat()
+          .filter((n) => !used.has(n.toLowerCase()))
+      );
+      const name = all[0];
+      if (!name) break;
+      used.add(name.toLowerCase());
+      picked.push(name);
+    }
+  }
+
+  return shuffle(picked).slice(0, count);
+}
+
+function makeOpponents(count = 5) {
+  const names = pickLobbyNames(count);
+  return names.map((name, i) => {
+    const avatar = normalizeAvatar(
+      randomAvatar(),
+      PLAYER_COLORS[(i + 1) % PLAYER_COLORS.length]
+    );
+    return {
+      id: `op-${i}-${name.replace(/\s+/g, "_")}`,
       name,
       avatar,
       color: avatar.color,
@@ -90,9 +179,8 @@ function makeOpponents(count = 3) {
       left: false,
       // Keep them beatable — low/mid skill only.
       skill: 0.1 + Math.random() * 0.35,
-    });
-  }
-  return out;
+    };
+  });
 }
 
 /**
@@ -193,7 +281,7 @@ export default function OnlineRace({ profile, onExit }) {
   // Matchmaking + chart load
   useEffect(() => {
     let cancelled = false;
-    const opponents = makeOpponents(3);
+    const opponents = makeOpponents(5);
     const tag = HOT_TAGS[Math.floor(Math.random() * HOT_TAGS.length)];
 
     (async () => {
