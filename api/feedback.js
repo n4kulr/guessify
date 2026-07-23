@@ -1,5 +1,3 @@
-import { getBase } from "./_lib.js";
-
 export default async function handler(req, res) {
   if (req.method !== "POST") {
     res.setHeader("Allow", "POST");
@@ -28,28 +26,17 @@ export default async function handler(req, res) {
     return res.status(400).json({ error: "message too long" });
   }
 
-  const base = getBase(req);
-  const art = `${base}/og.png`;
-
-  // Quote-style body so the note is the hero of the embed.
+  // Quote-style body — no avatars / thumbnails / footer icons (og.png was repeating).
   const quoted = message
     .split("\n")
     .map((line) => `> ${line || "\u00a0"}`)
     .join("\n");
 
   const embed = {
-    author: {
-      name: "guessify feedback",
-      icon_url: art,
-    },
+    title: "feedback",
     description: quoted.length > 4090 ? `${quoted.slice(0, 4080)}…` : quoted,
-    color: 0xe9d5c6, // olivia main
-    thumbnail: { url: art },
+    color: 0xe9d5c6,
     timestamp: new Date().toISOString(),
-    footer: {
-      text: "guessify",
-      icon_url: art,
-    },
   };
 
   try {
@@ -58,7 +45,6 @@ export default async function handler(req, res) {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         username: "guessify",
-        avatar_url: art,
         embeds: [embed],
       }),
     });
