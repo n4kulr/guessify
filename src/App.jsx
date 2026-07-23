@@ -132,7 +132,7 @@ export default function App() {
 
         {status === "guest" && joinCode && <GuestApp code={joinCode} />}
 
-        {status === "loggedOut" && !joinCode && !picking && (
+        {status === "loggedOut" && !joinCode && !picking && !playlist && (
           <Login
             error={authError}
             onStartSolo={startSolo}
