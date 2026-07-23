@@ -100,25 +100,15 @@ export default function GuestApp({ code }) {
           <ProfileEditor name={name} avatar={avatar} onChange={updateProfile} />
         </div>
         {error && <div className="error-banner">{error}</div>}
-        <div className="mp-join-actions">
-          {canJoin && (
-            <button
-              type="button"
-              className="btn btn-big btn-play mp-join-play"
-              onClick={join}
-              aria-label="join party"
-            >
-              <span className="btn-play-icon" aria-hidden="true" />
-            </button>
-          )}
-          <button
-            className="btn btn-big btn-play"
-            disabled={!canJoin}
-            onClick={join}
-          >
-            {status === "connecting" ? "connecting…" : "join party"}
-          </button>
-        </div>
+        <button
+          className="btn btn-big btn-play"
+          style={{ marginTop: 14 }}
+          disabled={!canJoin}
+          onClick={join}
+        >
+          <span className="btn-play-icon" aria-hidden="true" />
+          {status === "connecting" ? "connecting…" : "join party"}
+        </button>
       </div>
     );
   }

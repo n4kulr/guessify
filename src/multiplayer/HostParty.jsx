@@ -238,7 +238,7 @@ export default function HostParty({ code, playlist, me, onExit }) {
               disabled={!canStart}
               onClick={() => send({ type: "start" })}
             >
-              <span className="btn-disc" aria-hidden="true" />
+              <span className="btn-play-icon" aria-hidden="true" />
               {canStart ? "start game" : "waiting for players…"}
             </button>
           </div>

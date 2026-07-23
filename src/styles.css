@@ -2007,22 +2007,6 @@ button { font-family: var(--font); }
   line-height: 1.5;
   margin-bottom: 18px;
 }
-.mp-join-actions {
-  display: flex;
-  align-items: stretch;
-  justify-content: center;
-  gap: 10px;
-  margin-top: 14px;
-}
-.mp-join-play {
-  flex: none;
-  padding-left: 16px;
-  padding-right: 16px;
-  min-width: 52px;
-}
-.mp-join-play .btn-play-icon {
-  border-width: 8px 0 8px 14px;
-}
 .mp-host.mp-board { width: min(920px, 100%); }
 .mp-over { width: min(560px, 100%); margin: 0 auto; text-align: center; }
 
