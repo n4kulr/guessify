@@ -31,7 +31,7 @@ const CHART_PACKS = [
   { tag: "disco", label: "Disco", blurb: "dancefloor", about: "Seventies dance music with four-on-the-floor beats and lush arrangements.", artists: ["ABBA", "Donna Summer", "Bee Gees", "Daft Punk", "Chic", "Gloria Gaynor", "KC and the Sunshine Band", "Sister Sledge"] },
 ];
 
-export default function PlaylistPicker({ onPick, onBack }) {
+export default function PlaylistPicker({ onPick }) {
   const [data, setData] = useState(null); // { playlists, liked }
   const [error, setError] = useState(null);
   const [loadingId, setLoadingId] = useState(null);
@@ -133,11 +133,6 @@ export default function PlaylistPicker({ onPick, onBack }) {
 
   return (
     <div className="picker">
-      {onBack && (
-        <button className="btn btn-mini picker-back" onClick={onBack}>
-          ← home
-        </button>
-      )}
       <div className="picker-heading">
         {yours.length > 0 && (
           <button

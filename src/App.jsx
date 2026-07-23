@@ -133,7 +133,7 @@ export default function App() {
         )}
 
         {status === "loggedIn" && picking && (
-          <PlaylistPicker key={homeNonce} onPick={onPlaylistPicked} onBack={goHome} />
+          <PlaylistPicker key={homeNonce} onPick={onPlaylistPicked} />
         )}
 
         {status === "loggedIn" && mode === "solo" && playlist && (

@@ -1157,7 +1157,6 @@ button { font-family: var(--font); }
 
 /* ---------------- playlist picker ---------------- */
 .picker { width: min(var(--maxw), 100%); position: relative; }
-.picker-back { position: absolute; top: 0; left: 0; }
 .picker-heading {
   display: flex;
   align-items: center;
@@ -1282,10 +1281,11 @@ button { font-family: var(--font); }
 .shelf-tray {
   position: relative;
   z-index: 2;
-  flex: 0 0 min(var(--shelf-tray-w), 94vw);
+  flex: 0 0 auto;
+  box-sizing: border-box;
   max-width: var(--shelf-tray-w);
-  width: min(var(--shelf-tray-w), 94vw);
-  margin: 0;
+  width: min(var(--shelf-tray-w), 100%);
+  margin: 0 auto;
   padding: 14px 12px 16px;
   border-radius: 10px;
   background:
@@ -1303,9 +1303,9 @@ button { font-family: var(--font); }
 }
 .shelf-row.is-picking .shelf-tray {
   /* Fixed width — don't stretch when the liner opens */
-  flex: 0 0 min(var(--shelf-tray-w), 94vw);
+  flex: 0 0 auto;
   max-width: var(--shelf-tray-w);
-  width: min(var(--shelf-tray-w), 94vw);
+  width: min(var(--shelf-tray-w), 100%);
 }
 .shelf-tray-inner {
   height: calc(var(--shelf-case) + 16px + 18px);
@@ -2151,12 +2151,12 @@ button { font-family: var(--font); }
     flex-direction: column;
     width: 100%;
     align-items: center;
+    justify-content: center;
   }
   .shelf-tray,
   .shelf-row.is-picking .shelf-tray {
-    /* Column flex: don't use tray width as flex-basis (that became empty height) */
     flex: none;
-    width: min(var(--shelf-tray-w), 94vw);
+    width: 100%;
     max-width: var(--shelf-tray-w);
     align-self: center;
     margin-inline: auto;
@@ -2167,18 +2167,18 @@ button { font-family: var(--font); }
   }
   .shelf-panel.is-open {
     flex: none;
-    width: var(--shelf-panel-w, calc(100% - 16px));
+    width: min(100%, var(--shelf-panel-w, calc(100% - 16px)));
     max-width: none;
-    margin-left: var(--shelf-panel-side, 8px);
-    margin-right: var(--shelf-panel-side, 8px);
+    margin-left: auto;
+    margin-right: auto;
     margin-top: 0;
     height: auto;
     align-self: center;
   }
   .cd-row {
     flex-direction: column;
-    width: min(100%, 100%);
-    align-items: stretch;
+    width: 100%;
+    align-items: center;
   }
   .cd-row.is-picking { gap: 0; }
   .cd-tray {
