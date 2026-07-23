@@ -16,7 +16,6 @@ const CHART_PACKS = [
 ];
 
 export default function PlaylistPicker({ onPick, onBack }) {
-  const [tab, setTab] = useState("yours"); // yours | charts
   const [data, setData] = useState(null); // { playlists, liked }
   const [error, setError] = useState(null);
   const [loadingId, setLoadingId] = useState(null);
@@ -118,143 +117,113 @@ export default function PlaylistPicker({ onPick, onBack }) {
       )}
       <h2 className="section-title">Pick a record</h2>
       <p className="section-sub">
-        Your Spotify playlists, or Last.fm charts by vibe — pop, 90s, 1995…
+        Your Spotify playlists, then Last.fm charts by vibe — pop, 90s, 1995…
       </p>
-
-      <div className="picker-tabs" role="tablist" aria-label="Playlist source">
-        <button
-          type="button"
-          role="tab"
-          aria-selected={tab === "yours"}
-          className={`picker-tab ${tab === "yours" ? "is-active" : ""}`}
-          onClick={() => {
-            setTab("yours");
-            setNote(null);
-          }}
-        >
-          yours
-        </button>
-        <button
-          type="button"
-          role="tab"
-          aria-selected={tab === "charts"}
-          className={`picker-tab ${tab === "charts" ? "is-active" : ""}`}
-          onClick={() => {
-            setTab("charts");
-            setNote(null);
-          }}
-        >
-          charts & vibes
-        </button>
-      </div>
 
       {note && <div className="error-banner">{note}</div>}
 
-      {tab === "yours" && (
+      {yours.length === 0 ? (
+        <p className="section-sub">
+          No owned playlists found — make one on Spotify, or try a chart below.
+        </p>
+      ) : (
         <>
-          {yours.length === 0 ? (
-            <p className="section-sub">
-              No owned playlists found — make one on Spotify, or try Charts & vibes.
-            </p>
-          ) : (
-            <>
-              <div className="playlists">
-                {visibleYours.map((p) => (
-                  <button
-                    key={p.id}
-                    className={`record-card ${p.liked ? "liked-card" : ""}`}
-                    onClick={() => chooseYours(p)}
-                    disabled={loadingId !== null}
-                  >
-                    <div className="record-art">
-                      {p.liked ? (
-                        <div className="record-cover record-cover--liked">♥</div>
-                      ) : p.cover ? (
-                        <img src={p.cover} alt="" className="record-cover" />
-                      ) : (
-                        <div className="record-cover record-cover--empty">♪</div>
-                      )}
-                    </div>
-                    <div className="record-meta">
-                      <span className="record-name">{p.name}</span>
-                      <span className="record-count">{p.total} tracks</span>
-                    </div>
-                    {loadingId === p.id && (
-                      <span className="record-loading">loading…</span>
-                    )}
-                  </button>
-                ))}
-              </div>
-              {hiddenYours > 0 && !showAllYours && (
-                <button
-                  type="button"
-                  className="btn btn-ghost picker-more"
-                  onClick={() => setShowAllYours(true)}
-                >
-                  show {hiddenYours} more
-                </button>
-              )}
-              {showAllYours && yours.length > YOURS_PREVIEW && (
-                <button
-                  type="button"
-                  className="btn btn-ghost picker-more"
-                  onClick={() => setShowAllYours(false)}
-                >
-                  show less
-                </button>
-              )}
-            </>
+          <div className="playlists">
+            {visibleYours.map((p) => (
+              <button
+                key={p.id}
+                className={`record-card ${p.liked ? "liked-card" : ""}`}
+                onClick={() => chooseYours(p)}
+                disabled={loadingId !== null}
+              >
+                <div className="record-art">
+                  {p.liked ? (
+                    <div className="record-cover record-cover--liked">♥</div>
+                  ) : p.cover ? (
+                    <img src={p.cover} alt="" className="record-cover" />
+                  ) : (
+                    <div className="record-cover record-cover--empty">♪</div>
+                  )}
+                </div>
+                <div className="record-meta">
+                  <span className="record-name">{p.name}</span>
+                  <span className="record-count">{p.total} tracks</span>
+                </div>
+                {loadingId === p.id && (
+                  <span className="record-loading">loading…</span>
+                )}
+              </button>
+            ))}
+          </div>
+          {hiddenYours > 0 && !showAllYours && (
+            <button
+              type="button"
+              className="btn btn-ghost picker-more"
+              onClick={() => setShowAllYours(true)}
+            >
+              show {hiddenYours} more
+            </button>
+          )}
+          {showAllYours && yours.length > YOURS_PREVIEW && (
+            <button
+              type="button"
+              className="btn btn-ghost picker-more"
+              onClick={() => setShowAllYours(false)}
+            >
+              show less
+            </button>
           )}
         </>
       )}
 
-      {tab === "charts" && (
-        <>
-          <form className="chart-search" onSubmit={submitChartSearch}>
-            <input
-              className="guess-input chart-search-input"
-              placeholder="pop, 90s, 1995, indie…"
-              value={chartQuery}
-              onChange={(e) => setChartQuery(e.target.value)}
-              disabled={loadingId !== null}
-            />
-            <button
-              type="submit"
-              className="btn btn-mini"
-              disabled={loadingId !== null || !chartQuery.trim()}
-            >
-              {loadingId?.startsWith("chart:") ? "loading…" : "play"}
-            </button>
-          </form>
+      <h3 className="picker-section-title">charts &amp; vibes</h3>
+      <p className="picker-section-sub">
+        Genre and decade packs from Last.fm — or type any tag.
+      </p>
 
-          <div className="playlists">
-            {CHART_PACKS.map((pack) => {
-              const id = `chart:${pack.tag}`;
-              return (
-                <button
-                  key={pack.tag}
-                  className="record-card chart-card"
-                  onClick={() => chooseChart(pack.tag)}
-                  disabled={loadingId !== null}
-                >
-                  <div className="record-art">
-                    <div className="record-cover record-cover--chart">
-                      {pack.label.slice(0, 2)}
-                    </div>
-                  </div>
-                  <div className="record-meta">
-                    <span className="record-name">{pack.label}</span>
-                    <span className="record-count">{pack.blurb} · last.fm</span>
-                  </div>
-                  {loadingId === id && (
-                    <span className="record-loading">loading…</span>
-                  )}
-                </button>
-              );
-            })}
-          </div>
-        </>
-      )}
+      <form className="chart-search" onSubmit={submitChartSearch}>
+        <input
+          className="guess-input chart-search-input"
+          placeholder="pop, 90s, 1995, indie…"
+          value={chartQuery}
+          onChange={(e) => setChartQuery(e.target.value)}
+          disabled={loadingId !== null}
+        />
+        <button
+          type="submit"
+          className="btn btn-mini"
+          disabled={loadingId !== null || !chartQuery.trim()}
+        >
+          {loadingId?.startsWith("chart:") ? "loading…" : "play"}
+        </button>
+      </form>
+
+      <div className="playlists">
+        {CHART_PACKS.map((pack) => {
+          const id = `chart:${pack.tag}`;
+          return (
+            <button
+              key={pack.tag}
+              className="record-card chart-card"
+              onClick={() => chooseChart(pack.tag)}
+              disabled={loadingId !== null}
+            >
+              <div className="record-art">
+                <div className="record-cover record-cover--chart">
+                  {pack.label.slice(0, 2)}
+                </div>
+              </div>
+              <div className="record-meta">
+                <span className="record-name">{pack.label}</span>
+                <span className="record-count">{pack.blurb} · last.fm</span>
+              </div>
+              {loadingId === id && (
+                <span className="record-loading">loading…</span>
+              )}
+            </button>
+          );
+        })}
+      </div>
     </div>
   );
 }

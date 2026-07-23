@@ -1148,42 +1148,28 @@ button { font-family: var(--font); }
 .section-title { font-size: 26px; font-weight: 700; text-align: center; margin: 4px 0; }
 .section-sub { text-align: center; color: var(--sub-color); margin-bottom: 26px; font-size: 14px; }
 
-.picker-tabs {
-  display: flex;
-  justify-content: center;
-  gap: 8px;
-  margin: -8px 0 22px;
-}
-.picker-tab {
-  font: inherit;
-  font-size: 13px;
-  font-weight: 600;
-  letter-spacing: 0.04em;
-  text-transform: lowercase;
-  color: var(--sub-color);
-  background: transparent;
-  border: 1px solid color-mix(in srgb, var(--text-color) 12%, transparent);
-  border-radius: 999px;
-  padding: 7px 14px;
-  cursor: pointer;
-}
-.picker-tab.is-active {
-  color: var(--bg-color);
-  background: var(--main-color);
-  border-color: var(--main-color);
-}
 .picker-more {
   display: block;
   margin: 18px auto 0;
+}
+.picker-section-title {
+  font-size: 18px;
+  font-weight: 700;
+  text-align: center;
+  margin: 36px 0 6px;
+}
+.picker-section-sub {
+  text-align: center;
+  color: var(--sub-color);
+  font-size: 13px;
+  margin: 0 0 18px;
 }
 .chart-search {
   display: flex;
   gap: 10px;
   align-items: center;
-  margin: 0 0 18px;
+  margin: 0 auto 18px;
   max-width: 420px;
-  margin-left: auto;
-  margin-right: auto;
 }
 .chart-search-input { flex: 1; min-width: 0; }
 .record-cover--chart {
