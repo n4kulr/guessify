@@ -56,7 +56,7 @@ export default function Login({ error }) {
         <JoinCodeForm />
 
         <p className="fineprint">
-          free Spotify login for your playlists · guests just need a party code
+          login for your playlists · guests just need a party code
         </p>
       </div>
 

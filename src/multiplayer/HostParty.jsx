@@ -484,9 +484,6 @@ export default function HostParty({ code, playlist, me, onExit }) {
       )}
 
       {error && <div className="error-banner">{error}</div>}
-      <p className="fineprint mp-host-hint">
-        audio plays only on your device · anyone can skip or advance
-      </p>
       </div>
 
       <GuessPopups guesses={state.guesses} myId={playerId} />

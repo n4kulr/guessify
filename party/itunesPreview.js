@@ -8,7 +8,8 @@ export async function resolveItunesPreview(title, artist = "") {
   const cleanArtist = cleanForSearch(artist);
   const queries = [
     [cleanArtist, cleanTitle].filter(Boolean).join(" "),
-    cleanTitle,
+    // Only search title alone when we have no artist — otherwise wrong covers win.
+    cleanArtist ? null : cleanTitle,
     [artist, title].filter(Boolean).join(" ").trim(),
   ].filter((q, i, arr) => q && arr.indexOf(q) === i);
 
@@ -28,7 +29,7 @@ export async function resolveItunesPreview(title, artist = "") {
 async function itunesSearch(term) {
   const url =
     `https://itunes.apple.com/search?term=${encodeURIComponent(term)}` +
-    `&media=music&entity=song&limit=12&country=US`;
+    `&media=music&entity=song&limit=25&country=US`;
   const r = await fetch(url, {
     headers: { Accept: "application/json" },
   });
@@ -42,19 +43,75 @@ function pickBest(results, title, artist) {
   if (!withPreview.length) return null;
 
   let best = null;
-  let bestScore = -1;
+  let bestScore = 0;
   for (const r of withPreview) {
-    let score = 0;
-    if (fuzzyMatch(title, r.trackName)) score += 3;
-    else if (includesLoose(r.trackName, title) || includesLoose(title, r.trackName)) score += 1;
-    if (artist && fuzzyMatch(artist, r.artistName || "")) score += 2;
-    else if (artist && includesLoose(r.artistName || "", artist)) score += 1;
+    const titleScore = scoreTitle(title, r.trackName);
+    if (titleScore <= 0) continue;
+
+    let score = titleScore;
+    if (artist) {
+      const artistScore = scoreArtist(artist, r.artistName || "");
+      // Artist known → require a real artist match (stops random same-title covers).
+      if (artistScore <= 0) continue;
+      score += artistScore;
+    }
+
     if (score > bestScore) {
       bestScore = score;
       best = r;
     }
   }
-  return bestScore > 0 ? best : withPreview[0];
+  // Never fall back to results[0] — that caused many wrong previews.
+  return best;
+}
+
+function scoreTitle(want, got) {
+  const a = normalizeLoose(want);
+  const b = normalizeLoose(got);
+  if (!a || !b) return 0;
+  if (a === b) return 10;
+
+  const shorter = a.length <= b.length ? a : b;
+  const longer = a.length <= b.length ? b : a;
+  // "Love" must not match "Love Story"; allow only near-prefix extras.
+  if (
+    shorter.length >= 5 &&
+    longer.startsWith(shorter) &&
+    longer.length - shorter.length <= 2
+  ) {
+    return 7;
+  }
+  if (
+    shorter.length >= 6 &&
+    longer.includes(shorter) &&
+    longer.length <= Math.ceil(shorter.length * 1.35)
+  ) {
+    return 5;
+  }
+
+  const tolerance = Math.max(1, Math.floor(Math.min(a.length, b.length) * 0.12));
+  if (a.length >= 5 && b.length >= 5 && editDistance(a, b) <= tolerance) return 6;
+  return 0;
+}
+
+function scoreArtist(want, got) {
+  const a = normalizeLoose(want);
+  const b = normalizeLoose(got);
+  if (!a || !b) return 0;
+  if (a === b) return 8;
+  if (b.includes(a) || a.includes(b)) {
+    if (Math.min(a.length, b.length) >= 4) return 5;
+  }
+  const tokens = b.split(/\s+/).filter(Boolean);
+  if (
+    a.length >= 4 &&
+    tokens.some((t) => t === a || (t.length >= 4 && (t.includes(a) || a.includes(t))))
+  ) {
+    return 4;
+  }
+  const tolerance = Math.max(1, Math.floor(Math.min(a.length, b.length) * 0.15));
+  if (a.length >= 4 && b.length >= 4 && editDistance(a, b) <= tolerance) return 4;
+  return 0;
 }
 
 function cleanForSearch(str = "") {
@@ -75,22 +132,6 @@ function normalizeLoose(s = "") {
     .replace(/[^a-z0-9\s]/g, " ")
     .replace(/\s+/g, " ")
     .trim();
-}
-
-function includesLoose(hay, needle) {
-  const h = normalizeLoose(hay);
-  const n = normalizeLoose(needle);
-  return n.length >= 3 && h.includes(n);
-}
-
-function fuzzyMatch(guess, answer) {
-  const g = normalizeLoose(guess);
-  const t = normalizeLoose(answer);
-  if (!g || !t) return false;
-  if (g === t) return true;
-  if (g.length >= 4 && (t.includes(g) || g.includes(t))) return true;
-  const tolerance = Math.max(2, Math.floor(t.length * 0.25));
-  return editDistance(g, t) <= tolerance;
 }
 
 function editDistance(a, b) {

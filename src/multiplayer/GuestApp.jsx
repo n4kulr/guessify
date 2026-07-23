@@ -365,7 +365,6 @@ export default function GuestApp({ code }) {
         )}
 
         {error && <div className="error-banner">{error}</div>}
-        <p className="fineprint">audio plays only on your device · anyone can skip or advance</p>
       </div>
 
       <GuessPopups guesses={state.guesses} myId={playerId} />
