@@ -1160,39 +1160,37 @@ button { font-family: var(--font); }
 .picker-back { position: absolute; top: 0; left: 0; }
 .section-title { font-size: 26px; font-weight: 700; text-align: center; margin: 4px 0; }
 .section-sub { text-align: center; color: var(--sub-color); margin-bottom: 26px; font-size: 14px; }
+.section-sub.yours-sub {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  margin-bottom: 26px;
+}
+.section-sub.yours-sub span { color: var(--sub-color); }
 
 .picker-more {
   display: block;
   margin: 18px auto 0;
 }
-.yours-head {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 10px;
-  margin: 0 0 14px;
-}
-.yours-hint {
-  margin: 0;
-  font-size: 13px;
-  color: var(--sub-color);
-}
 .view-toggle {
   appearance: none;
-  width: 36px;
-  height: 36px;
-  border-radius: 9px;
+  min-width: 64px;
+  height: 30px;
+  padding: 0 10px;
+  border-radius: 8px;
   border: 1px solid color-mix(in srgb, var(--text-color) 18%, transparent);
   background: var(--sub-alt-color);
   color: var(--text-color);
   cursor: pointer;
-  display: grid;
-  place-items: center;
   flex: none;
-  padding: 0;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
   transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
 }
-.view-toggle svg { width: 18px; height: 18px; display: block; }
 .view-toggle:hover,
 .view-toggle[aria-pressed="true"] {
   background: var(--main-color);
@@ -1377,6 +1375,8 @@ button { font-family: var(--font); }
     0 10px 22px color-mix(in srgb, #000 40%, transparent),
     inset 0 1px 0 color-mix(in srgb, #fff 35%, transparent);
   transition: transform 0.18s ease;
+  -webkit-user-drag: none;
+  user-select: none;
 }
 .shelf-case:hover:not(:disabled) { transform: translateY(-3px); }
 .shelf-case:disabled { cursor: wait; opacity: 0.72; }
@@ -1411,6 +1411,9 @@ button { font-family: var(--font); }
   height: 100%;
   object-fit: cover;
   display: block;
+  -webkit-user-drag: none;
+  user-select: none;
+  pointer-events: none;
 }
 .shelf-face-fallback {
   width: 100%;
@@ -1441,6 +1444,8 @@ button { font-family: var(--font); }
   justify-content: space-between;
   gap: 12px;
   margin-top: 14px;
+  /* Match .shelf-tray-inner horizontal padding so labels line up with the case well */
+  padding: 0 8px;
 }
 .shelf-tray-caption {
   margin: 0;

@@ -23,26 +23,32 @@ function useDragScroll(scrollRef, surfaceRef) {
     function onDown(e) {
       if (e.pointerType === "touch") return;
       if (e.button !== 0) return;
+      // Stop browser image-drag so mouse can scroll the shelf.
+      if (e.target?.closest?.("img, button")) {
+        e.preventDefault();
+      }
       dragging = false;
       startX = e.clientX;
       startScroll = el.scrollLeft;
       pointerId = e.pointerId;
+      surface.setPointerCapture?.(e.pointerId);
     }
     function onMove(e) {
       if (pointerId !== e.pointerId) return;
       if (e.pointerType === "touch") return;
       const dx = e.clientX - startX;
       if (!dragging) {
-        if (Math.abs(dx) < 8) return;
+        if (Math.abs(dx) < 6) return;
         dragging = true;
         suppressClick = true;
-        el.setPointerCapture?.(e.pointerId);
       }
+      e.preventDefault();
       el.scrollLeft = startScroll - dx;
     }
     function onUp(e) {
       if (pointerId != null && e.pointerId !== pointerId) return;
       pointerId = null;
+      surface.releasePointerCapture?.(e.pointerId);
       if (dragging) {
         dragging = false;
         requestAnimationFrame(() => {
@@ -56,6 +62,9 @@ function useDragScroll(scrollRef, surfaceRef) {
         e.stopPropagation();
       }
     }
+    function onDragStart(e) {
+      e.preventDefault();
+    }
     function onWheel(e) {
       const dx = e.deltaX !== 0 ? e.deltaX : e.deltaY;
       if (dx === 0) return;
@@ -67,17 +76,19 @@ function useDragScroll(scrollRef, surfaceRef) {
       el.scrollLeft = next;
     }
 
-    el.addEventListener("pointerdown", onDown);
-    el.addEventListener("pointermove", onMove);
-    el.addEventListener("pointerup", onUp);
-    el.addEventListener("pointercancel", onUp);
+    surface.addEventListener("pointerdown", onDown);
+    surface.addEventListener("pointermove", onMove);
+    surface.addEventListener("pointerup", onUp);
+    surface.addEventListener("pointercancel", onUp);
+    surface.addEventListener("dragstart", onDragStart);
     el.addEventListener("click", onClickCapture, true);
     surface.addEventListener("wheel", onWheel, { passive: false });
     return () => {
-      el.removeEventListener("pointerdown", onDown);
-      el.removeEventListener("pointermove", onMove);
-      el.removeEventListener("pointerup", onUp);
-      el.removeEventListener("pointercancel", onUp);
+      surface.removeEventListener("pointerdown", onDown);
+      surface.removeEventListener("pointermove", onMove);
+      surface.removeEventListener("pointerup", onUp);
+      surface.removeEventListener("pointercancel", onUp);
+      surface.removeEventListener("dragstart", onDragStart);
       el.removeEventListener("click", onClickCapture, true);
       surface.removeEventListener("wheel", onWheel);
     };
@@ -181,7 +192,7 @@ export default function PlaylistCdShelf({ playlists, loadingId, onChoose }) {
                       {p.liked ? (
                         <span className="shelf-face-fallback liked">♥</span>
                       ) : p.cover ? (
-                        <img src={p.cover} alt="" />
+                        <img src={p.cover} alt="" draggable={false} />
                       ) : (
                         <span className="shelf-face-fallback">♪</span>
                       )}

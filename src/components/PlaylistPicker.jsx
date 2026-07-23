@@ -139,7 +139,22 @@ export default function PlaylistPicker({ onPick, onBack }) {
         </button>
       )}
       <h2 className="section-title">Pick a record…</h2>
-      <p className="section-sub">Your Spotify playlists only.</p>
+      {yours.length > 0 ? (
+        <div className="section-sub yours-sub">
+          <button
+            type="button"
+            className="view-toggle"
+            aria-pressed={cdsMode}
+            aria-label={cdsMode ? "Switch to button list" : "Switch to CD shelf"}
+            onClick={toggleYoursView}
+          >
+            {cdsMode ? "CD" : "Button"}
+          </button>
+          <span>Your Spotify playlists only.</span>
+        </div>
+      ) : (
+        <p className="section-sub">Your Spotify playlists only.</p>
+      )}
 
       {note && <div className="error-banner">{note}</div>}
 
@@ -149,34 +164,6 @@ export default function PlaylistPicker({ onPick, onBack }) {
         </p>
       ) : (
         <>
-          <div className="yours-head">
-            <button
-              type="button"
-              className="view-toggle"
-              aria-pressed={cdsMode}
-              aria-label="Toggle Spotify playlists between CD shelf and buttons"
-              title={cdsMode ? "Show as buttons" : "Show as CD shelf"}
-              onClick={toggleYoursView}
-            >
-              {cdsMode ? (
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
-                  <rect x="3" y="4" width="7" height="7" rx="1.5" />
-                  <rect x="14" y="4" width="7" height="7" rx="1.5" />
-                  <rect x="3" y="13" width="7" height="7" rx="1.5" />
-                  <rect x="14" y="13" width="7" height="7" rx="1.5" />
-                </svg>
-              ) : (
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
-                  <circle cx="12" cy="12" r="8" />
-                  <circle cx="12" cy="12" r="2.5" fill="currentColor" stroke="none" />
-                </svg>
-              )}
-            </button>
-            <p className="yours-hint">
-              {cdsMode ? "CD shelf for your playlists" : "Button list for your playlists"}
-            </p>
-          </div>
-
           {cdsMode ? (
             <PlaylistCdShelf
               playlists={yours}
@@ -197,7 +184,7 @@ export default function PlaylistPicker({ onPick, onBack }) {
                       {p.liked ? (
                         <div className="record-cover record-cover--liked">♥</div>
                       ) : p.cover ? (
-                        <img src={p.cover} alt="" className="record-cover" />
+                        <img src={p.cover} alt="" className="record-cover" draggable={false} />
                       ) : (
                         <div className="record-cover record-cover--empty">♪</div>
                       )}
