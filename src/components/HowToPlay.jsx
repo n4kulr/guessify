@@ -74,7 +74,7 @@ export default function HowToPlay({ open, onOpen, onClose }) {
           <h3 className="help-section-title">instructions</h3>
           <p>
             Log in with <b>Spotify</b> (any account) to load your playlists.
-            Snippets play from free iTunes previews — no Premium needed. Guests
+            Snippets play from free iTunes / Deezer previews — no Premium needed. Guests
             only need the party code.
           </p>
 

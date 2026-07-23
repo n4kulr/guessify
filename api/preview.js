@@ -1,5 +1,5 @@
-// Resolve a 30s preview via the free iTunes Search API (no key).
-// Spotify is only used for the user's library; audio comes from Apple.
+// Resolve a 30s preview via iTunes Search, then Deezer if Apple has no clip.
+// Spotify is only used for the user's library; audio comes from free previews.
 // Keep this self-contained — Vercel serverless shouldn't import from src/.
 
 export default async function handler(req, res) {
@@ -21,6 +21,7 @@ export default async function handler(req, res) {
       trackName: pick.trackName,
       artistName: pick.artistName,
       artworkUrl: pick.artworkUrl100 || null,
+      source: pick.source || "itunes",
     });
   } catch (e) {
     console.error("preview lookup failed", e);
@@ -31,6 +32,8 @@ export default async function handler(req, res) {
 async function findPreview(title, artist) {
   const cleanTitle = cleanForSearch(title);
   const cleanArtist = cleanForSearch(artist);
+  const wantTitle = cleanTitle || title;
+  const wantArtist = cleanArtist || artist;
   const queries = [
     [cleanArtist, cleanTitle].filter(Boolean).join(" "),
     // Only search title alone when we have no artist — otherwise wrong covers win.
@@ -40,8 +43,14 @@ async function findPreview(title, artist) {
 
   for (const term of queries) {
     const results = await itunesSearch(term);
-    const pick = pickBest(results, cleanTitle || title, cleanArtist || artist);
-    if (pick?.previewUrl) return pick;
+    const pick = pickBest(results, wantTitle, wantArtist);
+    if (pick?.previewUrl) return { ...pick, source: "itunes" };
+  }
+
+  for (const term of queries) {
+    const results = await deezerSearch(term);
+    const pick = pickBest(results, wantTitle, wantArtist);
+    if (pick?.previewUrl) return { ...pick, source: "deezer" };
   }
   return null;
 }
@@ -56,6 +65,25 @@ async function itunesSearch(term) {
   if (!r.ok) return [];
   const data = await r.json();
   return Array.isArray(data.results) ? data.results : [];
+}
+
+async function deezerSearch(term) {
+  const url = `https://api.deezer.com/search?q=${encodeURIComponent(term)}&limit=25`;
+  const r = await fetch(url, {
+    headers: { Accept: "application/json" },
+  });
+  if (!r.ok) return [];
+  const data = await r.json();
+  const rows = Array.isArray(data.data) ? data.data : [];
+  // Normalize to the iTunes-shaped fields pickBest already expects.
+  return rows
+    .filter((t) => t?.preview && t?.title)
+    .map((t) => ({
+      previewUrl: t.preview,
+      trackName: t.title,
+      artistName: t.artist?.name || "",
+      artworkUrl100: t.album?.cover_medium || t.album?.cover || null,
+    }));
 }
 
 function pickBest(results, title, artist) {

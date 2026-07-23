@@ -1,6 +1,6 @@
 # Guessify
 
-A record-shop-styled music guessing game. Log in with Spotify to load your playlists (or Liked Songs), then name the track from short snippets that grow longer as you miss. Audio comes from free **iTunes preview MP3s** — no Spotify Premium, no Web Playback SDK.
+A record-shop-styled music guessing game. Log in with Spotify to load your playlists (or Liked Songs), then name the track from short snippets that grow longer as you miss. Audio comes from free **iTunes** (then **Deezer**) preview MP3s — no Spotify Premium, no Web Playback SDK.
 
 Play solo, or **host a game** so friends can join from their phones (nickname only, no Spotify) and race for the first correct title.
 
@@ -34,7 +34,7 @@ Play solo, or **host a game** so friends can join from their phones (nickname on
 | **UI** | React 18 + Vite | Landing, playlist picker, solo game, multiplayer lobby / race |
 | **Auth & library** | Vercel serverless (`api/`) | Spotify OAuth, session cookie, playlists, Liked Songs, track metadata / cover art |
 | **Charts & vibes** | Last.fm `tag.getTopTracks` | Genre / decade / custom tags → track lists (audio still via iTunes) |
-| **Playback** | iTunes Search API + HTML `<audio>` | Free 30s preview MP3s (no API key, no Apple login) |
+| **Playback** | iTunes → Deezer + HTML `<audio>` | Free 30s preview MP3s (no API key) |
 | **Realtime rooms** | Cloudflare Workers + [PartyServer](https://github.com/cloudflare/partykit/tree/main/packages/partyserver) + Durable Objects | Authoritative multiplayer state, guesses, first-correct wins |
 | **Client sockets** | [PartySocket](https://www.npmjs.com/package/partysocket) | Browser ↔ Worker WebSocket |
 
@@ -53,7 +53,7 @@ src/
 wrangler.jsonc       Cloudflare Worker config (Durable Object + SQLite migration)
 ```
 
-Session: encrypted **http-only cookie** (no DB). Spotify Client Secret stays on the server. Spotify is only used for **your library + cover art**; snippets are resolved at play time via iTunes.
+Session: encrypted **http-only cookie** (no DB). Spotify Client Secret stays on the server. Spotify is only used for **your library + cover art**; snippets are resolved at play time via iTunes, with Deezer as fallback.
 
 Avatars: 105 Open Peeps busts in `public/peeps/` (from Flat Assets); lobby is nickname + randomize + accent.
 

@@ -1,11 +1,13 @@
 /**
- * Cloudflare-safe iTunes preview lookup for party rooms.
- * Mirrors api/preview.js without importing Vercel route code.
+ * Cloudflare-safe preview lookup for party rooms.
+ * iTunes first, Deezer if Apple has no clip. Mirrors api/preview.js.
  */
 
 export async function resolveItunesPreview(title, artist = "") {
   const cleanTitle = cleanForSearch(title);
   const cleanArtist = cleanForSearch(artist);
+  const wantTitle = cleanTitle || title;
+  const wantArtist = cleanArtist || artist;
   const queries = [
     [cleanArtist, cleanTitle].filter(Boolean).join(" "),
     // Only search title alone when we have no artist — otherwise wrong covers win.
@@ -15,7 +17,18 @@ export async function resolveItunesPreview(title, artist = "") {
 
   for (const term of queries) {
     const results = await itunesSearch(term);
-    const pick = pickBest(results, cleanTitle || title, cleanArtist || artist);
+    const pick = pickBest(results, wantTitle, wantArtist);
+    if (pick?.previewUrl) {
+      return {
+        previewUrl: pick.previewUrl,
+        artworkUrl: pick.artworkUrl100 || null,
+      };
+    }
+  }
+
+  for (const term of queries) {
+    const results = await deezerSearch(term);
+    const pick = pickBest(results, wantTitle, wantArtist);
     if (pick?.previewUrl) {
       return {
         previewUrl: pick.previewUrl,
@@ -36,6 +49,24 @@ async function itunesSearch(term) {
   if (!r.ok) return [];
   const data = await r.json();
   return Array.isArray(data.results) ? data.results : [];
+}
+
+async function deezerSearch(term) {
+  const url = `https://api.deezer.com/search?q=${encodeURIComponent(term)}&limit=25`;
+  const r = await fetch(url, {
+    headers: { Accept: "application/json" },
+  });
+  if (!r.ok) return [];
+  const data = await r.json();
+  const rows = Array.isArray(data.data) ? data.data : [];
+  return rows
+    .filter((t) => t?.preview && t?.title)
+    .map((t) => ({
+      previewUrl: t.preview,
+      trackName: t.title,
+      artistName: t.artist?.name || "",
+      artworkUrl100: t.album?.cover_medium || t.album?.cover || null,
+    }));
 }
 
 function pickBest(results, title, artist) {
