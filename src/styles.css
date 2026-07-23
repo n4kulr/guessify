@@ -1244,33 +1244,40 @@ button { font-family: var(--font); }
   padding-right: 2px;
 }
 .mp-guess-popup {
+  display: flex;
+  align-items: center;
+  gap: 12px;
   background: var(--bg-color);
   border-radius: 12px;
   padding: 10px 12px;
-  border-left: 4px solid var(--guess-accent, var(--main-color));
   box-shadow: 0 8px 20px color-mix(in srgb, #000 18%, transparent);
   animation: mp-guess-in 0.28s ease-out both;
 }
 .mp-guess-popup--empty {
   color: var(--sub-color);
   font-size: 12px;
-  border-left-color: color-mix(in srgb, var(--text-color) 25%, transparent);
   box-shadow: none;
   animation: none;
 }
 .mp-guess-popup.win {
   background: color-mix(in srgb, var(--main-color) 22%, var(--bg-color));
 }
-.mp-guess-popup-who {
+.mp-guess-popup-avatar {
+  flex: none;
+}
+.mp-guess-popup-main {
+  min-width: 0;
+  flex: 1;
   display: flex;
-  align-items: center;
-  gap: 8px;
+  flex-direction: column;
+  gap: 4px;
+}
+.mp-guess-popup-who {
   font-size: 11px;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.06em;
   color: var(--sub-color);
-  margin-bottom: 6px;
 }
 .mp-guess-popup-body {
   display: flex;
