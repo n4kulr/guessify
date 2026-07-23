@@ -1627,7 +1627,7 @@ button { font-family: var(--font); }
   max-width: 240px;
   height: calc(var(--cd-panel-h, 100%) - 28px);
   margin-top: 28px;
-  margin-left: -20px;
+  margin-left: 0;
   opacity: 1;
   overflow: hidden;
   transform: translateX(0);
