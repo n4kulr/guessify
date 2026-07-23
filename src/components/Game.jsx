@@ -1,9 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { isCorrect, matchesAnyArtist } from "../match.js";
 import { usePreviewPlayer } from "../usePreviewPlayer.js";
-import { loadMediaMode, saveMediaMode } from "../mediaMode.js";
 import GuessMedia from "./GuessMedia.jsx";
-import MediaModeToggle from "./MediaModeToggle.jsx";
 import ScrubbableVinyl from "./ScrubbableVinyl.jsx";
 import {
   STEPS,
@@ -45,14 +43,8 @@ export default function Game({ playlist, onExit }) {
   const [playBusy, setPlayBusy] = useState(false);
   const [celebrate, setCelebrate] = useState(false);
   const [scrubbing, setScrubbing] = useState(false);
-  const [mediaMode, setMediaMode] = useState(loadMediaMode);
 
   const { errorMsg, play, pause } = usePreviewPlayer();
-
-  function changeMediaMode(next) {
-    setMediaMode(next);
-    saveMediaMode(next);
-  }
 
   const track = rounds[roundIdx];
   const unlocked = STEPS[Math.min(guessNum, MAX_GUESSES - 1)];
@@ -194,7 +186,7 @@ export default function Game({ playlist, onExit }) {
   const spinning = (playing || celebrate) && !scrubbing;
   // Play button: only start a snippet — greyed out while playing / busy.
   // Pause lives on the vinyl (click).
-  const playDisabled = !canControl || playing || playBusy;
+  const playDisabled = !canControl || playBusy;
 
   return (
     <div className={`game ${outcome === "win" ? "game--win" : ""} ${outcome === "lose" ? "game--lose" : ""}`}>
@@ -225,7 +217,7 @@ export default function Game({ playlist, onExit }) {
       {phase === "play" && (
         <>
           <GuessMedia
-            mode={mediaMode}
+            mode="vinyl"
             revealed={resolved}
             spinning={spinning}
             celebrate={celebrate}
@@ -281,26 +273,26 @@ export default function Game({ playlist, onExit }) {
             </div>
           </div>
 
-          <div className={`controls${!resolved ? "" : " controls--toggle-only"}`}>
-            {!resolved && (
-              <>
-                {errorMsg && <div className="error-banner">{errorMsg}</div>}
-                <button
-                  className="btn btn-big btn-play"
-                  onClick={() => playSnippet(unlocked)}
-                  disabled={playDisabled}
-                >
-                  <span className="btn-disc" aria-hidden="true" />
-                  {playBusy
-                    ? "starting…"
-                    : playing
-                    ? "playing…"
-                    : `play ${unlocked}s`}
-                </button>
-              </>
-            )}
-            <MediaModeToggle mode={mediaMode} onChange={changeMediaMode} />
-          </div>
+          {!resolved && (
+            <div className="controls">
+              {errorMsg && <div className="error-banner">{errorMsg}</div>}
+              <button
+                className="btn btn-big btn-play"
+                onClick={togglePlay}
+                disabled={playDisabled}
+              >
+                <span
+                  className={playing ? "btn-pause-icon" : "btn-play-icon"}
+                  aria-hidden="true"
+                />
+                {playBusy
+                  ? "starting…"
+                  : playing
+                  ? "pause"
+                  : `play ${unlocked}s`}
+              </button>
+            </div>
+          )}
 
           <div className="guess-rows">
             {Array.from({ length: MAX_GUESSES }).map((_, i) => {
@@ -314,20 +306,20 @@ export default function Game({ playlist, onExit }) {
                 <div key={i} className={cls}>
                   {g ? (
                     g.skip ? (
-                      <span className="gr-skip">⏭ skipped</span>
+                      <span className="gr-skip">skipped</span>
                     ) : (
                       <>
                         <span className={`gr-field ${g.titleOk ? "ok" : "no"}`}>
-                          {g.title || "—"}
+                          {g.title || "?"}
                         </span>
                         <span className="gr-sep">by</span>
                         <span className={`gr-field ${g.artistOk ? "ok" : "no"}`}>
-                          {g.artist || "—"}
+                          {g.artist || "?"}
                         </span>
                       </>
                     )
                   ) : active ? (
-                    "◉ your guess…"
+                    "your guess…"
                   ) : (
                     ""
                   )}
@@ -387,7 +379,7 @@ export default function Game({ playlist, onExit }) {
                   disabled={!titleGuess.trim() && !artistGuess.trim()}
                 >
                   <span className="btn-label">guess</span>
-                  <span className="btn-hint">↵ enter</span>
+                  <span className="btn-hint">enter</span>
                 </button>
               </div>
             </div>

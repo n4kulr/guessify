@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { createScratchEngine, pointerAngle } from "../vinylScratch.js";
 
 const SCRUB_THRESHOLD = 0.05; // radians before a drag counts as scrubbing
@@ -10,9 +10,23 @@ function getScratch() {
   return sharedScratch;
 }
 
+/** Read the element's current visual rotation in degrees (works mid-CSS-animation). */
+function getElementRotationDeg(el) {
+  if (!el) return 0;
+  const t = getComputedStyle(el).transform;
+  if (!t || t === "none") return 0;
+  try {
+    const m = new DOMMatrixReadOnly(t);
+    return (Math.atan2(m.m12, m.m11) * 180) / Math.PI;
+  } catch {
+    return 0;
+  }
+}
+
 /**
  * Any spinning record that can be dragged for a DJ scratch sound.
  * Optional onClick fires on a tap (not a scrub). onScrubStart for host audio ducking.
+ * Rotation is preserved when spin stops and continues from that angle when it resumes.
  */
 export default function ScrubbableVinyl({
   className = "",
@@ -30,6 +44,8 @@ export default function ScrubbableVinyl({
   const scrubRef = useRef(null);
   const [scrubbing, setScrubbing] = useState(false);
   const [rot, setRot] = useState(0);
+  // Keep CSS spin class one frame after `spin` goes false so we can sample the angle.
+  const [visualSpin, setVisualSpin] = useState(spin);
 
   const onClickRef = useRef(onClick);
   const onScrubStartRef = useRef(onScrubStart);
@@ -40,6 +56,20 @@ export default function ScrubbableVinyl({
     onScrubEndRef.current = onScrubEnd;
   });
 
+  useLayoutEffect(() => {
+    if (scrubbing) return;
+    if (spin === "fast" || spin === "slow") {
+      if (visualSpin !== spin) setVisualSpin(spin);
+      return;
+    }
+    // Stopping: sample while animation class is still applied, then park.
+    if (visualSpin) {
+      const el = ref.current;
+      if (el) setRot(getElementRotationDeg(el));
+      setVisualSpin(false);
+    }
+  }, [spin, scrubbing, visualSpin]);
+
   function onPointerDown(e) {
     if (!enabled) return;
     e.preventDefault();
@@ -47,12 +77,14 @@ export default function ScrubbableVinyl({
     if (!el) return;
     el.setPointerCapture?.(e.pointerId);
     const angle = pointerAngle(el, e.clientX, e.clientY);
+    const base =
+      visualSpin && !scrubbing ? getElementRotationDeg(el) : rot;
     scrubRef.current = {
       pointerId: e.pointerId,
       startAngle: angle,
       lastAngle: angle,
       lastTime: performance.now(),
-      baseRot: rot,
+      baseRot: base,
       scrubbing: false,
     };
   }
@@ -73,7 +105,12 @@ export default function ScrubbableVinyl({
     if (total < -Math.PI) total += Math.PI * 2;
 
     if (!s.scrubbing && Math.abs(total) > SCRUB_THRESHOLD) {
+      // Freeze live CSS spin angle before scrub class removes the animation.
+      const live = getElementRotationDeg(el);
+      s.baseRot = live;
+      s.startAngle = angle;
       s.scrubbing = true;
+      setRot(live);
       setScrubbing(true);
       onScrubStartRef.current?.();
     }
@@ -103,12 +140,13 @@ export default function ScrubbableVinyl({
     onClickRef.current?.();
   }
 
+  const activeSpin = scrubbing ? false : visualSpin;
   const spinClass =
-    !scrubbing && spin === "fast"
+    activeSpin === "fast"
       ? "spin-fast"
-      : !scrubbing && spin === "slow"
+      : activeSpin === "slow"
       ? "spin-slow"
-      : "";
+      : "vinyl--parked";
 
   return (
     <div
@@ -121,7 +159,7 @@ export default function ScrubbableVinyl({
       }`}
       style={{
         ...style,
-        ...(scrubbing ? { "--vinyl-rot": `${rot}deg` } : null),
+        "--vinyl-rot": `${rot}deg`,
       }}
       onPointerDown={onPointerDown}
       onPointerMove={onPointerMove}

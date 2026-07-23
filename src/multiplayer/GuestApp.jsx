@@ -5,9 +5,7 @@ import PlayerRail from "./PlayerRail.jsx";
 import ProfileEditor from "./ProfileEditor.jsx";
 import GuessPopups from "./GuessPopups.jsx";
 import { STEPS, TOTAL, randomAvatar, normalizeAvatar } from "./constants.js";
-import { loadMediaMode, saveMediaMode } from "../mediaMode.js";
 import GuessMedia from "../components/GuessMedia.jsx";
-import MediaModeToggle from "../components/MediaModeToggle.jsx";
 
 export default function GuestApp({ code }) {
   const upper = code.toUpperCase();
@@ -16,17 +14,11 @@ export default function GuestApp({ code }) {
   const [avatar, setAvatar] = useState(() => randomAvatar());
   const [titleGuess, setTitleGuess] = useState("");
   const [artistGuess, setArtistGuess] = useState("");
-  const [mediaMode, setMediaMode] = useState(loadMediaMode);
   const { errorMsg, play, pause } = usePreviewPlayer();
   const [playBusy, setPlayBusy] = useState(false);
   const [localPlaying, setLocalPlaying] = useState(false);
   const lastTrackRef = useRef(null);
   const lastRevealPlayRef = useRef(null);
-
-  function changeMediaMode(next) {
-    setMediaMode(next);
-    saveMediaMode(next);
-  }
 
   const joined = !!playerId;
   const me = state?.players?.find((p) => p.id === playerId);
@@ -246,7 +238,7 @@ export default function GuestApp({ code }) {
         />
 
         <GuessMedia
-          mode={mediaMode}
+          mode="vinyl"
           revealed={revealed}
           spinning={spinning}
           cover={track?.cover}
@@ -286,28 +278,28 @@ export default function GuestApp({ code }) {
           </div>
         </div>
 
-        <div className={`controls${state.phase === "play" ? "" : " controls--toggle-only"}`}>
-          {state.phase === "play" && (
-            <>
-              {errorMsg && <div className="error-banner">{errorMsg}</div>}
-              <button
-                className="btn btn-big btn-play"
-                onClick={() => playSnippet(unlocked)}
-                disabled={!canPlay || localPlaying || playBusy}
-              >
-                <span className="btn-disc" aria-hidden="true" />
-                {playBusy
-                  ? "starting…"
-                  : localPlaying
-                  ? "playing…"
-                  : canPlay
-                  ? `play ${unlocked}s`
-                  : "loading audio…"}
-              </button>
-            </>
-          )}
-          <MediaModeToggle mode={mediaMode} onChange={changeMediaMode} />
-        </div>
+        {state.phase === "play" && (
+          <div className="controls">
+            {errorMsg && <div className="error-banner">{errorMsg}</div>}
+            <button
+              className="btn btn-big btn-play"
+              onClick={togglePlay}
+              disabled={!canPlay || playBusy}
+            >
+              <span
+                className={localPlaying ? "btn-pause-icon" : "btn-play-icon"}
+                aria-hidden="true"
+              />
+              {playBusy
+                ? "starting…"
+                : localPlaying
+                ? "pause"
+                : canPlay
+                ? `play ${unlocked}s`
+                : "loading audio…"}
+            </button>
+          </div>
+        )}
 
         {state.phase === "play" && (
           <div className="guess-input-wrap">
@@ -339,7 +331,7 @@ export default function GuestApp({ code }) {
                 disabled={!titleGuess.trim() && !artistGuess.trim()}
               >
                 <span className="btn-label">guess</span>
-                <span className="btn-hint">↵ enter</span>
+                <span className="btn-hint">enter</span>
               </button>
             </div>
           </div>

@@ -34,10 +34,6 @@ export default function Home({ me, onStartSolo, onStartMulti }) {
         </div>
 
         <JoinCodeForm />
-
-        <p className="fineprint">
-          host: friends join with the code · everyone plays on their own device
-        </p>
       </div>
 
       <div className="hero-right">

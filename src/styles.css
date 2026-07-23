@@ -219,6 +219,26 @@ button { font-family: var(--font); }
   transform: translateX(1px);
 }
 
+.btn-pause-icon {
+  width: 11px;
+  height: 14px;
+  flex: none;
+  position: relative;
+  display: inline-block;
+}
+.btn-pause-icon::before,
+.btn-pause-icon::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  width: 3.5px;
+  height: 100%;
+  border-radius: 1px;
+  background: currentColor;
+}
+.btn-pause-icon::before { left: 0; }
+.btn-pause-icon::after { right: 0; }
+
 .btn-disc {
   width: 18px; height: 18px; border-radius: 50%;
   background:
@@ -332,6 +352,10 @@ button { font-family: var(--font); }
   filter: brightness(1.08);
   transform: rotate(var(--vinyl-rot, 0deg));
 }
+.vinyl--parked {
+  animation: none !important;
+  transform: rotate(var(--vinyl-rot, 0deg));
+}
 .vinyl::before {
   content: ""; position: absolute; inset: 7px; border-radius: 50%;
   background: linear-gradient(120deg, transparent 42%, rgba(255,255,255,0.12) 50%, transparent 58%);
@@ -355,13 +379,18 @@ button { font-family: var(--font); }
   background: var(--bg-color);
   border: 1px solid var(--sub-color);
 }
+/* Continue from --vinyl-rot so pause/play doesn't snap back to 0°. */
 .spin-fast {
-  animation: spin 1.4s linear infinite;
+  animation: vinyl-spin 1.4s linear infinite;
   will-change: transform;
 }
 .spin-slow {
-  animation: spin 5s linear infinite;
+  animation: vinyl-spin 5s linear infinite;
   will-change: transform;
+}
+@keyframes vinyl-spin {
+  from { transform: rotate(var(--vinyl-rot, 0deg)); }
+  to { transform: rotate(calc(var(--vinyl-rot, 0deg) + 360deg)); }
 }
 @keyframes spin { to { transform: rotate(360deg); } }
 
@@ -788,10 +817,111 @@ button { font-family: var(--font); }
   pointer-events: none;
 }
 .cassette-tooth-icon {
-  font-size: 11px;
-  line-height: 1;
-  opacity: 0.9;
-  transform: translateY(0.5px);
+  position: relative;
+  display: block;
+  width: 12px;
+  height: 10px;
+  flex: none;
+  line-height: 0;
+  opacity: 0.95;
+}
+.cassette-ico-play {
+  width: 0;
+  height: 0;
+  border-style: solid;
+  border-width: 5px 0 5px 8px;
+  border-color: transparent transparent transparent currentColor;
+  margin-left: 2px;
+}
+.cassette-ico-pause {
+  width: 9px;
+  height: 10px;
+}
+.cassette-ico-pause::before,
+.cassette-ico-pause::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  width: 3px;
+  height: 100%;
+  border-radius: 0.5px;
+  background: currentColor;
+}
+.cassette-ico-pause::before { left: 0; }
+.cassette-ico-pause::after { right: 0; }
+.cassette-ico-ff,
+.cassette-ico-rew {
+  width: 12px;
+  height: 10px;
+}
+.cassette-ico-ff::before,
+.cassette-ico-ff::after,
+.cassette-ico-rew::before,
+.cassette-ico-rew::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  width: 0;
+  height: 0;
+  border-style: solid;
+}
+.cassette-ico-ff::before,
+.cassette-ico-ff::after {
+  border-width: 5px 0 5px 6px;
+  border-color: transparent transparent transparent currentColor;
+}
+.cassette-ico-ff::before { left: 0; }
+.cassette-ico-ff::after { left: 5px; }
+.cassette-ico-rew::before,
+.cassette-ico-rew::after {
+  border-width: 5px 6px 5px 0;
+  border-color: transparent currentColor transparent transparent;
+}
+.cassette-ico-rew::before { left: 0; }
+.cassette-ico-rew::after { left: 5px; }
+.cassette-ico-sound,
+.cassette-ico-muted {
+  width: 12px;
+  height: 10px;
+}
+.cassette-ico-sound::before,
+.cassette-ico-muted::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 2px;
+  width: 4px;
+  height: 6px;
+  background: currentColor;
+  border-radius: 1px 0 0 1px;
+}
+.cassette-ico-sound::after,
+.cassette-ico-muted::after {
+  content: "";
+  position: absolute;
+  left: 3px;
+  top: 0;
+  width: 0;
+  height: 0;
+  border-style: solid;
+  border-width: 5px 0 5px 6px;
+  border-color: transparent transparent transparent currentColor;
+}
+.cassette-ico-muted {
+  opacity: 0.55;
+}
+.cassette-ico-muted::after {
+  /* slash */
+  box-shadow: none;
+}
+.cassette-ico-muted {
+  background: linear-gradient(
+    135deg,
+    transparent 46%,
+    currentColor 46%,
+    currentColor 54%,
+    transparent 54%
+  );
 }
 .cassette-tooth:hover {
   background: color-mix(in srgb, var(--main-color) 35%, var(--bg-color));
@@ -2216,6 +2346,14 @@ button { font-family: var(--font); }
   .shelf-panel.is-open .cd-insert {
     max-height: min(70vh, 420px);
   }
+  /* Show ~5 artists; rest scroll inside the liner. */
+  .cd-insert-feat-block {
+    flex: 0 1 auto;
+  }
+  .cd-insert-tracks {
+    flex: 0 1 auto;
+    max-height: calc((12px * 1.3 * 5) + (6px * 4));
+  }
   .cd-insert-actions {
     margin-left: -12px;
     margin-right: -12px;
@@ -2508,7 +2646,17 @@ button { font-family: var(--font); }
 .guess-row.wrong { background: var(--bg-color); }
 .gr-field { max-width: 42%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .gr-field.ok { color: var(--main-color); }
-.gr-field.ok::before { content: "✓ "; }
+.gr-field.ok::before {
+  content: "";
+  display: inline-block;
+  width: 0.35em;
+  height: 0.65em;
+  margin-right: 0.35em;
+  border-right: 1.5px solid currentColor;
+  border-bottom: 1.5px solid currentColor;
+  transform: rotate(40deg) translateY(-0.05em);
+  vertical-align: 0.05em;
+}
 .gr-field.no { color: var(--error-color); text-decoration: line-through; }
 .gr-sep { color: var(--sub-color); font-size: 12px; }
 .gr-skip { color: var(--sub-color); }
@@ -2638,8 +2786,15 @@ button { font-family: var(--font); }
   100% { opacity: 0; transform: scale(1.85); }
 }
 
-.vinyl--revealed { animation: vinyl-reveal 0.55s cubic-bezier(0.2, 1.3, 0.4, 1) both; }
-.vinyl--revealed.spin-fast { animation: vinyl-reveal 0.55s cubic-bezier(0.2, 1.3, 0.4, 1) both, spin 1.4s linear 0.55s infinite; }
+.vinyl--revealed .vinyl-cover,
+.vinyl--revealed .vinyl-label {
+  animation: vinyl-reveal 0.55s cubic-bezier(0.2, 1.3, 0.4, 1) both;
+}
+/* Keep spin on the disc itself — reveal used to animate transform here and
+   blocked vinyl-spin (tonearm dropped, disc stayed still). */
+.vinyl--revealed.spin-fast {
+  animation: vinyl-spin 1.4s linear infinite;
+}
 .vinyl-cover {
   width: 72%; height: 72%; object-fit: cover; border-radius: 50%;
   position: relative; z-index: 2;

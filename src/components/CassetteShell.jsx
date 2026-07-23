@@ -2,17 +2,17 @@ import { useState } from "react";
 import { playCassetteButton } from "../cassetteSounds.js";
 
 const TEETH = [
-  { id: "rew", label: "rewind", icon: "⏮" },
-  { id: "play", label: "play", icon: "▶" },
-  { id: "pause", label: "pause", icon: "⏸" },
-  { id: "ff", label: "fast forward", icon: "⏭" },
+  { id: "rew", label: "rewind", iconClass: "cassette-ico-rew" },
+  { id: "play", label: "play", iconClass: "cassette-ico-play" },
+  { id: "pause", label: "pause", iconClass: "cassette-ico-pause" },
+  { id: "ff", label: "fast forward", iconClass: "cassette-ico-ff" },
 ];
 
 /**
  * Shared cassette face used by the landing demo and in-game media stage.
  * `interactiveTeeth` enables the sprocket click + blip (demo). Game mode
  * can pass `onActivate` to toggle play/pause via the shell.
- * Pass `muteControl` on the demo to replace ⏭ with mute / unmute.
+ * Pass `muteControl` on the demo to replace ff with mute / unmute.
  */
 export default function CassetteShell({
   done = false,
@@ -34,7 +34,9 @@ export default function CassetteShell({
           ? {
               id: "mute",
               label: muteControl.muted ? "unmute audio" : "mute audio",
-              icon: muteControl.muted ? "🔇" : "🔊",
+              iconClass: muteControl.muted
+                ? "cassette-ico-muted"
+                : "cassette-ico-sound",
             }
           : t
       )
@@ -126,9 +128,10 @@ export default function CassetteShell({
                 aria-pressed={tooth.id === "mute" ? !!muteControl?.muted : undefined}
                 onClick={(e) => tapTooth(i, tooth, e)}
               >
-                <span className="cassette-tooth-icon" aria-hidden="true">
-                  {tooth.icon}
-                </span>
+                <span
+                  className={`cassette-tooth-icon ${tooth.iconClass}`}
+                  aria-hidden="true"
+                />
               </button>
             ) : (
               <span
@@ -136,7 +139,10 @@ export default function CassetteShell({
                 className="cassette-tooth cassette-tooth--static"
                 aria-hidden="true"
               >
-                <span className="cassette-tooth-icon">{tooth.icon}</span>
+                <span
+                  className={`cassette-tooth-icon ${tooth.iconClass}`}
+                  aria-hidden="true"
+                />
               </span>
             )
           )}

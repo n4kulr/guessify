@@ -10,7 +10,7 @@ const ROUNDS = [
       { text: "taylor swift?", correct: false },
       { text: "drake?", correct: false },
       { text: "daniel caesar?", correct: false },
-      { text: "⏭ skipped", correct: false },
+      { text: "skipped", correct: false },
       { text: "infrunami", correct: true },
     ],
     answer: {
@@ -53,7 +53,7 @@ const ROUNDS = [
       { text: "post malone?", correct: false },
       { text: "ed sheeran?", correct: false },
       { text: "frank ocean?", correct: false },
-      { text: "⏭ skipped", correct: false },
+      { text: "skipped", correct: false },
       { text: "house of balloons", correct: true },
     ],
     answer: {
@@ -68,7 +68,7 @@ const ROUNDS = [
       { text: "ariana grande?", correct: false },
       { text: "doja cat?", correct: false },
       { text: "lil uzi vert?", correct: false },
-      { text: "⏭ skipped", correct: false },
+      { text: "skipped", correct: false },
       { text: "thinkin bout you", correct: true },
     ],
     answer: {
@@ -83,7 +83,7 @@ const ROUNDS = [
       { text: "the weeknd?", correct: false },
       { text: "justin bieber?", correct: false },
       { text: "beach house?", correct: false },
-      { text: "⏭ skipped", correct: false },
+      { text: "skipped", correct: false },
       { text: "lovers rock", correct: true },
     ],
     answer: {
@@ -370,7 +370,7 @@ export default function DemoPreview() {
           <div className="demo-grain" aria-hidden="true" />
           <div className="demo-scanlines" aria-hidden="true" />
           <div className="demo-head">
-            <span className="demo-playlist">▶ liked-songs</span>
+            <span className="demo-playlist">liked-songs</span>
             <span className="demo-score">
               SCORE <b>4200</b>
             </span>
@@ -433,7 +433,7 @@ export default function DemoPreview() {
                       i < step ? (g.correct ? "hit" : "miss") : i === step ? "cursor" : ""
                     }`}
                   >
-                    {i < step ? g.text : i === step ? "◉ guessing…" : ""}
+                    {i < step ? g.text : i === step ? "guessing…" : ""}
                   </div>
                 ))}
               </div>
