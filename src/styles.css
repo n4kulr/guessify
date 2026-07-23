@@ -1387,10 +1387,6 @@ button { font-family: var(--font); }
 }
 .shelf-case:hover:not(:disabled) { transform: translateY(-3px); }
 .shelf-case:disabled { cursor: wait; opacity: 0.72; }
-.shelf-case.is-selected {
-  outline: 2px solid var(--main-color);
-  outline-offset: 2px;
-}
 .shelf-spine {
   height: 22px;
   display: flex;
