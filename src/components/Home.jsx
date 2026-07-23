@@ -1,9 +1,16 @@
+import { useEffect, useState } from "react";
 import DemoPreview from "./DemoPreview.jsx";
 import HeroTurntable from "./HeroTurntable.jsx";
 import JoinCodeForm from "../multiplayer/JoinCodeForm.jsx";
+import { onlineActiveCount } from "../onlineActive.js";
 
-export default function Home({ me, onStartSolo, onStartMulti }) {
+export default function Home({ me, onStartSolo, onStartMulti, onStartOnline }) {
   const name = me?.displayName?.split(" ")[0] || "there";
+  const [active, setActive] = useState(() => onlineActiveCount());
+  useEffect(() => {
+    const id = setInterval(() => setActive(onlineActiveCount()), 15_000);
+    return () => clearInterval(id);
+  }, []);
 
   return (
     <div className="hero">
@@ -31,6 +38,11 @@ export default function Home({ me, onStartSolo, onStartMulti }) {
           </button>
           <button className="btn btn-big btn-multi" onClick={onStartMulti}>
             host a game
+          </button>
+          <button className="btn btn-big btn-online" onClick={onStartOnline}>
+            <span className="btn-online-dot" aria-hidden="true" />
+            play online
+            <span className="btn-online-count">({active} active)</span>
           </button>
         </div>
 

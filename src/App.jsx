@@ -8,6 +8,7 @@ import FabDock from "./components/FabDock.jsx";
 import UserMenu from "./components/UserMenu.jsx";
 import HostParty from "./multiplayer/HostParty.jsx";
 import GuestApp from "./multiplayer/GuestApp.jsx";
+import OnlineRace from "./components/OnlineRace.jsx";
 import { makeRoomCode } from "./multiplayer/constants.js";
 import { loadTheme, DEFAULT_THEME } from "./themes.js";
 import { attachKeyboardSounds } from "./keyboardSounds.js";
@@ -22,7 +23,7 @@ export default function App() {
   const [me, setMe] = useState(null);
   const [playlist, setPlaylist] = useState(null);
   const [picking, setPicking] = useState(false);
-  const [mode, setMode] = useState("solo"); // solo | multi
+  const [mode, setMode] = useState("solo"); // solo | multi | online
   const [roomCode, setRoomCode] = useState(null);
   const [joinCode] = useState(() => joinCodeFromPath());
   const [authError, setAuthError] = useState(null);
@@ -99,6 +100,13 @@ export default function App() {
     setPicking(true);
   }
 
+  function startOnline() {
+    setMode("online");
+    setPicking(false);
+    setPlaylist(null);
+    setRoomCode(null);
+  }
+
   function onPlaylistPicked(pl) {
     setPlaylist(pl);
     setPicking(false);
@@ -126,16 +134,26 @@ export default function App() {
 
         {status === "guest" && joinCode && <GuestApp code={joinCode} />}
 
-        {status === "loggedOut" && !joinCode && !picking && !playlist && (
+        {status === "loggedOut" &&
+          !joinCode &&
+          !picking &&
+          !playlist &&
+          mode !== "online" && (
           <Login
             error={authError}
             onStartSolo={startSolo}
             onStartMulti={startMulti}
+            onStartOnline={startOnline}
           />
         )}
 
-        {status === "loggedIn" && !playlist && !picking && (
-          <Home me={me} onStartSolo={startSolo} onStartMulti={startMulti} />
+        {status === "loggedIn" && !playlist && !picking && mode !== "online" && (
+          <Home
+            me={me}
+            onStartSolo={startSolo}
+            onStartMulti={startMulti}
+            onStartOnline={startOnline}
+          />
         )}
 
         {(status === "loggedIn" || status === "loggedOut") && picking && (
@@ -156,6 +174,10 @@ export default function App() {
           roomCode && (
             <HostParty code={roomCode} playlist={playlist} me={me} onExit={goHome} />
           )}
+
+        {(status === "loggedIn" || status === "loggedOut") && mode === "online" && (
+          <OnlineRace me={me} onExit={goHome} />
+        )}
       </main>
 
       <footer className="footer">

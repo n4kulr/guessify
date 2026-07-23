@@ -2952,6 +2952,56 @@ button { font-family: var(--font); }
   background: var(--main-color);
   color: var(--bg-color);
 }
+.btn-online {
+  flex: 1 1 100%;
+  justify-content: center;
+  gap: 8px;
+  background: var(--sub-alt-color);
+  color: var(--text-color);
+  font-weight: 600;
+  border: none;
+}
+.btn-online:hover {
+  filter: brightness(1.08);
+  background: var(--sub-alt-color);
+  color: var(--text-color);
+}
+.btn-online-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--main-color);
+  opacity: 0.9;
+  animation: online-pulse 1.6s ease-in-out infinite;
+}
+.btn-online-count {
+  color: var(--sub-color);
+  font-weight: 500;
+  font-size: 0.92em;
+}
+@keyframes online-pulse {
+  0%, 100% { opacity: 0.45; transform: scale(0.9); }
+  50% { opacity: 1; transform: scale(1.15); }
+}
+.online-race-title {
+  font-family: var(--font-display, inherit);
+  margin: 28px 0 8px;
+  text-align: center;
+}
+.online-race-status {
+  text-align: center;
+  color: var(--sub-color);
+  margin: 0 0 18px;
+  min-height: 1.4em;
+}
+.online-race--match .mp-rail {
+  max-width: 420px;
+  margin: 0 auto;
+}
+.online-race--match .fineprint {
+  text-align: center;
+  margin-top: 20px;
+}
 
 .mp-lobby { width: min(var(--maxw), 100%); position: relative; }
 .mp-back { position: absolute; top: 0; left: 0; }
