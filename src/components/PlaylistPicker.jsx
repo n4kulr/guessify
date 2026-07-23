@@ -115,14 +115,14 @@ export default function PlaylistPicker({ onPick, onBack }) {
           ← home
         </button>
       )}
-      <h2 className="section-title">Pick a record</h2>
+      <h2 className="section-title">Pick a record…</h2>
       <p className="section-sub">Your Spotify playlists only.</p>
 
       {note && <div className="error-banner">{note}</div>}
 
       {yours.length === 0 ? (
         <p className="section-sub">
-          No owned playlists found — make one on Spotify, or choose your own below.
+          No owned playlists found — make one on Spotify, or describe one below.
         </p>
       ) : (
         <>
@@ -174,10 +174,7 @@ export default function PlaylistPicker({ onPick, onBack }) {
         </>
       )}
 
-      <h3 className="picker-section-title">choose your own!</h3>
-      <p className="picker-section-sub">
-        Genre and decade packs — or type your pick
-      </p>
+      <h3 className="picker-section-title">or describe it!</h3>
 
       <form className="chart-search" onSubmit={submitChartSearch}>
         <div className="join-code-row">
