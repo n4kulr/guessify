@@ -9,7 +9,7 @@ function toneOf(i) {
   return TONES[i % TONES.length];
 }
 
-function topArtists(tracks, limit = 4) {
+function topArtists(tracks, limit = 24) {
   const out = [];
   for (const t of tracks || []) {
     for (const a of t.artists || []) {

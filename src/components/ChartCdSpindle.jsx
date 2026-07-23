@@ -297,7 +297,7 @@ export default function ChartCdSpindle({ packs, loadingId, onChoose }) {
                 <div className="cd-insert-feat-block">
                   <p className="cd-insert-feat">Featuring</p>
                   <ol className="cd-insert-tracks">
-                    {pickedPack.artists.slice(0, 4).map((name, i) => (
+                    {pickedPack.artists.map((name, i) => (
                       <li key={name}>
                         <span className="n">{String(i + 1).padStart(2, "0")}</span>
                         <span>{name}</span>
