@@ -109,7 +109,7 @@ export default function PlayerRail({
                   className="mp-player-unlock-fill"
                   style={{ width: `${pct}%` }}
                 />
-                {STEPS.map((s) => (
+                {STEPS.filter((s) => s < TOTAL).map((s) => (
                   <span
                     key={s}
                     className="mp-player-unlock-tick"
