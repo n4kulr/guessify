@@ -26,17 +26,21 @@ export default async function handler(req, res) {
     return res.status(400).json({ error: "message too long" });
   }
 
-  // Quote-style body — no avatars / thumbnails / footer icons (og.png was repeating).
+  // Quote-style body + feedback art (not og.png — that vinyl was wrong here).
   const quoted = message
     .split("\n")
     .map((line) => `> ${line || "\u00a0"}`)
     .join("\n");
+
+  const base = String(process.env.APP_BASE_URL || "https://guessify.uk").replace(/\/$/, "");
+  const artUrl = `${base}/feedback-discord.png`;
 
   const embed = {
     title: "feedback",
     description: quoted.length > 4090 ? `${quoted.slice(0, 4080)}…` : quoted,
     color: 0xe9d5c6,
     timestamp: new Date().toISOString(),
+    image: { url: artUrl },
   };
 
   try {

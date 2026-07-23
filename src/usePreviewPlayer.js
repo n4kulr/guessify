@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { resolvePreview } from "./itunes.js";
+import { getVolume, subscribeVolume } from "./volume.js";
 
 /**
  * Plays iTunes 30s preview MP3s in a plain <audio> element.
@@ -19,8 +20,13 @@ export function usePreviewPlayer() {
   useEffect(() => {
     const audio = new Audio();
     audio.preload = "none";
+    audio.volume = getVolume();
     audioRef.current = audio;
+    const unsub = subscribeVolume((v) => {
+      if (audioRef.current) audioRef.current.volume = v;
+    });
     return () => {
+      unsub();
       clearTimeout(stopTimer.current);
       if (endedHandlerRef.current) {
         audio.removeEventListener("ended", endedHandlerRef.current);
@@ -106,6 +112,7 @@ export function usePreviewPlayer() {
     }
 
     audio.currentTime = 0;
+    audio.volume = getVolume();
     try {
       await audio.play();
     } catch (e) {

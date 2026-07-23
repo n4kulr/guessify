@@ -128,8 +128,8 @@ export default function Feedback({ open, onOpen, onClose }) {
             </p>
             <img
               className="feedback-about-img"
-              src="/og.png"
-              alt="guessify brand art used on Discord feedback embeds"
+              src="/feedback-discord.png"
+              alt="example of guessify feedback in Discord"
             />
             <p className="feedback-about-note">
               on my end it shows up as a styled Discord embed with this art

@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import CassetteShell from "./CassetteShell.jsx";
 import { resolvePreview } from "../itunes.js";
+import { getVolume, subscribeVolume } from "../volume.js";
 
 // Self-playing fake rounds so people see the vibe before logging in.
 // Guess shape mirrors Game.jsx rows: title / artist / ok flags / win.
@@ -209,6 +210,7 @@ export default function DemoPreview() {
         audio.src = url;
       }
       audio.muted = mutedRef.current;
+      audio.volume = getVolume();
       try {
         await audio.play();
       } catch {
@@ -224,6 +226,14 @@ export default function DemoPreview() {
   useEffect(() => {
     if (audioRef.current) audioRef.current.muted = muted;
   }, [muted]);
+
+  useEffect(() => {
+    const apply = (v) => {
+      if (audioRef.current) audioRef.current.volume = v;
+    };
+    apply(getVolume());
+    return subscribeVolume(apply);
+  }, []);
 
   useEffect(() => {
     return () => {

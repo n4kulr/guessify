@@ -4,12 +4,15 @@ import Home from "./components/Home.jsx";
 import PlaylistPicker from "./components/PlaylistPicker.jsx";
 import Game from "./components/Game.jsx";
 import ThemeSwitcher from "./components/ThemeSwitcher.jsx";
+import VolumeControl from "./components/VolumeControl.jsx";
 import FabDock from "./components/FabDock.jsx";
 import UserMenu from "./components/UserMenu.jsx";
 import HostParty from "./multiplayer/HostParty.jsx";
 import GuestApp from "./multiplayer/GuestApp.jsx";
 import OnlineRace from "./components/OnlineRace.jsx";
+import OnlineJoinDialog from "./components/OnlineJoinDialog.jsx";
 import { makeRoomCode } from "./multiplayer/constants.js";
+import { loadLocalProfile, saveLocalProfile } from "./localProfile.js";
 import { loadTheme, DEFAULT_THEME } from "./themes.js";
 import { attachKeyboardSounds } from "./keyboardSounds.js";
 
@@ -29,6 +32,8 @@ export default function App() {
   const [authError, setAuthError] = useState(null);
   const [theme, setTheme] = useState(DEFAULT_THEME);
   const [homeNonce, setHomeNonce] = useState(0);
+  const [onlinePrompt, setOnlinePrompt] = useState(false);
+  const [onlineProfile, setOnlineProfile] = useState(null);
 
   useEffect(() => attachKeyboardSounds(), []);
 
@@ -50,8 +55,15 @@ export default function App() {
     try {
       const res = await fetch("/api/me", { credentials: "include" });
       if (res.ok) {
-        setMe(await res.json());
+        const user = await res.json();
+        setMe(user);
         setStatus("loggedIn");
+        // Spotify nickname wins over the locally saved online name.
+        const first = user.displayName?.split(/\s+/)[0]?.trim().slice(0, 16);
+        if (first) {
+          const local = loadLocalProfile();
+          saveLocalProfile({ name: first, avatar: local.avatar });
+        }
       } else {
         setStatus("loggedOut");
       }
@@ -67,6 +79,8 @@ export default function App() {
     setPicking(false);
     setRoomCode(null);
     setMode("solo");
+    setOnlinePrompt(false);
+    setOnlineProfile(null);
     setStatus("loggedOut");
   }
 
@@ -79,6 +93,8 @@ export default function App() {
     setPicking(false);
     setRoomCode(null);
     setMode("solo");
+    setOnlinePrompt(false);
+    setOnlineProfile(null);
     setHomeNonce((n) => n + 1);
   }
 
@@ -87,6 +103,8 @@ export default function App() {
     setPicking(true);
     setMode("solo");
     setRoomCode(null);
+    setOnlinePrompt(false);
+    setOnlineProfile(null);
     setHomeNonce((n) => n + 1);
   }
 
@@ -101,6 +119,12 @@ export default function App() {
   }
 
   function startOnline() {
+    setOnlinePrompt(true);
+  }
+
+  function confirmOnline(profile) {
+    setOnlineProfile(profile);
+    setOnlinePrompt(false);
     setMode("online");
     setPicking(false);
     setPlaylist(null);
@@ -124,6 +148,7 @@ export default function App() {
         </button>
 
         <div className="topbar-right">
+          <VolumeControl />
           <ThemeSwitcher current={theme} onChange={setTheme} />
           {status === "loggedIn" && <UserMenu me={me} onLogout={logout} />}
         </div>
@@ -175,10 +200,18 @@ export default function App() {
             <HostParty code={roomCode} playlist={playlist} me={me} onExit={goHome} />
           )}
 
-        {(status === "loggedIn" || status === "loggedOut") && mode === "online" && (
-          <OnlineRace me={me} onExit={goHome} />
-        )}
+        {(status === "loggedIn" || status === "loggedOut") &&
+          mode === "online" &&
+          onlineProfile && <OnlineRace profile={onlineProfile} onExit={goHome} />}
       </main>
+
+      {onlinePrompt && (
+        <OnlineJoinDialog
+          me={me}
+          onJoin={confirmOnline}
+          onCancel={() => setOnlinePrompt(false)}
+        />
+      )}
 
       <footer className="footer">
         made with <span className="footer-heart" aria-hidden="true">♥</span> by nakul

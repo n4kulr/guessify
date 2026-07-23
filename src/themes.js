@@ -19,7 +19,7 @@ export const THEMES = {
 export const DEFAULT_THEME = "olivia";
 const KEY = "guessify-theme";
 
-export function applyTheme(key) {
+export function applyTheme(key, { persist = true } = {}) {
   const t = THEMES[key] || THEMES[DEFAULT_THEME];
   const r = document.documentElement;
   r.style.setProperty("--bg-color", t.bg);
@@ -28,6 +28,7 @@ export function applyTheme(key) {
   r.style.setProperty("--sub-alt-color", t.subAlt);
   r.style.setProperty("--text-color", t.text);
   r.style.setProperty("--error-color", t.error);
+  if (!persist) return;
   try { localStorage.setItem(KEY, key); } catch { /* ignore */ }
 }
 

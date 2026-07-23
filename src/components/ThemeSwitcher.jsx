@@ -7,10 +7,15 @@ export default function ThemeSwitcher({ current, onChange }) {
   const [flash, setFlash] = useState(false);
   const ref = useRef(null);
   const flashTimer = useRef(0);
+  const currentRef = useRef(current);
+  currentRef.current = current;
 
   useEffect(() => {
     function onDoc(e) {
-      if (ref.current && !ref.current.contains(e.target)) setOpen(false);
+      if (ref.current && !ref.current.contains(e.target)) {
+        setOpen(false);
+        applyTheme(currentRef.current, { persist: false });
+      }
     }
     document.addEventListener("mousedown", onDoc);
     return () => document.removeEventListener("mousedown", onDoc);
@@ -30,6 +35,14 @@ export default function ThemeSwitcher({ current, onChange }) {
     flashTimer.current = window.setTimeout(() => setFlash(false), 700);
   }
 
+  function preview(key) {
+    applyTheme(key, { persist: false });
+  }
+
+  function restore() {
+    applyTheme(currentRef.current, { persist: false });
+  }
+
   return (
     <div className={`theme-switcher${flash ? " theme-switcher--flash" : ""}`} ref={ref}>
       <button className="theme-btn" onClick={() => setOpen((o) => !o)} title="change theme">
@@ -38,11 +51,13 @@ export default function ThemeSwitcher({ current, onChange }) {
       </button>
       {!open && <ThemeNudge />}
       {open && (
-        <div className="theme-menu">
+        <div className="theme-menu" onMouseLeave={restore}>
           {Object.entries(THEMES).map(([key, t]) => (
             <button
               key={key}
               className={`theme-option ${key === current ? "active" : ""}`}
+              onMouseEnter={() => preview(key)}
+              onFocus={() => preview(key)}
               onClick={() => pick(key)}
             >
               <span className="swatches">

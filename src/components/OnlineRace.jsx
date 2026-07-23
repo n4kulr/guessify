@@ -20,22 +20,41 @@ import {
 const HOT_TAGS = ["pop", "hip-hop", "rnb", "2010s", "k-pop", "afrobeats", "latin", "indie"];
 
 const OPPONENT_NAMES = [
-  "mila",
-  "jay",
-  "nova",
-  "kai",
-  "remy",
-  "zoe",
-  "ash",
-  "leo",
-  "iris",
-  "nate",
-  "suki",
-  "omar",
-  "bea",
-  "finn",
-  "lux",
-  "aria",
+  "Mila",
+  "DJ_Jay",
+  "KaiBrooks",
+  "remy.wav",
+  "ZoeSaysHi",
+  "ashhhhh",
+  "LeoThe3rd",
+  "iris_99",
+  "NateFromOhio",
+  "OmarQ",
+  "bea bean",
+  "Finnigan",
+  "LUX",
+  "AriaMoon",
+  "xXShadowXx",
+  "chartgoblin",
+  "Priya",
+  "tommyTwoTimes",
+  "softboy2001",
+  "Jess",
+  "theRealSam",
+  "AnyaK",
+  "pluto_",
+  "CoffeeDad",
+  "yuki.tanaka",
+  "BASSHEAD",
+  "Nikhil",
+  "moonchild",
+  "TaliaRose",
+  "gabe",
+  "SashaV",
+  "vinyl_thief",
+  "JordanLee",
+  "Maya!",
+  "Ravi_07",
 ];
 
 function shuffle(arr) {
@@ -48,8 +67,10 @@ function shuffle(arr) {
 }
 
 function pickName(used) {
-  const pool = shuffle(OPPONENT_NAMES.filter((n) => !used.has(n)));
-  return pool[0] || `p${Math.floor(Math.random() * 90) + 10}`;
+  const pool = shuffle(OPPONENT_NAMES.filter((n) => !used.has(n.toLowerCase())));
+  const name = pool[0] || `player${Math.floor(Math.random() * 90) + 10}`;
+  used.add(name.toLowerCase());
+  return name.slice(0, 16);
 }
 
 function makeOpponents(count = 3) {
@@ -57,7 +78,6 @@ function makeOpponents(count = 3) {
   const out = [];
   for (let i = 0; i < count; i++) {
     const name = pickName(used);
-    used.add(name);
     const avatar = normalizeAvatar(randomAvatar(), PLAYER_COLORS[(i + 1) % PLAYER_COLORS.length]);
     out.push({
       id: `op-${i}-${name}`,
@@ -68,7 +88,8 @@ function makeOpponents(count = 3) {
       wins: 0,
       connected: true,
       left: false,
-      skill: 0.35 + Math.random() * 0.55,
+      // Keep them beatable — low/mid skill only.
+      skill: 0.1 + Math.random() * 0.35,
     });
   }
   return out;
@@ -78,11 +99,11 @@ function makeOpponents(count = 3) {
  * Chart race that looks like live multiplayer. Opponents are local stand-ins —
  * never advertised as bots in the UI.
  */
-export default function OnlineRace({ me, onExit }) {
-  const youName = me?.displayName?.split(/\s+/)[0]?.slice(0, 16) || "you";
+export default function OnlineRace({ profile, onExit }) {
+  const youName = profile?.name?.trim().slice(0, 16) || "you";
   const youAvatar = useMemo(
-    () => normalizeAvatar(randomAvatar(), PLAYER_COLORS[0]),
-    []
+    () => normalizeAvatar(profile?.avatar || randomAvatar(), PLAYER_COLORS[0]),
+    [profile?.avatar?.peep, profile?.avatar?.color]
   );
   const youId = "you";
 
@@ -190,9 +211,13 @@ export default function OnlineRace({ me, onExit }) {
         setRounds(tracks);
         setPlaylistName(data.name || "today’s charts");
 
+        // Pause before anyone else shows up — feels less instant.
+        await new Promise((res) => setTimeout(res, 900 + Math.random() * 700));
+        if (cancelled) return;
+
         // Stagger “joins”
         for (let i = 0; i < opponents.length; i++) {
-          await new Promise((res) => setTimeout(res, 420 + Math.random() * 520));
+          await new Promise((res) => setTimeout(res, 1400 + Math.random() * 2200));
           if (cancelled) return;
           const op = opponents[i];
           setPlayers((prev) => [...prev, op]);
@@ -200,7 +225,7 @@ export default function OnlineRace({ me, onExit }) {
             i === opponents.length - 1 ? "starting…" : `${op.name} joined`
           );
         }
-        await new Promise((res) => setTimeout(res, 600));
+        await new Promise((res) => setTimeout(res, 1100 + Math.random() * 500));
         if (cancelled) return;
         setPhase("play");
       } catch {
@@ -318,25 +343,27 @@ export default function OnlineRace({ me, onExit }) {
 
     for (const op of ops) {
       const skill = op.skill;
-      // Faster / smarter opponents guess sooner.
-      const artistAt = (3500 + (1 - skill) * 9000) * (0.85 + Math.random() * 0.35);
-      const titleAt = (7000 + (1 - skill) * 14000) * (0.85 + Math.random() * 0.4);
+      // Slower + more misses — leave room for the human to win.
+      const artistAt = (9000 + (1 - skill) * 16000) * (0.9 + Math.random() * 0.45);
+      const titleAt = (16000 + (1 - skill) * 24000) * (0.9 + Math.random() * 0.5);
 
       const tArtist = setTimeout(() => {
         if (roundKeyRef.current !== key) return;
-        if (Math.random() > 0.55 + skill * 0.35) return; // sometimes miss the artist window
+        // Often skip the artist race entirely.
+        if (Math.random() > 0.22 + skill * 0.28) return;
         claimArtist(op, track);
       }, artistAt);
 
       const tTitle = setTimeout(() => {
         if (roundKeyRef.current !== key) return;
-        if (Math.random() > 0.4 + skill * 0.5) {
-          // Weak miss — maybe try again later
+        // Frequently whiff the first title attempt.
+        if (Math.random() > 0.18 + skill * 0.35) {
           const retry = setTimeout(() => {
             if (roundKeyRef.current !== key) return;
             if (phaseRef.current !== "play") return;
+            if (Math.random() > 0.35 + skill * 0.4) return; // may never get it
             claimTitle(op, track, 0);
-          }, 5000 + Math.random() * 6000);
+          }, 8000 + Math.random() * 10000);
           timersRef.current.push(retry);
           return;
         }
