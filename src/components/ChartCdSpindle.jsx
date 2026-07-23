@@ -17,22 +17,21 @@ export default function ChartCdSpindle({ packs, loadingId, onChoose }) {
                 <button
                   type="button"
                   className={`cd-spine cd-spine--${tone}${selected ? " is-selected" : ""}`}
-                  style={{ "--cd-jitter": `${((i * 17) % 5) - 2}px` }}
                   onClick={() => onChoose(pack.tag)}
                   disabled={busy}
-                  aria-label={`${pack.label}: ${pack.blurb}`}
+                  aria-label={pack.label}
+                  title={pack.label}
                 >
                   <span className="cd-spine-title">
                     {selected ? "…" : pack.label}
                   </span>
-                  <span className="cd-spine-info">{pack.blurb}</span>
                 </button>
               </li>
             );
           })}
         </ul>
       </div>
-      <figcaption className="cd-tray-caption">browse the case</figcaption>
+      <figcaption className="cd-tray-caption">cd case</figcaption>
     </figure>
   );
 }

@@ -1192,12 +1192,11 @@ button { font-family: var(--font); }
 }
 /* ---- describe-it: top-down CD storage tray (jewel-case spines) ---- */
 .cd-tray {
-  --cd-spine-w: 14px;
-  --cd-spine-len: 100px;
+  --cd-spine-len: 120px;
   --cd-gap: 2px;
   --cd-dur: 0.32s;
   --cd-ease: cubic-bezier(0.22, 1, 0.36, 1);
-  --cd-pull: 14px;
+  --cd-pull: 12px;
   width: min(560px, 100%);
   margin: 6px auto 4px;
   padding: 14px 14px 10px;
@@ -1216,7 +1215,7 @@ button { font-family: var(--font); }
 }
 .cd-tray-inner {
   position: relative;
-  padding: 18px 10px 12px;
+  padding: 14px 10px;
   border-radius: 8px;
   background:
     linear-gradient(
@@ -1246,16 +1245,16 @@ button { font-family: var(--font); }
   display: flex;
   flex-direction: row;
   flex-wrap: nowrap;
-  justify-content: center;
-  align-items: flex-end;
+  align-items: stretch;
   gap: var(--cd-gap);
-  min-height: calc(var(--cd-spine-len) + var(--cd-pull) + 8px);
+  width: 100%;
+  height: var(--cd-spine-len);
 }
 .cd-spine-slot {
   position: relative;
-  flex: none;
-  width: var(--cd-spine-w);
-  height: var(--cd-spine-len);
+  flex: 1 1 0;
+  min-width: 0;
+  height: 100%;
   z-index: 0;
 }
 .cd-spine-slot:hover,
@@ -1268,16 +1267,11 @@ button { font-family: var(--font); }
   --cd-lo: #9a9a94;
   --cd-ink: #1a1a1a;
   position: absolute;
-  left: 0;
-  bottom: 0;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  width: var(--cd-spine-w);
-  height: var(--cd-spine-len);
-  padding: 8px 0;
+  inset: 0;
+  display: block;
+  width: 100%;
+  height: 100%;
+  padding: 0;
   margin: 0;
   border: 1px solid color-mix(in srgb, #000 22%, transparent);
   border-radius: 3px;
@@ -1295,13 +1289,10 @@ button { font-family: var(--font); }
     1px 0 0 color-mix(in srgb, #fff 30%, transparent),
     1px 1px 2px color-mix(in srgb, #000 25%, transparent),
     inset 1px 0 0 color-mix(in srgb, #fff 45%, transparent);
-  transform: translateY(var(--cd-jitter, 0px));
+  transform: translateY(0);
   transition:
     transform var(--cd-dur) var(--cd-ease),
-    height var(--cd-dur) var(--cd-ease),
-    width var(--cd-dur) var(--cd-ease),
     box-shadow var(--cd-dur) var(--cd-ease),
-    padding var(--cd-dur) ease,
     filter var(--cd-dur) ease;
 }
 /* tiny scratches / dust */
@@ -1314,25 +1305,26 @@ button { font-family: var(--font); }
     linear-gradient(
       10deg,
       transparent 0%,
-      color-mix(in srgb, #fff 35%, transparent) 18%,
+      color-mix(in srgb, #fff 28%, transparent) 18%,
       transparent 22%,
       transparent 70%,
-      color-mix(in srgb, #000 12%, transparent) 78%,
+      color-mix(in srgb, #000 10%, transparent) 78%,
       transparent 100%
     ),
     repeating-linear-gradient(
       8deg,
       transparent 0 11px,
-      color-mix(in srgb, #000 6%, transparent) 11px 12px
+      color-mix(in srgb, #000 5%, transparent) 11px 12px
     );
-  opacity: 0.55;
+  opacity: 0.4;
   pointer-events: none;
+  z-index: 0;
 }
 .cd-spine--clear {
   --cd-base: color-mix(in srgb, var(--text-color) 18%, #d8d8d2);
   --cd-hi: color-mix(in srgb, #fff 55%, transparent);
   --cd-lo: color-mix(in srgb, #888 35%, #bdbdb8);
-  --cd-ink: color-mix(in srgb, var(--text-color) 85%, #111);
+  --cd-ink: #111;
 }
 .cd-spine--white { --cd-base: #efefe9; --cd-hi: #fafaf6; --cd-lo: #d0d0ca; --cd-ink: #222; }
 .cd-spine--black { --cd-base: #2a2a2a; --cd-hi: #3a3a3a; --cd-lo: #141414; --cd-ink: #e8e8e2; }
@@ -1347,43 +1339,28 @@ button { font-family: var(--font); }
   --cd-ink: #1a1a1a;
 }
 .cd-spine-title {
-  position: relative;
+  position: absolute;
+  left: 50%;
+  top: 50%;
   z-index: 1;
-  flex: none;
-  max-height: calc(var(--cd-spine-len) - 16px);
+  width: calc(var(--cd-spine-len) - 14px);
+  margin: 0;
   font-size: 10px;
-  font-weight: 600;
-  letter-spacing: 0.06em;
+  font-weight: 700;
+  letter-spacing: 0.08em;
   text-transform: uppercase;
-  line-height: 1;
+  line-height: 1.1;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  /* sideways after 90° left — tilt head left to read */
-  transform: rotate(-90deg);
-  max-width: calc(var(--cd-spine-len) - 16px);
-}
-.cd-spine-info {
-  position: relative;
-  z-index: 1;
-  flex: none;
-  max-height: 0;
-  opacity: 0;
-  overflow: hidden;
-  font-size: 9px;
-  font-weight: 500;
-  letter-spacing: 0.02em;
-  text-transform: none;
-  white-space: nowrap;
-  color: color-mix(in srgb, var(--cd-ink) 72%, transparent);
-  transform: rotate(-90deg);
-  transition:
-    max-height var(--cd-dur) var(--cd-ease),
-    opacity var(--cd-dur) ease;
+  text-align: center;
+  color: var(--cd-ink);
+  /* sideways — tilt head left to read */
+  transform: translate(-50%, -50%) rotate(-90deg);
+  pointer-events: none;
 }
 .cd-spine:hover:not(:disabled),
 .cd-spine:focus-visible {
-  width: 22px;
   transform: translateY(calc(-1 * var(--cd-pull)));
   box-shadow:
     0 6px 14px color-mix(in srgb, #000 40%, transparent),
@@ -1391,15 +1368,8 @@ button { font-family: var(--font); }
     inset 1px 0 0 color-mix(in srgb, #fff 45%, transparent);
   filter: brightness(1.05);
 }
-.cd-spine:hover:not(:disabled) .cd-spine-info,
-.cd-spine:focus-visible .cd-spine-info,
-.cd-spine.is-selected .cd-spine-info {
-  max-height: 120px;
-  opacity: 1;
-}
 .cd-spine.is-selected {
-  width: 24px;
-  transform: translateY(calc(-1 * var(--cd-pull) - 4px));
+  transform: translateY(calc(-1 * var(--cd-pull) - 2px));
   box-shadow:
     0 10px 20px color-mix(in srgb, #000 45%, transparent),
     0 0 0 1.5px var(--main-color),
@@ -1412,16 +1382,14 @@ button { font-family: var(--font); }
 
 @media (max-width: 520px) {
   .cd-tray {
-    --cd-spine-w: 11px;
-    --cd-spine-len: 84px;
+    --cd-spine-len: 100px;
     --cd-pull: 10px;
     width: min(100%, 100%);
     padding: 10px 6px 8px;
-    overflow-x: auto;
   }
-  .cd-tray-inner { overflow-x: auto; }
-  .cd-spine-title { font-size: 9px; letter-spacing: 0.04em; }
+  .cd-spine-title { font-size: 9px; letter-spacing: 0.05em; }
 }
+
 
 
 .playlists { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 14px; }
