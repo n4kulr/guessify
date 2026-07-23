@@ -1471,6 +1471,7 @@ button { font-family: var(--font); }
   flex: 0 0 0;
   width: 0;
   max-width: 0;
+  min-width: 0;
   opacity: 0;
   overflow: hidden;
   transform: translateX(-12px);
@@ -1493,7 +1494,7 @@ button { font-family: var(--font); }
   max-width: 260px;
   height: var(--shelf-panel-h, 180px);
   opacity: 1;
-  transform: none;
+  transform: translateX(0);
   pointer-events: auto;
 }
 .shelf-insert .cd-insert-title {
@@ -1565,8 +1566,8 @@ button { font-family: var(--font); }
 .cd-tray-inner {
   position: relative;
   box-sizing: border-box;
-  height: var(--cd-case-h);
-  padding: 8px 8px 8px;
+  height: calc(var(--cd-case-h) + 14px);
+  padding: 8px 8px 0;
   border-radius: 6px;
   display: flex;
   align-items: stretch;
@@ -1605,14 +1606,16 @@ button { font-family: var(--font); }
 .cd-spines {
   list-style: none;
   margin: 0;
-  padding: 0 2px;
+  /* Bottom padding = scroll gutter (same idea as .shelf-cases) */
+  padding: 0 2px 14px;
   display: flex;
   flex-direction: row;
   flex-wrap: nowrap;
   align-items: stretch;
   gap: var(--cd-gap);
   width: 100%;
-  height: 100%;
+  height: var(--cd-case-h);
+  box-sizing: content-box;
   overflow-x: auto;
   overflow-y: hidden;
   scroll-snap-type: x mandatory;
@@ -1620,16 +1623,17 @@ button { font-family: var(--font); }
   -webkit-overflow-scrolling: touch;
   touch-action: pan-x;
   cursor: grab;
+  scrollbar-gutter: stable;
   scrollbar-width: thin;
   scrollbar-color: color-mix(in srgb, var(--text-color) 30%, transparent) transparent;
   position: relative;
   z-index: 1;
 }
 .cd-spines:active { cursor: grabbing; }
-.cd-spines::-webkit-scrollbar { height: 4px; }
+.cd-spines::-webkit-scrollbar { height: 6px; }
 .cd-spines::-webkit-scrollbar-thumb {
   background: color-mix(in srgb, var(--text-color) 28%, transparent);
-  border-radius: 4px;
+  border-radius: 99px;
 }
 .cd-spine-slot {
   position: relative;

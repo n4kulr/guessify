@@ -35,31 +35,26 @@ function useDragScroll(scrollRef, surfaceRef) {
     function onDown(e) {
       if (e.pointerType === "touch") return;
       if (e.button !== 0) return;
-      if (e.target?.closest?.("img, button")) {
-        e.preventDefault();
-      }
       dragging = false;
       startX = e.clientX;
       startScroll = el.scrollLeft;
       pointerId = e.pointerId;
-      surface.setPointerCapture?.(e.pointerId);
     }
     function onMove(e) {
       if (pointerId !== e.pointerId) return;
       if (e.pointerType === "touch") return;
       const dx = e.clientX - startX;
       if (!dragging) {
-        if (Math.abs(dx) < 6) return;
+        if (Math.abs(dx) < 8) return;
         dragging = true;
         suppressClick = true;
+        el.setPointerCapture?.(e.pointerId);
       }
-      e.preventDefault();
       el.scrollLeft = startScroll - dx;
     }
     function onUp(e) {
       if (pointerId != null && e.pointerId !== pointerId) return;
       pointerId = null;
-      surface.releasePointerCapture?.(e.pointerId);
       if (dragging) {
         dragging = false;
         requestAnimationFrame(() => {
@@ -87,20 +82,20 @@ function useDragScroll(scrollRef, surfaceRef) {
       el.scrollLeft = next;
     }
 
-    surface.addEventListener("pointerdown", onDown);
-    surface.addEventListener("pointermove", onMove);
-    surface.addEventListener("pointerup", onUp);
-    surface.addEventListener("pointercancel", onUp);
-    surface.addEventListener("dragstart", onDragStart);
+    el.addEventListener("pointerdown", onDown);
+    el.addEventListener("pointermove", onMove);
+    el.addEventListener("pointerup", onUp);
+    el.addEventListener("pointercancel", onUp);
     el.addEventListener("click", onClickCapture, true);
+    el.addEventListener("dragstart", onDragStart);
     surface.addEventListener("wheel", onWheel, { passive: false });
     return () => {
-      surface.removeEventListener("pointerdown", onDown);
-      surface.removeEventListener("pointermove", onMove);
-      surface.removeEventListener("pointerup", onUp);
-      surface.removeEventListener("pointercancel", onUp);
-      surface.removeEventListener("dragstart", onDragStart);
+      el.removeEventListener("pointerdown", onDown);
+      el.removeEventListener("pointermove", onMove);
+      el.removeEventListener("pointerup", onUp);
+      el.removeEventListener("pointercancel", onUp);
       el.removeEventListener("click", onClickCapture, true);
+      el.removeEventListener("dragstart", onDragStart);
       surface.removeEventListener("wheel", onWheel);
     };
   }, [scrollRef, surfaceRef]);
