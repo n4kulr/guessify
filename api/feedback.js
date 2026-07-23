@@ -28,38 +28,29 @@ export default async function handler(req, res) {
     return res.status(400).json({ error: "message too long" });
   }
 
-  const page = String(body?.page || "").slice(0, 200);
-  const ua = String(body?.userAgent || "").slice(0, 180);
   const base = getBase(req);
   const art = `${base}/og.png`;
 
+  // Quote-style body so the note is the hero of the embed.
+  const quoted = message
+    .split("\n")
+    .map((line) => `> ${line || "\u00a0"}`)
+    .join("\n");
+
   const embed = {
-    title: "new feedback",
-    description: message.length > 4000 ? `${message.slice(0, 3990)}…` : message,
+    author: {
+      name: "guessify feedback",
+      icon_url: art,
+    },
+    description: quoted.length > 4090 ? `${quoted.slice(0, 4080)}…` : quoted,
     color: 0xe9d5c6, // olivia main
     thumbnail: { url: art },
     timestamp: new Date().toISOString(),
     footer: {
-      text: "guessify · feedback webhook",
+      text: "guessify",
       icon_url: art,
     },
-    fields: [],
   };
-
-  if (page) {
-    embed.fields.push({
-      name: "page",
-      value: page.length > 1024 ? `${page.slice(0, 1020)}…` : page,
-      inline: false,
-    });
-  }
-  if (ua) {
-    embed.fields.push({
-      name: "client",
-      value: ua.length > 1024 ? `${ua.slice(0, 1020)}…` : ua,
-      inline: false,
-    });
-  }
 
   try {
     const r = await fetch(webhook, {
