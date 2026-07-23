@@ -1625,8 +1625,8 @@ button { font-family: var(--font); }
   flex: 0 0 min(228px, 34vw);
   width: min(228px, 34vw);
   max-width: 240px;
-  height: calc(var(--cd-panel-h, 100%) - 16px);
-  margin-top: 16px;
+  height: calc(var(--cd-panel-h, 100%) - 8px);
+  margin-top: 8px;
   margin-left: 0;
   opacity: 1;
   overflow: hidden;
