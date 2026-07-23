@@ -1171,7 +1171,14 @@ button { font-family: var(--font); }
   margin: 0 auto 18px;
   max-width: 420px;
 }
-.chart-search-input { flex: 1; min-width: 0; }
+.chart-search-input {
+  flex: 1;
+  min-width: 0;
+  border: 2px solid color-mix(in srgb, var(--text-color) 22%, transparent);
+}
+.chart-search-input:focus {
+  border-color: var(--main-color);
+}
 .record-cover--chart {
   display: flex;
   align-items: center;

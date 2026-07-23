@@ -116,15 +116,13 @@ export default function PlaylistPicker({ onPick, onBack }) {
         </button>
       )}
       <h2 className="section-title">Pick a record</h2>
-      <p className="section-sub">
-        Your Spotify playlists, then Last.fm charts by vibe — pop, 90s, 1995…
-      </p>
+      <p className="section-sub">Your Spotify playlists only.</p>
 
       {note && <div className="error-banner">{note}</div>}
 
       {yours.length === 0 ? (
         <p className="section-sub">
-          No owned playlists found — make one on Spotify, or try a chart below.
+          No owned playlists found — make one on Spotify, or choose your own below.
         </p>
       ) : (
         <>
@@ -176,9 +174,9 @@ export default function PlaylistPicker({ onPick, onBack }) {
         </>
       )}
 
-      <h3 className="picker-section-title">charts &amp; vibes</h3>
+      <h3 className="picker-section-title">choose your own!</h3>
       <p className="picker-section-sub">
-        Genre and decade packs from Last.fm — or type any tag.
+        Genre and decade packs — or type your pick
       </p>
 
       <form className="chart-search" onSubmit={submitChartSearch}>
