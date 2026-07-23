@@ -148,11 +148,20 @@ export default function ChartCdSpindle({ packs, loadingId, onChoose }) {
     const row = rowRef.current;
     if (!tray || !row) return;
     function syncHeight() {
-      row.style.setProperty("--cd-panel-h", `${tray.offsetHeight}px`);
+      // Match insert to the case well (not caption/hint). Nudge up without growing past the well bottom.
+      const inner = tray.querySelector(".cd-tray-inner");
+      if (!inner) return;
+      const nudge = 6;
+      const top = Math.max(0, inner.offsetTop - nudge);
+      const height = inner.offsetHeight + (inner.offsetTop - top);
+      row.style.setProperty("--cd-panel-top", `${top}px`);
+      row.style.setProperty("--cd-panel-h", `${height}px`);
     }
     syncHeight();
     const ro = new ResizeObserver(syncHeight);
     ro.observe(tray);
+    const inner = tray.querySelector(".cd-tray-inner");
+    if (inner) ro.observe(inner);
     window.addEventListener("resize", syncHeight);
     return () => {
       ro.disconnect();
