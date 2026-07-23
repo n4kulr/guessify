@@ -5,6 +5,8 @@ const YOURS_PREVIEW = 6;
 
 const CHART_PACKS = [
   { tag: "pop", label: "Pop", blurb: "chart pop", about: "Catchy, radio-friendly songs with big choruses.", artists: ["Dua Lipa", "Sabrina Carpenter", "Olivia Rodrigo", "The Weeknd"] },
+  { tag: "2000s", label: "2000s", blurb: "decade pack", about: "Hits and radio staples from the 2000s.", artists: ["Beyoncé", "Linkin Park", "Rihanna", "The Killers"] },
+  { tag: "2010s", label: "2010s", blurb: "decade pack", about: "Hits from the 2010s, when streaming took over.", artists: ["Adele", "Drake", "Lorde", "Post Malone"] },
   { tag: "hip-hop", label: "Hip-hop", blurb: "raps & beats", about: "Rapped verses over beats, from boom-bap to trap.", artists: ["Kendrick Lamar", "Drake", "Travis Scott", "Nicki Minaj"] },
   { tag: "rnb", label: "R&B", blurb: "smooth cuts", about: "Smooth singing over midtempo grooves.", artists: ["SZA", "Frank Ocean", "Usher", "Summer Walker"] },
   { tag: "rock", label: "Rock", blurb: "guitars up", about: "Guitar-based music with riffs and loud choruses.", artists: ["Foo Fighters", "Arctic Monkeys", "Queen", "Paramore"] },
@@ -25,8 +27,6 @@ const CHART_PACKS = [
   { tag: "latin", label: "Latin", blurb: "ritmo", about: "Music from Latin America and Spain — reggaeton, salsa, and related styles.", artists: ["Bad Bunny", "Shakira", "J Balvin", "Rosalía"] },
   { tag: "blues", label: "Blues", blurb: "bent notes", about: "Guitar music built around bent notes and songs about hard times.", artists: ["B.B. King", "Buddy Guy", "Gary Clark Jr.", "Hozier"] },
   { tag: "90s", label: "90s", blurb: "decade pack", about: "Hits from the 1990s across pop, rock, hip-hop, and R&B.", artists: ["Spice Girls", "Nirvana", "TLC", "Oasis"] },
-  { tag: "2000s", label: "2000s", blurb: "decade pack", about: "Hits and radio staples from the 2000s.", artists: ["Beyoncé", "Linkin Park", "Rihanna", "The Killers"] },
-  { tag: "2010s", label: "2010s", blurb: "decade pack", about: "Hits from the 2010s, when streaming took over.", artists: ["Adele", "Drake", "Lorde", "Post Malone"] },
   { tag: "disco", label: "Disco", blurb: "dancefloor", about: "Seventies dance music with four-on-the-floor beats and lush arrangements.", artists: ["ABBA", "Donna Summer", "Bee Gees", "Daft Punk"] },
 ];
 
