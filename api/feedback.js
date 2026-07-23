@@ -1,3 +1,5 @@
+import { getBase } from "./_lib.js";
+
 export default async function handler(req, res) {
   if (req.method !== "POST") {
     res.setHeader("Allow", "POST");
@@ -26,19 +28,38 @@ export default async function handler(req, res) {
     return res.status(400).json({ error: "message too long" });
   }
 
-  const meta = [];
-  if (body?.page) meta.push(`page: ${String(body.page).slice(0, 200)}`);
-  if (body?.userAgent) meta.push(`ua: ${String(body.userAgent).slice(0, 180)}`);
+  const page = String(body?.page || "").slice(0, 200);
+  const ua = String(body?.userAgent || "").slice(0, 180);
+  const base = getBase(req);
+  const art = `${base}/og.png`;
 
-  const content = [
-    "**guessify feedback**",
-    "```",
-    message,
-    "```",
-    meta.length ? `_${meta.join(" · ")}_` : null,
-  ]
-    .filter(Boolean)
-    .join("\n");
+  const embed = {
+    title: "new feedback",
+    description: message.length > 4000 ? `${message.slice(0, 3990)}…` : message,
+    color: 0xe9d5c6, // olivia main
+    thumbnail: { url: art },
+    timestamp: new Date().toISOString(),
+    footer: {
+      text: "guessify · feedback webhook",
+      icon_url: art,
+    },
+    fields: [],
+  };
+
+  if (page) {
+    embed.fields.push({
+      name: "page",
+      value: page.length > 1024 ? `${page.slice(0, 1020)}…` : page,
+      inline: false,
+    });
+  }
+  if (ua) {
+    embed.fields.push({
+      name: "client",
+      value: ua.length > 1024 ? `${ua.slice(0, 1020)}…` : ua,
+      inline: false,
+    });
+  }
 
   try {
     const r = await fetch(webhook, {
@@ -46,7 +67,8 @@ export default async function handler(req, res) {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         username: "guessify",
-        content,
+        avatar_url: art,
+        embeds: [embed],
       }),
     });
 

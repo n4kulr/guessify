@@ -128,11 +128,11 @@ export default function Feedback({ open, onOpen, onClose }) {
             </p>
             <img
               className="feedback-about-img"
-              src="/feedback-discord.png"
-              alt="Discord message from guessify showing feedback: dude this game rocks"
+              src="/og.png"
+              alt="guessify brand art used on Discord feedback embeds"
             />
             <p className="feedback-about-note">
-              looks like this on my end
+              on my end it shows up as a styled Discord embed with this art
             </p>
           </div>
         ) : status === "sent" ? (
