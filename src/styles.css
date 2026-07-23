@@ -445,7 +445,8 @@ button { font-family: var(--font); }
 .hero-title-accent { color: var(--main-color); }
 .hero-tagline {
   font-size: 17px; line-height: 1.6; max-width: 42ch;
-  margin: 18px 0 26px 8px; color: var(--sub-color);
+  margin: 18px 0 26px; color: var(--sub-color);
+  text-align: left;
 }
 .hero-tagline em {
   color: var(--text-color);
@@ -456,10 +457,10 @@ button { font-family: var(--font); }
   letter-spacing: 0.01em;
 }
 .hero-tagline-lead {
-  margin-left: 5px;
+  display: block;
 }
 .hero-tagline-hook {
-  margin-left: 0.35em;
+  display: block;
 }
 
 .hero-turntable { position: relative; width: 132px; height: 132px; margin: 0 0 28px; }

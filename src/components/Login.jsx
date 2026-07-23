@@ -19,7 +19,6 @@ export default function Login({ error, onStartSolo, onStartMulti }) {
         </h1>
         <p className="hero-tagline">
           <span className="hero-tagline-lead">Your playlists. One-second snippets.</span>
-          <br />
           <em className="hero-tagline-hook">name that song!</em>
         </p>
 
