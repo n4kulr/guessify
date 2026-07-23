@@ -1869,9 +1869,15 @@ button { font-family: var(--font); }
   }
   .cd-insert {
     height: auto;
-    min-height: 160px;
+    min-height: 0;
     max-height: none;
-    padding: 12px;
+    padding: 12px 12px 0;
+    grid-template-rows: auto auto auto;
+  }
+  .cd-insert-actions {
+    margin-left: -12px;
+    margin-right: -12px;
+    padding: 10px 12px 12px;
   }
   .cd-spine-title { font-size: 9px; }
   .cd-spine--font-hand .cd-spine-title { font-size: 13px; }
