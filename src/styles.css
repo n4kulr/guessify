@@ -1190,107 +1190,77 @@ button { font-family: var(--font); }
   font-weight: 500;
   text-transform: none;
 }
-/* Chart packs: top-down view of a CD’s thin edge */
+/* Chart packs: jewel-case spines, text sideways (tilt left to read) */
 .cd-rack {
   display: flex;
-  flex-direction: column;
-  gap: 7px;
-  width: min(420px, 100%);
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: stretch;
+  gap: 5px;
+  width: min(560px, 100%);
   margin: 0 auto;
-  padding: 4px 0 8px;
+  padding: 4px 0 10px;
 }
-.cd-edge {
-  --cd-h: 22px;
+.cd-case {
+  --spine-w: 26px;
+  --spine-h: 132px;
   position: relative;
+  display: block;
+  width: var(--spine-w);
+  height: var(--spine-h);
+  padding: 0;
+  border: 1px solid #6e6e6a;
+  border-radius: 0;
+  cursor: pointer;
+  background:
+    linear-gradient(
+      90deg,
+      #d8d8d4 0%,
+      #f0f0ec 18%,
+      #bcbcb8 42%,
+      #e8e8e4 68%,
+      #a8a8a4 100%
+    );
+  box-shadow:
+    1px 0 0 color-mix(in srgb, #fff 40%, transparent),
+    2px 2px 0 color-mix(in srgb, #000 28%, transparent);
+  transition: transform 0.12s ease, box-shadow 0.12s ease, filter 0.12s ease;
+}
+.cd-case-spine {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 0;
   width: 100%;
-  height: var(--cd-h);
-  padding: 0 10px;
-  border: none;
-  border-radius: calc(var(--cd-h) / 2);
-  cursor: pointer;
-  color: #1a1a1a;
-  /* polycarbonate rim — looking down at the thin edge */
-  background:
-    linear-gradient(
-      180deg,
-      #f4f4f0 0%,
-      #c8c8c2 18%,
-      #9a9a94 48%,
-      #d8d8d2 72%,
-      #b0b0aa 100%
-    );
-  box-shadow:
-    0 1px 0 color-mix(in srgb, #fff 35%, transparent),
-    0 2px 4px color-mix(in srgb, #000 35%, transparent),
-    inset 0 1px 0 color-mix(in srgb, #fff 55%, transparent),
-    inset 0 -1px 0 color-mix(in srgb, #000 25%, transparent);
-  transition: transform 0.12s ease, filter 0.15s ease, box-shadow 0.15s ease;
+  height: 100%;
+  overflow: hidden;
 }
-.cd-edge::before {
-  /* subtle disc curvature / specular along the rim */
-  content: "";
-  position: absolute;
-  inset: 0;
-  border-radius: inherit;
-  background: linear-gradient(
-    90deg,
-    transparent 0%,
-    color-mix(in srgb, #fff 40%, transparent) 12%,
-    transparent 28%,
-    transparent 72%,
-    color-mix(in srgb, #fff 28%, transparent) 88%,
-    transparent 100%
-  );
-  pointer-events: none;
-}
-.cd-edge-rim {
-  flex: none;
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background: radial-gradient(circle at 35% 35%, #eee 0%, #666 55%, #333 100%);
-  box-shadow: inset 0 0 0 1px color-mix(in srgb, #000 30%, transparent);
-  opacity: 0.85;
-}
-.cd-edge-rim--end { opacity: 0.55; }
-.cd-edge-label {
-  position: relative;
-  z-index: 1;
-  flex: 1;
-  min-width: 0;
-  text-align: center;
+.cd-case-label {
+  display: block;
+  max-width: calc(var(--spine-h) - 16px);
   font-size: 11px;
   font-weight: 700;
-  letter-spacing: 0.22em;
+  letter-spacing: 0.14em;
   text-transform: uppercase;
   line-height: 1;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  color: #1c1c1c;
-  text-shadow: 0 1px 0 color-mix(in srgb, #fff 45%, transparent);
+  color: #1a1a1a;
+  /* sideways — tilt head left to read; “facing” toward the right */
+  transform: rotate(-90deg);
+  transform-origin: center center;
 }
-.cd-edge:hover:not(:disabled) {
-  transform: translateY(-1px) scale(1.01);
-  filter: brightness(1.06);
+.cd-case:hover:not(:disabled) {
+  transform: translate(-1px, -1px);
+  filter: brightness(1.05);
   box-shadow:
     0 0 0 1.5px var(--main-color),
-    0 1px 0 color-mix(in srgb, #fff 35%, transparent),
-    0 3px 8px color-mix(in srgb, #000 40%, transparent),
-    inset 0 1px 0 color-mix(in srgb, #fff 55%, transparent),
-    inset 0 -1px 0 color-mix(in srgb, #000 25%, transparent);
+    2px 2px 0 color-mix(in srgb, #000 28%, transparent);
 }
-.cd-edge:active:not(:disabled) {
-  transform: translateY(0) scale(0.99);
+.cd-case:active:not(:disabled) {
+  transform: translate(0, 0);
 }
-.cd-edge:disabled { opacity: 0.55; cursor: wait; }
-.cd-edge.is-loading .cd-edge-label {
-  letter-spacing: 0.08em;
-}
+.cd-case:disabled { opacity: 0.55; cursor: wait; }
 
 .playlists { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 14px; }
 .record-card {

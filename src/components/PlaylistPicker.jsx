@@ -207,17 +207,17 @@ export default function PlaylistPicker({ onPick, onBack }) {
               key={pack.tag}
               type="button"
               role="listitem"
-              className={`cd-edge${busy ? " is-loading" : ""}`}
+              className={`cd-case${busy ? " is-loading" : ""}`}
               onClick={() => chooseChart(pack.tag)}
               disabled={loadingId !== null}
               title={pack.blurb}
               aria-label={`${pack.label}: ${pack.blurb}`}
             >
-              <span className="cd-edge-rim" aria-hidden="true" />
-              <span className="cd-edge-label">
-                {busy ? "…" : pack.label}
+              <span className="cd-case-spine">
+                <span className="cd-case-label">
+                  {busy ? "…" : pack.label}
+                </span>
               </span>
-              <span className="cd-edge-rim cd-edge-rim--end" aria-hidden="true" />
             </button>
           );
         })}
