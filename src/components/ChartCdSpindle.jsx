@@ -1,57 +1,38 @@
-/** Top-down CD spindle with orbiting chart-pack labels (CSS-mostly). */
+const SPINE_TONES = ["clear", "white", "black", "grey", "smoke", "amber", "slate", "frost"];
+
+/** Top-down CD storage tray — thin jewel-case spines only. */
 export default function ChartCdSpindle({ packs, loadingId, onChoose }) {
-  const n = packs.length;
   const busy = loadingId !== null;
 
   return (
-    <figure
-      className="cd-spindle"
-      style={{ "--cd-n": n }}
-      aria-label="Chart packs on a CD spindle"
-    >
-      <div className="cd-spindle-stage">
-        <div className="cd-disc" tabIndex={0} aria-hidden="true">
-          <div className="cd-disc-tray" />
-          <div className="cd-disc-body">
-            <div className="cd-disc-iris" />
-            <div className="cd-disc-grooves" />
-            <div className="cd-disc-sheen" />
-            <div className="cd-disc-hole">
-              <div className="cd-disc-hub" />
-            </div>
-          </div>
-        </div>
-
-        <ul className="cd-orbit">
+    <figure className="cd-tray" aria-label="Chart packs as a CD storage box">
+      <div className="cd-tray-inner">
+        <ul className="cd-spines">
           {packs.map((pack, i) => {
             const id = `chart:${pack.tag}`;
-            const active = loadingId === id;
+            const selected = loadingId === id;
+            const tone = SPINE_TONES[i % SPINE_TONES.length];
             return (
-              <li
-                key={pack.tag}
-                className={`cd-orbit-item${active ? " is-loading" : ""}`}
-                style={{ "--cd-i": i, "--cd-delay": `${0.08 + i * 0.05}s` }}
-              >
-                <span className="cd-spoke" aria-hidden="true" />
+              <li key={pack.tag} className="cd-spine-slot">
                 <button
                   type="button"
-                  className="cd-orbit-label"
+                  className={`cd-spine cd-spine--${tone}${selected ? " is-selected" : ""}`}
+                  style={{ "--cd-jitter": `${((i * 17) % 7) - 3}px` }}
                   onClick={() => onChoose(pack.tag)}
                   disabled={busy}
-                  title={pack.blurb}
                   aria-label={`${pack.label}: ${pack.blurb}`}
                 >
-                  <span className="cd-orbit-dot" aria-hidden="true" />
-                  <span className="cd-orbit-text">
-                    {active ? "…" : pack.label}
+                  <span className="cd-spine-title">
+                    {selected ? "…" : pack.label}
                   </span>
+                  <span className="cd-spine-info">{pack.blurb}</span>
                 </button>
               </li>
             );
           })}
         </ul>
       </div>
-      <figcaption className="cd-spindle-caption">pick a disc</figcaption>
+      <figcaption className="cd-tray-caption">browse the case</figcaption>
     </figure>
   );
 }

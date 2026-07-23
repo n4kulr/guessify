@@ -1190,330 +1190,222 @@ button { font-family: var(--font); }
   font-weight: 500;
   text-transform: none;
 }
-/* ---- describe-it: top-down CD spindle + orbiting packs ---- */
-.cd-spindle {
-  --cd-size: min(220px, 58vw);
-  --cd-orbit-r: calc(var(--cd-size) * 0.78);
-  --cd-dur: 0.4s;
+/* ---- describe-it: top-down CD storage tray (jewel-case spines) ---- */
+.cd-tray {
+  --cd-spine-h: 14px;
+  --cd-gap: 2px;
+  --cd-dur: 0.32s;
   --cd-ease: cubic-bezier(0.22, 1, 0.36, 1);
-  --cd-glass: color-mix(in srgb, var(--sub-alt-color) 78%, transparent);
-  width: min(520px, 100%);
-  margin: 8px auto 4px;
-  padding: 18px 12px 10px;
-  border-radius: 20px;
+  --cd-pull: 14px;
+  width: min(420px, 100%);
+  margin: 6px auto 4px;
+  padding: 14px 14px 10px;
+  border-radius: 14px;
   background:
     linear-gradient(
-      160deg,
-      color-mix(in srgb, var(--text-color) 6%, transparent),
-      var(--cd-glass)
+      180deg,
+      color-mix(in srgb, var(--text-color) 8%, var(--sub-alt-color)),
+      color-mix(in srgb, #000 22%, var(--sub-alt-color))
     );
-  border: 1px solid color-mix(in srgb, var(--text-color) 10%, transparent);
+  border: 1px solid color-mix(in srgb, var(--text-color) 12%, transparent);
   box-shadow:
-    0 18px 40px color-mix(in srgb, #000 28%, transparent),
-    inset 0 1px 0 color-mix(in srgb, #fff 8%, transparent);
-  backdrop-filter: blur(10px);
+    0 16px 36px color-mix(in srgb, #000 30%, transparent),
+    inset 0 1px 0 color-mix(in srgb, #fff 8%, transparent),
+    inset 0 -2px 8px color-mix(in srgb, #000 25%, transparent);
 }
-.cd-spindle-stage {
+.cd-tray-inner {
   position: relative;
-  width: 100%;
-  aspect-ratio: 1;
-  max-width: 420px;
-  margin: 0 auto;
+  padding: 10px 8px;
+  border-radius: 8px;
+  background:
+    linear-gradient(
+      90deg,
+      color-mix(in srgb, #000 35%, transparent),
+      color-mix(in srgb, #000 12%, transparent) 8%,
+      color-mix(in srgb, #000 12%, transparent) 92%,
+      color-mix(in srgb, #000 35%, transparent)
+    ),
+    color-mix(in srgb, var(--bg-color) 55%, #1a1a1a);
+  box-shadow:
+    inset 0 0 0 1px color-mix(in srgb, #000 40%, transparent),
+    inset 0 8px 16px color-mix(in srgb, #000 35%, transparent);
+  overflow: hidden;
 }
-.cd-spindle-caption {
+.cd-tray-caption {
   margin: 10px 0 0;
   text-align: center;
   font-size: 12px;
   color: var(--sub-color);
   letter-spacing: 0.04em;
 }
-
-/* disc */
-.cd-disc {
-  --spin: 0deg;
-  position: absolute;
-  left: 50%;
-  top: 50%;
-  width: var(--cd-size);
-  height: var(--cd-size);
-  transform: translate(-50%, -50%) rotate(var(--spin));
-  transition: transform var(--cd-dur) var(--cd-ease), filter var(--cd-dur) ease;
-  z-index: 1;
-  outline: none;
-}
-.cd-disc:hover,
-.cd-disc:focus-visible {
-  --spin: 16deg;
-  filter: drop-shadow(0 0 18px color-mix(in srgb, var(--main-color) 45%, transparent));
-}
-.cd-disc-tray {
-  position: absolute;
-  inset: -10%;
-  border-radius: 50%;
-  background:
-    radial-gradient(
-      circle,
-      color-mix(in srgb, var(--sub-alt-color) 90%, #000) 42%,
-      color-mix(in srgb, var(--text-color) 14%, transparent) 43%,
-      color-mix(in srgb, var(--sub-alt-color) 80%, #000) 58%,
-      transparent 72%
-    );
-  box-shadow: inset 0 0 24px color-mix(in srgb, #000 35%, transparent);
-  pointer-events: none;
-}
-.cd-disc-body {
-  position: absolute;
-  inset: 0;
-  border-radius: 50%;
-  overflow: hidden;
-  background:
-    conic-gradient(
-      from 0deg,
-      #c5c5c0,
-      #8f8f8a,
-      #e8e8e2,
-      #6e6e6a,
-      #d2d2cc,
-      #9a9a94,
-      #f2f2ec,
-      #7a7a74,
-      #c5c5c0
-    );
-  box-shadow:
-    0 10px 28px color-mix(in srgb, #000 40%, transparent),
-    inset 0 0 0 1px color-mix(in srgb, #fff 35%, transparent),
-    inset 0 0 18px color-mix(in srgb, #000 25%, transparent);
-}
-.cd-disc-iris {
-  position: absolute;
-  inset: 0;
-  border-radius: 50%;
-  background:
-    conic-gradient(
-      from 40deg,
-      color-mix(in srgb, #ff6b6b 28%, transparent),
-      color-mix(in srgb, #f7c948 22%, transparent),
-      color-mix(in srgb, #6bcb77 24%, transparent),
-      color-mix(in srgb, #4dabf7 26%, transparent),
-      color-mix(in srgb, #cc5de8 24%, transparent),
-      color-mix(in srgb, #ff6b6b 28%, transparent)
-    );
-  mix-blend-mode: soft-light;
-  opacity: 0.55;
-  animation: cd-iris-shift 9s linear infinite;
-  pointer-events: none;
-}
-.cd-disc-grooves {
-  position: absolute;
-  inset: 8%;
-  border-radius: 50%;
-  background:
-    repeating-radial-gradient(
-      circle at center,
-      color-mix(in srgb, #000 14%, transparent) 0 1px,
-      transparent 1px 3px
-    );
-  opacity: 0.45;
-  pointer-events: none;
-  mask-image: radial-gradient(circle, transparent 18%, #000 22%, #000 78%, transparent 82%);
-}
-.cd-disc-sheen {
-  position: absolute;
-  inset: 0;
-  border-radius: 50%;
-  background:
-    linear-gradient(
-      125deg,
-      color-mix(in srgb, #fff 50%, transparent) 0%,
-      transparent 28%,
-      transparent 58%,
-      color-mix(in srgb, #fff 18%, transparent) 72%,
-      transparent 100%
-    );
-  animation: cd-sheen-drift 6.5s ease-in-out infinite alternate;
-  pointer-events: none;
-}
-.cd-disc-hole {
-  position: absolute;
-  left: 50%;
-  top: 50%;
-  width: 22%;
-  height: 22%;
-  transform: translate(-50%, -50%);
-  border-radius: 50%;
-  background:
-    radial-gradient(
-      circle,
-      color-mix(in srgb, var(--bg-color) 92%, #000) 48%,
-      color-mix(in srgb, #888 60%, transparent) 52%,
-      color-mix(in srgb, #ddd 70%, transparent) 58%,
-      color-mix(in srgb, #666 50%, transparent) 64%,
-      transparent 66%
-    );
-  box-shadow:
-    inset 0 0 0 1px color-mix(in srgb, #fff 25%, transparent),
-    0 0 0 2px color-mix(in srgb, #000 20%, transparent);
-}
-.cd-disc-hub {
-  position: absolute;
-  left: 50%;
-  top: 50%;
-  width: 38%;
-  height: 38%;
-  transform: translate(-50%, -50%);
-  border-radius: 50%;
-  background:
-    radial-gradient(circle at 35% 30%, #f4f4f0, #9a9a94 55%, #4a4a48 100%);
-  box-shadow:
-    0 1px 2px color-mix(in srgb, #000 40%, transparent),
-    inset 0 1px 0 color-mix(in srgb, #fff 50%, transparent);
-}
-
-@keyframes cd-iris-shift {
-  to { transform: rotate(360deg); }
-}
-@keyframes cd-sheen-drift {
-  from { transform: rotate(0deg) scale(1); opacity: 0.7; }
-  to { transform: rotate(18deg) scale(1.04); opacity: 0.95; }
-}
-@keyframes cd-orbit-in {
-  from {
-    opacity: 0;
-    transform: rotate(calc(var(--cd-i) * 360deg / var(--cd-n)))
-      translateY(calc(var(--cd-orbit-r) * -0.7));
-  }
-  to {
-    opacity: 1;
-    transform: rotate(calc(var(--cd-i) * 360deg / var(--cd-n)))
-      translateY(calc(var(--cd-orbit-r) * -1));
-  }
-}
-@keyframes cd-orbit-float {
-  0%, 100% { translate: 0 0; }
-  50% { translate: 0 -3px; }
-}
-
-/* orbiting labels */
-.cd-orbit {
+.cd-spines {
   list-style: none;
   margin: 0;
   padding: 0;
-  position: absolute;
-  inset: 0;
-  z-index: 2;
-  pointer-events: none;
-  animation: cd-orbit-float 5.5s ease-in-out infinite;
+  display: flex;
+  flex-direction: column;
+  gap: var(--cd-gap);
 }
-.cd-orbit-item {
-  position: absolute;
-  left: 50%;
-  top: 50%;
-  width: 0;
-  height: 0;
-  opacity: 0;
-  transform: rotate(calc(var(--cd-i) * 360deg / var(--cd-n)))
-    translateY(calc(var(--cd-orbit-r) * -1));
-  animation: cd-orbit-in 0.55s var(--cd-ease) forwards;
-  animation-delay: var(--cd-delay, 0s);
+.cd-spine-slot {
+  position: relative;
+  height: var(--cd-spine-h);
+  z-index: 0;
 }
-.cd-spoke {
+.cd-spine-slot:hover,
+.cd-spine-slot:focus-within {
+  z-index: 3;
+}
+.cd-spine {
+  --cd-base: #cfcfc8;
+  --cd-hi: #f2f2ec;
+  --cd-lo: #9a9a94;
+  --cd-ink: #1a1a1a;
   position: absolute;
   left: 0;
   top: 0;
-  width: 1px;
-  height: calc(var(--cd-orbit-r) - var(--cd-size) * 0.42);
-  transform: translate(-50%, -100%);
-  transform-origin: bottom center;
-  background: linear-gradient(
-    to top,
-    color-mix(in srgb, var(--main-color) 55%, transparent),
-    color-mix(in srgb, var(--text-color) 18%, transparent)
-  );
-  opacity: 0.35;
-  transition: opacity var(--cd-dur) ease, width var(--cd-dur) ease, background var(--cd-dur) ease;
-}
-.cd-orbit-label {
-  pointer-events: auto;
-  position: absolute;
-  left: 0;
-  top: 0;
-  display: inline-flex;
+  display: flex;
   align-items: center;
-  gap: 6px;
-  padding: 6px 10px;
-  border: 1px solid color-mix(in srgb, var(--text-color) 14%, transparent);
-  border-radius: 999px;
-  background: color-mix(in srgb, var(--sub-alt-color) 88%, transparent);
-  color: var(--text-color);
+  gap: 10px;
+  width: 100%;
+  height: var(--cd-spine-h);
+  padding: 0 10px;
+  margin: 0;
+  border: 1px solid color-mix(in srgb, #000 22%, transparent);
+  border-radius: 3px;
   cursor: pointer;
-  white-space: nowrap;
-  backdrop-filter: blur(8px);
-  box-shadow: 0 6px 16px color-mix(in srgb, #000 22%, transparent);
-  transform: translate(-50%, -50%)
-    rotate(calc(var(--cd-i) * -360deg / var(--cd-n)));
+  overflow: hidden;
+  color: var(--cd-ink);
+  background:
+    linear-gradient(
+      180deg,
+      var(--cd-hi) 0%,
+      var(--cd-base) 42%,
+      var(--cd-lo) 100%
+    );
+  box-shadow:
+    0 1px 0 color-mix(in srgb, #fff 30%, transparent),
+    0 1px 2px color-mix(in srgb, #000 25%, transparent),
+    inset 0 1px 0 color-mix(in srgb, #fff 45%, transparent);
+  transform: translateX(var(--cd-jitter, 0px));
   transition:
     transform var(--cd-dur) var(--cd-ease),
-    background var(--cd-dur) ease,
-    border-color var(--cd-dur) ease,
-    color var(--cd-dur) ease,
-    box-shadow var(--cd-dur) ease;
+    height var(--cd-dur) var(--cd-ease),
+    width var(--cd-dur) var(--cd-ease),
+    box-shadow var(--cd-dur) var(--cd-ease),
+    padding var(--cd-dur) ease,
+    filter var(--cd-dur) ease;
 }
-.cd-orbit-dot {
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  flex: none;
-  background: var(--main-color);
-  box-shadow: 0 0 0 2px color-mix(in srgb, var(--main-color) 25%, transparent);
-  transition: transform var(--cd-dur) ease;
+/* tiny scratches / dust */
+.cd-spine::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background:
+    linear-gradient(
+      100deg,
+      transparent 0%,
+      color-mix(in srgb, #fff 35%, transparent) 18%,
+      transparent 22%,
+      transparent 70%,
+      color-mix(in srgb, #000 12%, transparent) 78%,
+      transparent 100%
+    ),
+    repeating-linear-gradient(
+      92deg,
+      transparent 0 11px,
+      color-mix(in srgb, #000 6%, transparent) 11px 12px
+    );
+  opacity: 0.55;
+  pointer-events: none;
 }
-.cd-orbit-text {
-  font-family: "Caveat", "Segoe Print", cursive;
-  font-size: 18px;
+.cd-spine--clear {
+  --cd-base: color-mix(in srgb, var(--text-color) 18%, #d8d8d2);
+  --cd-hi: color-mix(in srgb, #fff 55%, transparent);
+  --cd-lo: color-mix(in srgb, #888 35%, #bdbdb8);
+  --cd-ink: color-mix(in srgb, var(--text-color) 85%, #111);
+}
+.cd-spine--white { --cd-base: #efefe9; --cd-hi: #fafaf6; --cd-lo: #d0d0ca; --cd-ink: #222; }
+.cd-spine--black { --cd-base: #2a2a2a; --cd-hi: #3a3a3a; --cd-lo: #141414; --cd-ink: #e8e8e2; }
+.cd-spine--grey { --cd-base: #9e9e98; --cd-hi: #b8b8b2; --cd-lo: #7a7a74; --cd-ink: #1c1c1c; }
+.cd-spine--smoke { --cd-base: #6e726f; --cd-hi: #8a8e8b; --cd-lo: #4f5350; --cd-ink: #f0f0ea; }
+.cd-spine--amber { --cd-base: #c4a574; --cd-hi: #dec49a; --cd-lo: #9e7f52; --cd-ink: #1f160c; }
+.cd-spine--slate { --cd-base: #5c6b7a; --cd-hi: #7a8a99; --cd-lo: #3f4c58; --cd-ink: #f2f4f6; }
+.cd-spine--frost {
+  --cd-base: color-mix(in srgb, var(--main-color) 22%, #d5d5cf);
+  --cd-hi: color-mix(in srgb, var(--main-color) 12%, #f0f0ea);
+  --cd-lo: color-mix(in srgb, var(--main-color) 18%, #a8a8a2);
+  --cd-ink: #1a1a1a;
+}
+.cd-spine-title {
+  position: relative;
+  z-index: 1;
+  flex: 1;
+  min-width: 0;
+  font-size: 10px;
   font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
   line-height: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  text-align: left;
+}
+.cd-spine-info {
+  position: relative;
+  z-index: 1;
+  flex: none;
+  max-width: 0;
+  opacity: 0;
+  overflow: hidden;
+  font-size: 10px;
+  font-weight: 500;
   letter-spacing: 0.02em;
-  transition: transform var(--cd-dur) var(--cd-ease);
+  text-transform: none;
+  white-space: nowrap;
+  color: color-mix(in srgb, var(--cd-ink) 72%, transparent);
+  transition:
+    max-width var(--cd-dur) var(--cd-ease),
+    opacity var(--cd-dur) ease;
 }
-.cd-orbit-item:hover .cd-spoke,
-.cd-orbit-item:focus-within .cd-spoke,
-.cd-orbit-item.is-loading .cd-spoke {
+.cd-spine:hover:not(:disabled),
+.cd-spine:focus-visible {
+  height: 22px;
+  transform: translateX(var(--cd-pull)) translateY(-2px);
+  box-shadow:
+    0 6px 14px color-mix(in srgb, #000 40%, transparent),
+    0 0 0 1px color-mix(in srgb, var(--main-color) 55%, transparent),
+    inset 0 1px 0 color-mix(in srgb, #fff 45%, transparent);
+  filter: brightness(1.05);
+}
+.cd-spine:hover:not(:disabled) .cd-spine-info,
+.cd-spine:focus-visible .cd-spine-info,
+.cd-spine.is-selected .cd-spine-info {
+  max-width: 160px;
   opacity: 1;
-  width: 2px;
-  background: var(--main-color);
 }
-.cd-orbit-label:hover:not(:disabled),
-.cd-orbit-label:focus-visible {
-  background: var(--main-color);
-  color: var(--bg-color);
-  border-color: var(--main-color);
-  box-shadow: 0 8px 20px color-mix(in srgb, var(--main-color) 30%, transparent);
-  transform: translate(-50%, -50%)
-    rotate(calc(var(--cd-i) * -360deg / var(--cd-n)))
-    scale(1.08);
+.cd-spine.is-selected {
+  height: 24px;
+  transform: translateX(calc(var(--cd-pull) + 4px)) translateY(-3px);
+  box-shadow:
+    0 10px 20px color-mix(in srgb, #000 45%, transparent),
+    0 0 0 1.5px var(--main-color),
+    inset 0 1px 0 color-mix(in srgb, #fff 45%, transparent);
 }
-.cd-orbit-label:hover:not(:disabled) .cd-orbit-dot,
-.cd-orbit-label:focus-visible .cd-orbit-dot {
-  background: var(--bg-color);
-  transform: scale(1.15);
-}
-.cd-orbit-label:hover:not(:disabled) .cd-orbit-text,
-.cd-orbit-label:focus-visible .cd-orbit-text {
-  transform: scale(1.04);
-}
-.cd-orbit-label:disabled {
+.cd-spine:disabled {
   cursor: wait;
-  opacity: 0.7;
+  opacity: 0.72;
 }
 
 @media (max-width: 520px) {
-  .cd-spindle {
-    --cd-size: min(170px, 48vw);
-    --cd-orbit-r: calc(var(--cd-size) * 0.86);
-    padding: 12px 6px 8px;
+  .cd-tray {
+    --cd-spine-h: 13px;
+    --cd-pull: 10px;
+    width: min(100%, 100%);
+    padding: 10px 8px 8px;
   }
-  .cd-orbit-text { font-size: 15px; }
-  .cd-orbit-label { padding: 5px 8px; }
+  .cd-spine-title { font-size: 9px; letter-spacing: 0.04em; }
 }
 
 .playlists { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 14px; }
