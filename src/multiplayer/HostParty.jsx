@@ -142,10 +142,6 @@ export default function HostParty({ code, playlist, me, onExit }) {
   }, [mePlayer?.id, mePlayer?.name, mePlayer?.avatar?.peep, mePlayer?.avatar?.color]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
-    if (state?.revealedArtist) setArtistGuess(state.revealedArtist);
-  }, [state?.revealedArtist]);
-
-  useEffect(() => {
     if (!state?.revealedArtist) setArtistGuess("");
   }, [state?.roundIdx]); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -179,10 +175,13 @@ export default function HostParty({ code, playlist, me, onExit }) {
     const g = guesses[i];
     if (!g || g.playerId !== playerId || g.skip) return;
     lastFxGuess.current = i;
-    if (g.win) fireConfetti("full");
-    else if (g.artistOk) fireConfetti("light");
-    else shakeEl(rootRef.current);
+    if (g.win) fireConfetti("title");
+    else if (!g.artistOk) shakeEl(rootRef.current);
   }, [state?.guesses, playerId]);
+
+  useEffect(() => {
+    if (state?.phase === "over") fireConfetti("victory");
+  }, [state?.phase]);
 
   const unlocked = unlockSecondsFor(state?.unlockByPlayer, playerId);
   const phase = state?.phase || "lobby";
@@ -446,7 +445,7 @@ export default function HostParty({ code, playlist, me, onExit }) {
             <input
               className="guess-input"
               placeholder="artist…"
-              value={artistGuess}
+              value={state.revealedArtist || artistGuess}
               disabled={!!state.revealedArtist}
               onChange={(e) => setArtistGuess(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && submitGuess()}

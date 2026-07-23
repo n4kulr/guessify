@@ -145,11 +145,10 @@ export default function Game({ playlist, onExit }) {
       setScore((s) => s + titlePts);
       setOutcome("win");
       setCelebrate(true);
-      fireConfetti("full");
+      fireConfetti("title");
       playSnippet(null); // full preview until next song
     } else {
-      if (artistOk) fireConfetti("light");
-      else shakeEl(rootRef.current);
+      if (!artistOk) shakeEl(rootRef.current);
       if (artistPts) setEarnedPts(artistPts);
       consumeGuess();
     }
@@ -186,6 +185,10 @@ export default function Game({ playlist, onExit }) {
   function restart() {
     onExit();
   }
+
+  useEffect(() => {
+    if (phase === "over") fireConfetti("victory");
+  }, [phase]);
 
   const maxScore = rounds.length * (TITLE_POINTS[0] + ARTIST_BONUS);
   const spinning = (playing || celebrate) && !scrubbing;

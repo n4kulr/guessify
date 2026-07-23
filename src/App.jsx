@@ -102,12 +102,6 @@ export default function App() {
   function onPlaylistPicked(pl) {
     setPlaylist(pl);
     setPicking(false);
-    // Charts work logged-out; hosting still needs a Spotify session.
-    if (status !== "loggedIn") {
-      setMode("solo");
-      setRoomCode(null);
-      return;
-    }
     if (mode === "multi") setRoomCode(makeRoomCode());
   }
 
@@ -156,9 +150,12 @@ export default function App() {
           mode === "solo" &&
           playlist && <Game playlist={playlist} onExit={leaveGame} />}
 
-        {status === "loggedIn" && mode === "multi" && playlist && roomCode && (
-          <HostParty code={roomCode} playlist={playlist} me={me} onExit={goHome} />
-        )}
+        {(status === "loggedIn" || status === "loggedOut") &&
+          mode === "multi" &&
+          playlist &&
+          roomCode && (
+            <HostParty code={roomCode} playlist={playlist} me={me} onExit={goHome} />
+          )}
       </main>
 
       <footer className="footer">

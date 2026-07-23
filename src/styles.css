@@ -2447,6 +2447,55 @@ button { font-family: var(--font); }
   60% { transform: translateX(5px); }
   75% { transform: translateX(-2px); }
 }
+
+/* ---- confetti (DOM shells; colors from theme at fire time) ---- */
+.fx-confetti-stage {
+  position: fixed;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+  z-index: 9999;
+}
+.fx-shell { position: absolute; top: 0; left: 0; will-change: transform; }
+.fx-piece { will-change: transform; }
+.fx-face {
+  will-change: transform;
+  animation-name: fx-spin;
+  animation-iteration-count: infinite;
+  animation-timing-function: linear;
+}
+.fx-burst {
+  animation:
+    fx-drift-x var(--dur) cubic-bezier(0.12, 0.62, 0.3, 1) forwards,
+    fx-fade var(--dur) linear forwards;
+}
+.fx-burst .fx-piece { animation: fx-arc-y var(--dur) forwards; }
+.fx-fall { animation: fx-sway var(--sway) ease-in-out infinite alternate; }
+.fx-fall .fx-piece { animation: fx-drop var(--dur) linear forwards; }
+
+@keyframes fx-drift-x { to { transform: translateX(var(--dx)); } }
+@keyframes fx-arc-y {
+  0% { transform: translateY(0); animation-timing-function: cubic-bezier(0.2, 0.6, 0.4, 1); }
+  38% { transform: translateY(var(--peak)); animation-timing-function: cubic-bezier(0.55, 0, 0.85, 0.55); }
+  100% { transform: translateY(var(--drop)); }
+}
+@keyframes fx-fade {
+  0%, 72% { opacity: 1; }
+  100% { opacity: 0; }
+}
+@keyframes fx-drop { to { transform: translateY(var(--drop)); } }
+@keyframes fx-sway {
+  from { transform: translateX(calc(var(--sx) * -1)); }
+  to { transform: translateX(var(--sx)); }
+}
+@keyframes fx-spin { to { transform: rotate3d(var(--rx), var(--ry), 0.3, 360deg); } }
+
+@media (prefers-reduced-motion: reduce) {
+  .fx-shell,
+  .fx-piece,
+  .fx-face { animation: none !important; }
+}
+
 .mp-board {
   width: min(920px, 100%);
   display: grid;
@@ -2510,7 +2559,7 @@ button { font-family: var(--font); }
   font-weight: 600;
 }
 .mp-guess-popup-body .by { color: var(--sub-color); font-weight: 500; font-size: 11px; }
-.mp-guess-popup-body .ok { color: var(--main-color); }
+.mp-guess-popup-body .ok { color: #3ecf8e; }
 .mp-guess-popup-body .no { color: var(--error-color); opacity: 0.9; }
 .mp-guess-popup.win .mp-guess-popup-body .ok,
 .mp-guess-popup.win .mp-guess-popup-body .no,
@@ -2691,7 +2740,7 @@ button { font-family: var(--font); }
 }
 .guess-row.wrong { background: var(--bg-color); }
 .gr-field { max-width: 42%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.gr-field.ok { color: var(--main-color); }
+.gr-field.ok { color: #3ecf8e; }
 .gr-field.ok::before {
   content: "";
   display: inline-block;

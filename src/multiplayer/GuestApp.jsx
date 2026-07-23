@@ -54,10 +54,6 @@ export default function GuestApp({ code }) {
   }, [me?.id, me?.name, me?.avatar?.peep, me?.avatar?.color]);
 
   useEffect(() => {
-    if (state?.revealedArtist) setArtistGuess(state.revealedArtist);
-  }, [state?.revealedArtist]);
-
-  useEffect(() => {
     if (!state?.revealedArtist) setArtistGuess("");
   }, [state?.roundIdx]); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -85,10 +81,13 @@ export default function GuestApp({ code }) {
     const g = guesses[i];
     if (!g || g.playerId !== playerId || g.skip) return;
     lastFxGuess.current = i;
-    if (g.win) fireConfetti("full");
-    else if (g.artistOk) fireConfetti("light");
-    else shakeEl(rootRef.current);
+    if (g.win) fireConfetti("title");
+    else if (!g.artistOk) shakeEl(rootRef.current);
   }, [state?.guesses, playerId]);
+
+  useEffect(() => {
+    if (state?.phase === "over") fireConfetti("victory");
+  }, [state?.phase]);
 
   function join() {
     setError(null);
@@ -331,7 +330,7 @@ export default function GuestApp({ code }) {
               <input
                 className="guess-input"
                 placeholder="artist…"
-                value={artistGuess}
+                value={state.revealedArtist || artistGuess}
                 disabled={!!state.revealedArtist}
                 onChange={(e) => setArtistGuess(e.target.value)}
                 onKeyDown={(e) => e.key === "Enter" && submitGuess()}
