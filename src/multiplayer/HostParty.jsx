@@ -34,7 +34,7 @@ export default function HostParty({ code, playlist, me, onExit }) {
     setMediaMode(next);
     saveMediaMode(next);
   }
-  const hostedRef = useRef(false);
+  // (host reclaim runs on every socket open — see effect below)
 
   const joinUrl =
     typeof window !== "undefined"
@@ -82,8 +82,14 @@ export default function HostParty({ code, playlist, me, onExit }) {
   }, [joinUrl]);
 
   useEffect(() => {
-    if (status !== "connected" || hostedRef.current) return;
-    hostedRef.current = true;
+    if (status !== "connected") return;
+    // Reclaim host seat on every reconnect (hibernation / background tabs).
+    try {
+      const saved = sessionStorage.getItem(`guessify-mp-${code.toUpperCase()}`);
+      if (saved) send({ type: "rejoin", playerId: saved });
+    } catch {
+      /* ignore */
+    }
     send({
       type: "host",
       hostName,

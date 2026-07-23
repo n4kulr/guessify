@@ -2822,6 +2822,13 @@ button { font-family: var(--font); }
   transition: transform 0.15s ease, box-shadow 0.15s ease;
 }
 .mp-player.offline { opacity: 0.45; }
+.mp-player.left {
+  opacity: 0.4;
+}
+.mp-player.left .mp-player-name-text {
+  text-decoration: line-through;
+  text-decoration-thickness: 1.5px;
+}
 .mp-player.winner { box-shadow: 0 0 0 2px var(--main-color); }
 .mp-player.pulse { animation: mp-pulse 0.45s ease; }
 @keyframes mp-pulse {
@@ -3248,6 +3255,8 @@ button { font-family: var(--font); }
     position: static;
     max-height: none;
     order: 2;
+    /* Newest guess on top (DOM stays chronological; reverse visual stack). */
+    flex-direction: column-reverse;
   }
 }
 @media (max-width: 520px) {

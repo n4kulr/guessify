@@ -16,7 +16,6 @@ export default function GuestApp({ code }) {
   const [avatar, setAvatar] = useState(() => randomAvatar());
   const [titleGuess, setTitleGuess] = useState("");
   const [artistGuess, setArtistGuess] = useState("");
-  const [rejoinTried, setRejoinTried] = useState(false);
   const [mediaMode, setMediaMode] = useState(loadMediaMode);
   const { errorMsg, play, pause } = usePreviewPlayer();
   const [playBusy, setPlayBusy] = useState(false);
@@ -36,15 +35,15 @@ export default function GuestApp({ code }) {
   const canPlay = !!playTrack?.previewUrl;
 
   useEffect(() => {
-    if (status !== "connected" || rejoinTried || joined) return;
-    setRejoinTried(true);
+    if (status !== "connected") return;
     try {
-      const saved = sessionStorage.getItem(`guessify-mp-${upper}`);
+      const saved =
+        playerId || sessionStorage.getItem(`guessify-mp-${upper}`);
       if (saved) send({ type: "rejoin", playerId: saved });
     } catch {
       /* ignore */
     }
-  }, [status, rejoinTried, joined, upper]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [status]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     if (!me) return;

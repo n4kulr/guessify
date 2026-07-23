@@ -13,6 +13,11 @@ import {
 } from "../src/multiplayer/constants.js";
 import { resolveItunesPreview } from "./itunesPreview.js";
 
+/** Soft-offline (grey) until this long, then marked left (strikethrough). */
+const LEAVE_AFTER_MS = 45 * 60 * 1000;
+/** Keep empty rooms around so friends can still rejoin after a long tab-away. */
+const ROOM_TTL_MS = 6 * 60 * 60 * 1000;
+
 /**
  * Multiplayer room (PartyServer / Cloudflare Durable Object).
  * Shared race / unlock state; each client plays iTunes previews locally (no DJ).
@@ -20,13 +25,30 @@ import { resolveItunesPreview } from "./itunesPreview.js";
 export class Room extends Server {
   state = null; // set when host claims the room
 
+  async onStart() {
+    const saved = await this.ctx.storage.get("room");
+    if (saved) {
+      this.state = saved;
+      // Connections are gone after hibernation — wait for rejoin/host reclaim.
+      this.state.hostConnId = null;
+      this.state.hostConnected = false;
+      for (const p of this.state.players || []) {
+        p.connId = null;
+        p.connected = false;
+        if (!p.left && !p.disconnectedAt) p.disconnectedAt = Date.now();
+      }
+      await this.scheduleLeaveAlarm();
+    }
+  }
+
   onConnect(conn) {
     // Wait for hello / join before treating as a player.
     conn.send(JSON.stringify({ type: "hello", room: this.name }));
   }
 
-  onClose(conn) {
+  async onClose(conn) {
     if (!this.state) return;
+    const now = Date.now();
     if (this.state.hostConnId === conn.id) {
       this.state.hostConnId = null;
       this.state.hostConnected = false;
@@ -34,16 +56,89 @@ export class Room extends Server {
       if (hostPlayer) {
         hostPlayer.connected = false;
         hostPlayer.connId = null;
+        hostPlayer.disconnectedAt = now;
       }
       this.broadcastState();
+      await this.persist();
+      await this.scheduleLeaveAlarm();
       return;
     }
     const p = this.state.players.find((x) => x.connId === conn.id);
     if (p) {
       p.connected = false;
       p.connId = null;
+      p.disconnectedAt = now;
       this.broadcastState();
+      await this.persist();
+      await this.scheduleLeaveAlarm();
     }
+  }
+
+  async alarm() {
+    if (!this.state) return;
+    const now = Date.now();
+    let changed = false;
+    for (const p of this.state.players) {
+      if (
+        !p.connected &&
+        !p.left &&
+        p.disconnectedAt &&
+        now - p.disconnectedAt >= LEAVE_AFTER_MS
+      ) {
+        p.left = true;
+        changed = true;
+      }
+    }
+    if (changed) {
+      this.broadcastState();
+      await this.persist();
+    }
+
+    const anyoneOnline = this.state.players.some((p) => p.connected);
+    const lastActivity = Math.max(
+      0,
+      ...this.state.players.map((p) => p.disconnectedAt || 0),
+      this.state.updatedAt || 0
+    );
+    if (!anyoneOnline && lastActivity && now - lastActivity >= ROOM_TTL_MS) {
+      this.state = null;
+      await this.ctx.storage.delete("room");
+      return;
+    }
+
+    await this.scheduleLeaveAlarm();
+  }
+
+  async scheduleLeaveAlarm() {
+    if (!this.state) return;
+    const now = Date.now();
+    const deadlines = [];
+    for (const p of this.state.players) {
+      if (!p.connected && !p.left && p.disconnectedAt) {
+        deadlines.push(p.disconnectedAt + LEAVE_AFTER_MS);
+      }
+    }
+    const anyoneOnline = this.state.players.some((p) => p.connected);
+    if (!anyoneOnline) {
+      const lastActivity = Math.max(
+        0,
+        ...this.state.players.map((p) => p.disconnectedAt || 0),
+        this.state.updatedAt || now
+      );
+      deadlines.push(lastActivity + ROOM_TTL_MS);
+    }
+    if (!deadlines.length) return;
+    const next = Math.min(...deadlines);
+    await this.ctx.storage.setAlarm(Math.max(next, now + 1000));
+  }
+
+  async persist() {
+    if (!this.state) {
+      await this.ctx.storage.delete("room");
+      return;
+    }
+    this.state.updatedAt = Date.now();
+    await this.ctx.storage.put("room", this.state);
   }
 
   async onMessage(sender, message) {
@@ -109,6 +204,8 @@ export class Room extends Server {
         score: 0,
         wins: 0,
         connected: true,
+        left: false,
+        disconnectedAt: null,
         isHost: true,
       };
       this.state = {
@@ -131,11 +228,13 @@ export class Room extends Server {
         revealedArtist: null,
         artistClaimedBy: null,
         colorIdx: 1,
+        updatedAt: Date.now(),
       };
       sender.send(
         JSON.stringify({ type: "hosted", role: "host", playerId: hostPlayer.id })
       );
       this.broadcastState();
+      void this.persist();
       return;
     }
 
@@ -154,12 +253,16 @@ export class Room extends Server {
         score: 0,
         wins: 0,
         connected: true,
+        left: false,
+        disconnectedAt: null,
         isHost: true,
       };
       this.state.players.unshift(hostPlayer);
     } else {
       hostPlayer.connId = sender.id;
       hostPlayer.connected = true;
+      hostPlayer.left = false;
+      hostPlayer.disconnectedAt = null;
       if (msg.avatar) {
         hostPlayer.avatar = normalizeAvatar(msg.avatar, hostPlayer.color);
         hostPlayer.color = hostPlayer.avatar.color;
@@ -180,6 +283,7 @@ export class Room extends Server {
       JSON.stringify({ type: "hosted", role: "host", playerId: hostPlayer.id })
     );
     this.broadcastState();
+    void this.persist();
   }
 
   handleJoin(msg, sender) {
@@ -216,11 +320,14 @@ export class Room extends Server {
       score: 0,
       wins: 0,
       connected: true,
+      left: false,
+      disconnectedAt: null,
     };
     this.state.players.push(player);
 
     sender.send(JSON.stringify({ type: "joined", role: "guest", playerId: player.id }));
     this.broadcastState();
+    void this.persist();
   }
 
   handleProfile(msg, sender) {
@@ -247,6 +354,7 @@ export class Room extends Server {
     player.color = player.avatar.color;
     if (player.isHost) this.state.hostName = name;
     this.broadcastState();
+    void this.persist();
   }
 
   handleRejoin(msg, sender) {
@@ -261,8 +369,21 @@ export class Room extends Server {
     }
     player.connId = sender.id;
     player.connected = true;
-    sender.send(JSON.stringify({ type: "joined", role: "guest", playerId: player.id }));
+    player.left = false;
+    player.disconnectedAt = null;
+    if (player.isHost) {
+      this.state.hostConnId = sender.id;
+      this.state.hostConnected = true;
+    }
+    sender.send(
+      JSON.stringify({
+        type: player.isHost ? "hosted" : "joined",
+        role: player.isHost ? "host" : "guest",
+        playerId: player.id,
+      })
+    );
     this.broadcastState();
+    void this.persist();
   }
 
   async handleStart(sender) {
@@ -284,6 +405,7 @@ export class Room extends Server {
     this.state.artistClaimedBy = null;
     await this.resolveCurrentPreview();
     this.broadcastState();
+    await this.persist();
   }
 
   handleGuess(msg, sender) {
@@ -344,16 +466,14 @@ export class Room extends Server {
       this.state.phase = "reveal";
       player.score += titlePts;
       player.wins += 1;
-    } else {
-      if (artistPts) {
-        this.state.bonus = artistPts;
-        this.state.earnedPts = artistPts;
-      }
-      // Artist-only correct shouldn't burn a shared unlock step.
-      if (title || !artistOk) this.consumeGuess();
+    } else if (artistPts) {
+      this.state.bonus = artistPts;
+      this.state.earnedPts = artistPts;
     }
+    // Wrong guesses never unlock more audio — only explicit skip does.
 
     this.broadcastState();
+    void this.persist();
   }
 
   handleSkip(sender) {
@@ -373,6 +493,7 @@ export class Room extends Server {
     });
     this.consumeGuess();
     this.broadcastState();
+    void this.persist();
   }
 
   consumeGuess() {
@@ -400,6 +521,7 @@ export class Room extends Server {
       this.state.previewUrl = null;
       this.state.previewArt = null;
       this.broadcastState();
+      await this.persist();
       return;
     }
 
@@ -415,6 +537,7 @@ export class Room extends Server {
     this.state.phase = "play";
     await this.resolveCurrentPreview();
     this.broadcastState();
+    await this.persist();
   }
 
   async resolveCurrentPreview() {
@@ -481,6 +604,7 @@ export class Room extends Server {
         score: p.score,
         wins: p.wins,
         connected: p.connected,
+        left: !!p.left,
         isHost: !!p.isHost,
       })),
       roundIdx: this.state.roundIdx,
