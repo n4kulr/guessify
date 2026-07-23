@@ -1192,12 +1192,13 @@ button { font-family: var(--font); }
 }
 /* ---- describe-it: top-down CD storage tray (jewel-case spines) ---- */
 .cd-tray {
-  --cd-spine-h: 14px;
+  --cd-spine-w: 14px;
+  --cd-spine-len: 100px;
   --cd-gap: 2px;
   --cd-dur: 0.32s;
   --cd-ease: cubic-bezier(0.22, 1, 0.36, 1);
   --cd-pull: 14px;
-  width: min(420px, 100%);
+  width: min(560px, 100%);
   margin: 6px auto 4px;
   padding: 14px 14px 10px;
   border-radius: 14px;
@@ -1215,21 +1216,21 @@ button { font-family: var(--font); }
 }
 .cd-tray-inner {
   position: relative;
-  padding: 10px 8px;
+  padding: 18px 10px 12px;
   border-radius: 8px;
   background:
     linear-gradient(
-      90deg,
+      180deg,
       color-mix(in srgb, #000 35%, transparent),
-      color-mix(in srgb, #000 12%, transparent) 8%,
-      color-mix(in srgb, #000 12%, transparent) 92%,
+      color-mix(in srgb, #000 12%, transparent) 10%,
+      color-mix(in srgb, #000 12%, transparent) 90%,
       color-mix(in srgb, #000 35%, transparent)
     ),
     color-mix(in srgb, var(--bg-color) 55%, #1a1a1a);
   box-shadow:
     inset 0 0 0 1px color-mix(in srgb, #000 40%, transparent),
     inset 0 8px 16px color-mix(in srgb, #000 35%, transparent);
-  overflow: hidden;
+  overflow: visible;
 }
 .cd-tray-caption {
   margin: 10px 0 0;
@@ -1243,12 +1244,18 @@ button { font-family: var(--font); }
   margin: 0;
   padding: 0;
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
+  flex-wrap: nowrap;
+  justify-content: center;
+  align-items: flex-end;
   gap: var(--cd-gap);
+  min-height: calc(var(--cd-spine-len) + var(--cd-pull) + 8px);
 }
 .cd-spine-slot {
   position: relative;
-  height: var(--cd-spine-h);
+  flex: none;
+  width: var(--cd-spine-w);
+  height: var(--cd-spine-len);
   z-index: 0;
 }
 .cd-spine-slot:hover,
@@ -1262,13 +1269,15 @@ button { font-family: var(--font); }
   --cd-ink: #1a1a1a;
   position: absolute;
   left: 0;
-  top: 0;
+  bottom: 0;
   display: flex;
+  flex-direction: column;
   align-items: center;
-  gap: 10px;
-  width: 100%;
-  height: var(--cd-spine-h);
-  padding: 0 10px;
+  justify-content: center;
+  gap: 8px;
+  width: var(--cd-spine-w);
+  height: var(--cd-spine-len);
+  padding: 8px 0;
   margin: 0;
   border: 1px solid color-mix(in srgb, #000 22%, transparent);
   border-radius: 3px;
@@ -1277,16 +1286,16 @@ button { font-family: var(--font); }
   color: var(--cd-ink);
   background:
     linear-gradient(
-      180deg,
+      90deg,
       var(--cd-hi) 0%,
       var(--cd-base) 42%,
       var(--cd-lo) 100%
     );
   box-shadow:
-    0 1px 0 color-mix(in srgb, #fff 30%, transparent),
-    0 1px 2px color-mix(in srgb, #000 25%, transparent),
-    inset 0 1px 0 color-mix(in srgb, #fff 45%, transparent);
-  transform: translateX(var(--cd-jitter, 0px));
+    1px 0 0 color-mix(in srgb, #fff 30%, transparent),
+    1px 1px 2px color-mix(in srgb, #000 25%, transparent),
+    inset 1px 0 0 color-mix(in srgb, #fff 45%, transparent);
+  transform: translateY(var(--cd-jitter, 0px));
   transition:
     transform var(--cd-dur) var(--cd-ease),
     height var(--cd-dur) var(--cd-ease),
@@ -1303,7 +1312,7 @@ button { font-family: var(--font); }
   border-radius: inherit;
   background:
     linear-gradient(
-      100deg,
+      10deg,
       transparent 0%,
       color-mix(in srgb, #fff 35%, transparent) 18%,
       transparent 22%,
@@ -1312,7 +1321,7 @@ button { font-family: var(--font); }
       transparent 100%
     ),
     repeating-linear-gradient(
-      92deg,
+      8deg,
       transparent 0 11px,
       color-mix(in srgb, #000 6%, transparent) 11px 12px
     );
@@ -1340,8 +1349,8 @@ button { font-family: var(--font); }
 .cd-spine-title {
   position: relative;
   z-index: 1;
-  flex: 1;
-  min-width: 0;
+  flex: none;
+  max-height: calc(var(--cd-spine-len) - 16px);
   font-size: 10px;
   font-weight: 600;
   letter-spacing: 0.06em;
@@ -1350,48 +1359,51 @@ button { font-family: var(--font); }
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  text-align: left;
+  /* sideways after 90° left — tilt head left to read */
+  transform: rotate(-90deg);
+  max-width: calc(var(--cd-spine-len) - 16px);
 }
 .cd-spine-info {
   position: relative;
   z-index: 1;
   flex: none;
-  max-width: 0;
+  max-height: 0;
   opacity: 0;
   overflow: hidden;
-  font-size: 10px;
+  font-size: 9px;
   font-weight: 500;
   letter-spacing: 0.02em;
   text-transform: none;
   white-space: nowrap;
   color: color-mix(in srgb, var(--cd-ink) 72%, transparent);
+  transform: rotate(-90deg);
   transition:
-    max-width var(--cd-dur) var(--cd-ease),
+    max-height var(--cd-dur) var(--cd-ease),
     opacity var(--cd-dur) ease;
 }
 .cd-spine:hover:not(:disabled),
 .cd-spine:focus-visible {
-  height: 22px;
-  transform: translateX(var(--cd-pull)) translateY(-2px);
+  width: 22px;
+  transform: translateY(calc(-1 * var(--cd-pull)));
   box-shadow:
     0 6px 14px color-mix(in srgb, #000 40%, transparent),
     0 0 0 1px color-mix(in srgb, var(--main-color) 55%, transparent),
-    inset 0 1px 0 color-mix(in srgb, #fff 45%, transparent);
+    inset 1px 0 0 color-mix(in srgb, #fff 45%, transparent);
   filter: brightness(1.05);
 }
 .cd-spine:hover:not(:disabled) .cd-spine-info,
 .cd-spine:focus-visible .cd-spine-info,
 .cd-spine.is-selected .cd-spine-info {
-  max-width: 160px;
+  max-height: 120px;
   opacity: 1;
 }
 .cd-spine.is-selected {
-  height: 24px;
-  transform: translateX(calc(var(--cd-pull) + 4px)) translateY(-3px);
+  width: 24px;
+  transform: translateY(calc(-1 * var(--cd-pull) - 4px));
   box-shadow:
     0 10px 20px color-mix(in srgb, #000 45%, transparent),
     0 0 0 1.5px var(--main-color),
-    inset 0 1px 0 color-mix(in srgb, #fff 45%, transparent);
+    inset 1px 0 0 color-mix(in srgb, #fff 45%, transparent);
 }
 .cd-spine:disabled {
   cursor: wait;
@@ -1400,13 +1412,17 @@ button { font-family: var(--font); }
 
 @media (max-width: 520px) {
   .cd-tray {
-    --cd-spine-h: 13px;
+    --cd-spine-w: 11px;
+    --cd-spine-len: 84px;
     --cd-pull: 10px;
     width: min(100%, 100%);
-    padding: 10px 8px 8px;
+    padding: 10px 6px 8px;
+    overflow-x: auto;
   }
+  .cd-tray-inner { overflow-x: auto; }
   .cd-spine-title { font-size: 9px; letter-spacing: 0.04em; }
 }
+
 
 .playlists { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 14px; }
 .record-card {

@@ -17,7 +17,7 @@ export default function ChartCdSpindle({ packs, loadingId, onChoose }) {
                 <button
                   type="button"
                   className={`cd-spine cd-spine--${tone}${selected ? " is-selected" : ""}`}
-                  style={{ "--cd-jitter": `${((i * 17) % 7) - 3}px` }}
+                  style={{ "--cd-jitter": `${((i * 17) % 5) - 2}px` }}
                   onClick={() => onChoose(pack.tag)}
                   disabled={busy}
                   aria-label={`${pack.label}: ${pack.blurb}`}
