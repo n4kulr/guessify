@@ -198,23 +198,26 @@ export default function PlaylistPicker({ onPick, onBack }) {
         </form>
       </div>
 
-      <div className="playlists">
+      <div className="cd-rack" role="list">
         {CHART_PACKS.map((pack) => {
           const id = `chart:${pack.tag}`;
+          const busy = loadingId === id;
           return (
             <button
               key={pack.tag}
-              className="record-card chart-card"
+              type="button"
+              role="listitem"
+              className={`cd-edge${busy ? " is-loading" : ""}`}
               onClick={() => chooseChart(pack.tag)}
               disabled={loadingId !== null}
+              title={pack.blurb}
+              aria-label={`${pack.label}: ${pack.blurb}`}
             >
-              <div className="record-meta">
-                <span className="record-name">{pack.label}</span>
-                <span className="record-count">{pack.blurb}</span>
-              </div>
-              {loadingId === id && (
-                <span className="record-loading">loading…</span>
-              )}
+              <span className="cd-edge-rim" aria-hidden="true" />
+              <span className="cd-edge-label">
+                {busy ? "…" : pack.label}
+              </span>
+              <span className="cd-edge-rim cd-edge-rim--end" aria-hidden="true" />
             </button>
           );
         })}
