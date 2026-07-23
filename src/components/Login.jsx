@@ -1,7 +1,6 @@
 import DemoPreview from "./DemoPreview.jsx";
 import HeroTurntable from "./HeroTurntable.jsx";
 import JoinCodeForm from "../multiplayer/JoinCodeForm.jsx";
-import { fireConfetti } from "../fx.js";
 
 export default function Login({ error, onStartSolo, onStartMulti }) {
   const errorHint = {
@@ -45,16 +44,6 @@ export default function Login({ error, onStartSolo, onStartMulti }) {
           </button>
           <button className="btn btn-big btn-multi" onClick={onStartMulti}>
             host a game
-          </button>
-        </div>
-
-        {/* ponytail: temp FX test — remove after checking confetti */}
-        <div className="home-actions" style={{ marginTop: 8 }}>
-          <button type="button" className="btn btn-ghost" onClick={() => fireConfetti("title")}>
-            test title
-          </button>
-          <button type="button" className="btn btn-ghost" onClick={() => fireConfetti("victory")}>
-            test victory
           </button>
         </div>
 
