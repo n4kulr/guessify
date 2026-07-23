@@ -51,12 +51,29 @@ export default function PlaylistPicker({ onPick, needsLogin = false }) {
   const [yoursView, setYoursView] = useState("cds"); // cds | list
   const [allowInfoOpen, setAllowInfoOpen] = useState(false);
   const allowInfoId = useId();
-  const allowWrapRef = useRef(null);
+  const allowCtaRef = useRef(null);
+  const allowCloseTimer = useRef(null);
+
+  function openAllowInfo() {
+    clearTimeout(allowCloseTimer.current);
+    setAllowInfoOpen(true);
+  }
+
+  function scheduleCloseAllowInfo() {
+    clearTimeout(allowCloseTimer.current);
+    allowCloseTimer.current = window.setTimeout(() => {
+      setAllowInfoOpen(false);
+    }, 140);
+  }
+
+  useEffect(() => {
+    return () => clearTimeout(allowCloseTimer.current);
+  }, []);
 
   useEffect(() => {
     if (!allowInfoOpen) return;
     function onDoc(e) {
-      if (!allowWrapRef.current?.contains(e.target)) setAllowInfoOpen(false);
+      if (!allowCtaRef.current?.contains(e.target)) setAllowInfoOpen(false);
     }
     function onKey(e) {
       if (e.key === "Escape") setAllowInfoOpen(false);
@@ -185,7 +202,11 @@ export default function PlaylistPicker({ onPick, needsLogin = false }) {
 
       {needsLogin ? (
         <div className="shelf-gate">
-          <div className="shelf-cta">
+          <div
+            className={`shelf-cta${allowInfoOpen ? " is-open" : ""}`}
+            ref={allowCtaRef}
+            onMouseLeave={scheduleCloseAllowInfo}
+          >
             <a className="btn btn-big btn-spotify shelf-login" href="/api/login">
               <svg
                 className="spotify-logo"
@@ -201,36 +222,32 @@ export default function PlaylistPicker({ onPick, needsLogin = false }) {
               </svg>
               Log in with Spotify
             </a>
-            <div
-              className={`shelf-allow-wrap${allowInfoOpen ? " is-open" : ""}`}
-              ref={allowWrapRef}
-              onMouseEnter={() => setAllowInfoOpen(true)}
-              onMouseLeave={() => setAllowInfoOpen(false)}
+            <button
+              type="button"
+              className={`shelf-allow-btn${allowInfoOpen ? " is-open" : ""}`}
+              aria-expanded={allowInfoOpen}
+              aria-controls={allowInfoId}
+              aria-label={
+                allowInfoOpen
+                  ? "Hide Spotify allowlist info"
+                  : "Why playlists might not load"
+              }
+              onMouseEnter={openAllowInfo}
+              onClick={() => setAllowInfoOpen((o) => !o)}
             >
-              <button
-                type="button"
-                className={`shelf-allow-btn${allowInfoOpen ? " is-open" : ""}`}
-                aria-expanded={allowInfoOpen}
-                aria-controls={allowInfoId}
-                aria-label={
-                  allowInfoOpen
-                    ? "Hide Spotify allowlist info"
-                    : "Why playlists might not load"
-                }
-                onClick={() => setAllowInfoOpen((o) => !o)}
-              >
-                i
-              </button>
-              <div
-                id={allowInfoId}
-                className="shelf-allow-panel"
-                role="note"
-                aria-hidden={!allowInfoOpen}
-              >
-                Login will work but the playlists won’t load until I’ve added
-                your Spotify email — Spotify locked third-party apps to an
-                allowlist (with a max of 5) in Feb 2026.
-              </div>
+              i
+            </button>
+            <div
+              id={allowInfoId}
+              className="shelf-allow-panel"
+              role="note"
+              aria-hidden={!allowInfoOpen}
+              onMouseEnter={openAllowInfo}
+              onMouseLeave={scheduleCloseAllowInfo}
+            >
+              Login will work but the playlists won’t load until I’ve added
+              your Spotify email — Spotify locked third-party apps to an
+              allowlist (with a max of 5) in Feb 2026.
             </div>
           </div>
           <div className="shelf-locked" aria-hidden="true">
