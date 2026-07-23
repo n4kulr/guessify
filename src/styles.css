@@ -412,7 +412,14 @@ button { font-family: var(--font); }
   font-size: 17px; line-height: 1.6; max-width: 42ch;
   margin: 18px 0 26px; color: var(--sub-color);
 }
-.hero-tagline em { color: var(--text-color); font-style: normal; }
+.hero-tagline em {
+  color: var(--text-color);
+  font-family: "Caveat", "Segoe Print", cursive;
+  font-style: normal;
+  font-weight: 600;
+  font-size: 1.35em;
+  letter-spacing: 0.01em;
+}
 
 .hero-turntable { position: relative; width: 132px; height: 132px; margin: 0 0 28px; }
 .hero-turntable .vinyl-label {
