@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import ChartCdSpindle from "./ChartCdSpindle.jsx";
 
 const YOURS_PREVIEW = 6;
 
@@ -198,30 +199,11 @@ export default function PlaylistPicker({ onPick, onBack }) {
         </form>
       </div>
 
-      <div className="cd-rack" role="list">
-        {CHART_PACKS.map((pack) => {
-          const id = `chart:${pack.tag}`;
-          const busy = loadingId === id;
-          return (
-            <button
-              key={pack.tag}
-              type="button"
-              role="listitem"
-              className={`cd-case${busy ? " is-loading" : ""}`}
-              onClick={() => chooseChart(pack.tag)}
-              disabled={loadingId !== null}
-              title={pack.blurb}
-              aria-label={`${pack.label}: ${pack.blurb}`}
-            >
-              <span className="cd-case-spine">
-                <span className="cd-case-label">
-                  {busy ? "…" : pack.label}
-                </span>
-              </span>
-            </button>
-          );
-        })}
-      </div>
+      <ChartCdSpindle
+        packs={CHART_PACKS}
+        loadingId={loadingId}
+        onChoose={chooseChart}
+      />
     </div>
   );
 }
