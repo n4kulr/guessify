@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import ChartCdSpindle from "./ChartCdSpindle.jsx";
+import PlaylistCdShelf from "./PlaylistCdShelf.jsx";
 
 const YOURS_PREVIEW = 6;
 
@@ -37,6 +38,7 @@ export default function PlaylistPicker({ onPick, onBack }) {
   const [note, setNote] = useState(null);
   const [showAllYours, setShowAllYours] = useState(false);
   const [chartQuery, setChartQuery] = useState("");
+  const [yoursView, setYoursView] = useState("cds"); // cds | list
 
   useEffect(() => {
     fetch("/api/playlists", { credentials: "include" })
@@ -120,8 +122,14 @@ export default function PlaylistPicker({ onPick, onBack }) {
     chooseChart(chartQuery);
   }
 
+  function toggleYoursView() {
+    setYoursView((v) => (v === "cds" ? "list" : "cds"));
+  }
+
   if (error) return <div className="panel">{error}</div>;
   if (!data) return <div className="loader">loading your playlists…</div>;
+
+  const cdsMode = yoursView === "cds";
 
   return (
     <div className="picker">
@@ -141,50 +149,88 @@ export default function PlaylistPicker({ onPick, onBack }) {
         </p>
       ) : (
         <>
-          <div className="playlists">
-            {visibleYours.map((p) => (
-              <button
-                key={p.id}
-                className={`record-card ${p.liked ? "liked-card" : ""}`}
-                onClick={() => chooseYours(p)}
-                disabled={loadingId !== null}
-              >
-                <div className="record-art">
-                  {p.liked ? (
-                    <div className="record-cover record-cover--liked">♥</div>
-                  ) : p.cover ? (
-                    <img src={p.cover} alt="" className="record-cover" />
-                  ) : (
-                    <div className="record-cover record-cover--empty">♪</div>
-                  )}
-                </div>
-                <div className="record-meta">
-                  <span className="record-name">{p.name}</span>
-                  <span className="record-count">{p.total} tracks</span>
-                </div>
-                {loadingId === p.id && (
-                  <span className="record-loading">loading…</span>
-                )}
-              </button>
-            ))}
+          <div className="yours-head">
+            <button
+              type="button"
+              className="view-toggle"
+              aria-pressed={cdsMode}
+              aria-label="Toggle Spotify playlists between CD shelf and buttons"
+              title={cdsMode ? "Show as buttons" : "Show as CD shelf"}
+              onClick={toggleYoursView}
+            >
+              {cdsMode ? (
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
+                  <rect x="3" y="4" width="7" height="7" rx="1.5" />
+                  <rect x="14" y="4" width="7" height="7" rx="1.5" />
+                  <rect x="3" y="13" width="7" height="7" rx="1.5" />
+                  <rect x="14" y="13" width="7" height="7" rx="1.5" />
+                </svg>
+              ) : (
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
+                  <circle cx="12" cy="12" r="8" />
+                  <circle cx="12" cy="12" r="2.5" fill="currentColor" stroke="none" />
+                </svg>
+              )}
+            </button>
+            <p className="yours-hint">
+              {cdsMode ? "CD shelf for your playlists" : "Button list for your playlists"}
+            </p>
           </div>
-          {hiddenYours > 0 && !showAllYours && (
-            <button
-              type="button"
-              className="btn btn-ghost picker-more"
-              onClick={() => setShowAllYours(true)}
-            >
-              show {hiddenYours} more
-            </button>
-          )}
-          {showAllYours && yours.length > YOURS_PREVIEW && (
-            <button
-              type="button"
-              className="btn btn-ghost picker-more"
-              onClick={() => setShowAllYours(false)}
-            >
-              show less
-            </button>
+
+          {cdsMode ? (
+            <PlaylistCdShelf
+              playlists={yours}
+              loadingId={loadingId}
+              onChoose={chooseYours}
+            />
+          ) : (
+            <>
+              <div className="playlists">
+                {visibleYours.map((p) => (
+                  <button
+                    key={p.id}
+                    className={`record-card ${p.liked ? "liked-card" : ""}`}
+                    onClick={() => chooseYours(p)}
+                    disabled={loadingId !== null}
+                  >
+                    <div className="record-art">
+                      {p.liked ? (
+                        <div className="record-cover record-cover--liked">♥</div>
+                      ) : p.cover ? (
+                        <img src={p.cover} alt="" className="record-cover" />
+                      ) : (
+                        <div className="record-cover record-cover--empty">♪</div>
+                      )}
+                    </div>
+                    <div className="record-meta">
+                      <span className="record-name">{p.name}</span>
+                      <span className="record-count">{p.total} tracks</span>
+                    </div>
+                    {loadingId === p.id && (
+                      <span className="record-loading">loading…</span>
+                    )}
+                  </button>
+                ))}
+              </div>
+              {hiddenYours > 0 && !showAllYours && (
+                <button
+                  type="button"
+                  className="btn btn-ghost picker-more"
+                  onClick={() => setShowAllYours(true)}
+                >
+                  show {hiddenYours} more
+                </button>
+              )}
+              {showAllYours && yours.length > YOURS_PREVIEW && (
+                <button
+                  type="button"
+                  className="btn btn-ghost picker-more"
+                  onClick={() => setShowAllYours(false)}
+                >
+                  show less
+                </button>
+              )}
+            </>
           )}
         </>
       )}
