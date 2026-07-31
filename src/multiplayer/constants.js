@@ -4,16 +4,20 @@ export const MAX_GUESSES = STEPS.length;
 export const TOTAL = STEPS[STEPS.length - 1];
 export const ROUND_COUNT = 5;
 
-// Song first → 500. Artist first → 200; song after that → 200 more.
-export const TITLE_POINTS_SONG_FIRST = 500;
-export const TITLE_POINTS_AFTER_ARTIST = 200;
-export const ARTIST_BONUS = 200;
-/** Max points from one round (song first + artist). */
-export const ROUND_MAX_POINTS = TITLE_POINTS_SONG_FIRST + ARTIST_BONUS;
+/** Points for nailing the title — always full amount. */
+export const TITLE_POINTS = 500;
+/** Small bonus for revealing the artist first (hint + a little score). */
+export const ARTIST_BONUS = 100;
+/** @deprecated use TITLE_POINTS */
+export const TITLE_POINTS_SONG_FIRST = TITLE_POINTS;
+/** @deprecated title is never reduced after artist */
+export const TITLE_POINTS_AFTER_ARTIST = TITLE_POINTS;
+/** Max points from one round (title + artist). */
+export const ROUND_MAX_POINTS = TITLE_POINTS + ARTIST_BONUS;
 
-/** Title points depend on whether artist was already claimed before this guess. */
-export function titlePointsForGuess({ artistAlreadyClaimed } = {}) {
-  return artistAlreadyClaimed ? TITLE_POINTS_AFTER_ARTIST : TITLE_POINTS_SONG_FIRST;
+/** Title always awards full points. */
+export function titlePointsForGuess() {
+  return TITLE_POINTS;
 }
 
 /**
@@ -45,18 +49,18 @@ export function unlockSecondsFor(unlockByPlayer, playerId, legacy) {
 export const PEEP_COUNT = 105;
 
 export const PLAYER_COLORS = [
-  "#e2b714",
-  "#7aa2f7",
-  "#f7768e",
-  "#9ece6a",
-  "#bb9af7",
-  "#ff9e64",
-  "#2ac3de",
-  "#e0af68",
-  "#c0caf5",
-  "#73daca",
-  "#ff007c",
-  "#a9b1d6",
+  "#e2b714", // serika
+  "#7aa2f7", // tokyo night
+  "#ff7a90", // bento
+  "#bd93f9", // dracula
+  "#88c0d0", // nord
+  "#f66e0d", // carbon
+  "#f5c2e7", // catppuccin
+  "#ebbcba", // rosé pine
+  "#e9d5c6", // olivia
+  "#d79921", // gruvbox
+  "#15ff00", // matrix
+  "#f7768e", // tokyo pink
 ];
 
 export function peepSrc(peep) {

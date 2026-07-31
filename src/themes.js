@@ -19,6 +19,54 @@ export const THEMES = {
 export const DEFAULT_THEME = "olivia";
 const KEY = "guessify-theme";
 
+function parseHex(hex) {
+  const m = /^#?([0-9a-f]{6})$/i.exec(String(hex || "").trim());
+  if (!m) return null;
+  const n = parseInt(m[1], 16);
+  return { r: (n >> 16) & 255, g: (n >> 8) & 255, b: n & 255 };
+}
+
+function colorDist(a, b) {
+  const dr = a.r - b.r;
+  const dg = a.g - b.g;
+  const db = a.b - b.b;
+  return dr * dr + dg * dg + db * db;
+}
+
+/** Prefer a dark theme when two mains tie (skip serika_light). */
+const ACCENT_THEME_ORDER = [
+  "serika_dark",
+  "tokyo_night",
+  "bento",
+  "dracula",
+  "nord",
+  "carbon",
+  "catppuccin",
+  "rose_pine",
+  "olivia",
+  "gruvbox_dark",
+  "matrix",
+];
+
+/** Pick the theme whose accent (`main`) is closest to `hex`. */
+export function themeKeyForAccent(hex) {
+  const target = parseHex(hex);
+  if (!target) return DEFAULT_THEME;
+  let best = DEFAULT_THEME;
+  let bestDist = Infinity;
+  for (const key of ACCENT_THEME_ORDER) {
+    const t = THEMES[key];
+    const main = parseHex(t?.main);
+    if (!main) continue;
+    const d = colorDist(target, main);
+    if (d < bestDist) {
+      bestDist = d;
+      best = key;
+    }
+  }
+  return best;
+}
+
 export function applyTheme(key, { persist = true } = {}) {
   const t = THEMES[key] || THEMES[DEFAULT_THEME];
   const r = document.documentElement;
@@ -30,6 +78,13 @@ export function applyTheme(key, { persist = true } = {}) {
   r.style.setProperty("--error-color", t.error);
   if (!persist) return;
   try { localStorage.setItem(KEY, key); } catch { /* ignore */ }
+}
+
+/** Apply the theme that best matches an avatar accent color. Returns theme key. */
+export function applyThemeForAccent(hex, opts) {
+  const key = themeKeyForAccent(hex);
+  applyTheme(key, opts);
+  return key;
 }
 
 export function loadTheme() {

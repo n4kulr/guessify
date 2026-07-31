@@ -5,10 +5,21 @@ import {
   randomAvatar,
   normalizeAvatar,
 } from "./constants.js";
+import { applyThemeForAccent } from "../themes.js";
+
+function syncThemeFromAccent(color) {
+  if (!color) return;
+  const key = applyThemeForAccent(color);
+  window.dispatchEvent(
+    new CustomEvent("guessify:theme-from-accent", { detail: { key, color } })
+  );
+  window.dispatchEvent(new CustomEvent("guessify:theme-picked"));
+}
 
 /**
  * Compact nickname + randomize + accent dropdown.
  * Calls onChange({ name, avatar }) whenever something updates.
+ * Accent / randomize also switches the app theme to match.
  */
 export default function ProfileEditor({
   name: nameProp = "",
@@ -39,6 +50,7 @@ export default function ProfileEditor({
     if (didEmitInit.current) return;
     didEmitInit.current = true;
     onChange?.({ name, avatar });
+    syncThemeFromAccent(avatar.color);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -62,6 +74,7 @@ export default function ProfileEditor({
     const next = normalizeAvatar({ ...avatar, ...partial });
     setAvatar(next);
     emit(name, next);
+    if (partial.color) syncThemeFromAccent(next.color);
   }
 
   function onName(v) {
@@ -73,6 +86,7 @@ export default function ProfileEditor({
     const next = randomAvatar();
     setAvatar(next);
     emit(name, next);
+    syncThemeFromAccent(next.color);
   }
 
   return (

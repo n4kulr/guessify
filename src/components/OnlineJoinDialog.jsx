@@ -20,15 +20,21 @@ export default function OnlineJoinDialog({ me, onJoin, onCancel }) {
   const cardRef = useRef(null);
 
   useEffect(() => {
-    const t = window.setTimeout(() => {
-      cardRef.current?.querySelector("input")?.focus();
-    }, 40);
+    // Autofocus zooms iPhone Safari when the input is <16px — skip on touch.
+    const coarse =
+      typeof window !== "undefined" &&
+      window.matchMedia?.("(pointer: coarse)")?.matches;
+    const t = coarse
+      ? null
+      : window.setTimeout(() => {
+          cardRef.current?.querySelector("input")?.focus();
+        }, 40);
     function onKey(e) {
       if (e.key === "Escape") onCancel?.();
     }
     window.addEventListener("keydown", onKey);
     return () => {
-      clearTimeout(t);
+      if (t != null) clearTimeout(t);
       window.removeEventListener("keydown", onKey);
     };
   }, [onCancel]);

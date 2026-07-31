@@ -455,7 +455,7 @@ export class Room extends Server {
     const artistOk = !artistLocked && artist ? matchesAnyArtist(artist, track.artists) : false;
     const win = titleOk;
 
-    // First correct artist fills it for the whole room (+bonus once).
+    // First correct artist reveals it room-wide + small bonus (title stays full).
     const artistWasClaimed = !!this.state.artistClaimedBy;
     let artistPts = 0;
     if (artistOk && !artistWasClaimed) {
@@ -479,10 +479,9 @@ export class Room extends Server {
     });
 
     if (win) {
-      const titlePts = titlePointsForGuess({ artistAlreadyClaimed: artistWasClaimed });
-      const earned = titlePts + artistPts;
+      const titlePts = titlePointsForGuess();
       this.state.bonus = artistPts;
-      this.state.earnedPts = earned;
+      this.state.earnedPts = titlePts + artistPts;
       this.state.winnerId = player.id;
       this.state.outcome = "win";
       this.state.phase = "reveal";

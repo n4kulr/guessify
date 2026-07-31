@@ -95,8 +95,8 @@ export default function HowToPlay({ open, onOpen, onClose }) {
           <ul>
             <li>A snippet unlocks more of the track over time.</li>
             <li>
-              Correct <b>title</b> first → <b>500</b>. Correct <b>artist</b> first
-              → <b>200</b>; title after that → another <b>200</b>.
+              Correct <b>title</b> → <b>500</b>. Correct <b>artist</b> → <b>100</b>
+              (and reveals it). Title stays full even after artist.
             </li>
             <li>First correct title wins the round (party).</li>
             <li>Skip unlocks more audio on your device only.</li>

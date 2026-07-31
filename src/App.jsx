@@ -11,6 +11,10 @@ import HostParty from "./multiplayer/HostParty.jsx";
 import GuestApp from "./multiplayer/GuestApp.jsx";
 import OnlineRace from "./components/OnlineRace.jsx";
 import OnlineJoinDialog from "./components/OnlineJoinDialog.jsx";
+import PlayHowto, {
+  hasSeenPlayHowto,
+  markPlayHowtoSeen,
+} from "./components/PlayHowto.jsx";
 import { makeRoomCode } from "./multiplayer/constants.js";
 import { loadLocalProfile, saveLocalProfile } from "./localProfile.js";
 import { loadTheme, DEFAULT_THEME } from "./themes.js";
@@ -34,8 +38,19 @@ export default function App() {
   const [homeNonce, setHomeNonce] = useState(0);
   const [onlinePrompt, setOnlinePrompt] = useState(false);
   const [onlineProfile, setOnlineProfile] = useState(null);
+  const [howtoMode, setHowtoMode] = useState(null); // null | solo | multi | online
 
   useEffect(() => attachKeyboardSounds(), []);
+
+  useEffect(() => {
+    function onAccentTheme(e) {
+      const key = e.detail?.key;
+      if (key) setTheme(key);
+    }
+    window.addEventListener("guessify:theme-from-accent", onAccentTheme);
+    return () =>
+      window.removeEventListener("guessify:theme-from-accent", onAccentTheme);
+  }, []);
 
   useEffect(() => {
     setTheme(loadTheme());
@@ -108,18 +123,47 @@ export default function App() {
     setHomeNonce((n) => n + 1);
   }
 
-  function startSolo() {
+  function beginSolo() {
     setMode("solo");
     setPicking(true);
   }
 
-  function startMulti() {
+  function beginMulti() {
     setMode("multi");
     setPicking(true);
   }
 
-  function startOnline() {
+  function beginOnline() {
     setOnlinePrompt(true);
+  }
+
+  function withHowto(mode, next) {
+    if (hasSeenPlayHowto()) {
+      next();
+      return;
+    }
+    setHowtoMode(mode);
+  }
+
+  function startSolo() {
+    withHowto("solo", beginSolo);
+  }
+
+  function startMulti() {
+    withHowto("multi", beginMulti);
+  }
+
+  function startOnline() {
+    withHowto("online", beginOnline);
+  }
+
+  function finishHowto() {
+    const mode = howtoMode;
+    markPlayHowtoSeen();
+    setHowtoMode(null);
+    if (mode === "solo") beginSolo();
+    else if (mode === "multi") beginMulti();
+    else if (mode === "online") beginOnline();
   }
 
   function confirmOnline(profile) {
@@ -191,7 +235,7 @@ export default function App() {
 
         {(status === "loggedIn" || status === "loggedOut") &&
           mode === "solo" &&
-          playlist && <Game playlist={playlist} onExit={leaveGame} />}
+          playlist && <Game playlist={playlist} me={me} onExit={leaveGame} />}
 
         {(status === "loggedIn" || status === "loggedOut") &&
           mode === "multi" &&
@@ -204,6 +248,10 @@ export default function App() {
           mode === "online" &&
           onlineProfile && <OnlineRace profile={onlineProfile} onExit={goHome} />}
       </main>
+
+      {howtoMode && (
+        <PlayHowto mode={howtoMode} onDone={finishHowto} />
+      )}
 
       {onlinePrompt && (
         <OnlineJoinDialog

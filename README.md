@@ -65,11 +65,10 @@ Skip unlocks more of the snippet (solo / your device in party): **1 → 2 → 4 
 
 | What you get right | Points |
 | --- | --- |
-| Title first (artist not yet claimed) | **500** |
-| Artist first | **200** |
-| Title after artist was already claimed | **200** |
+| Title | **500** |
+| Artist (first claim) | **100** |
 
-Title + artist in one guess (artist not yet claimed) → **700**. Max per round → **700**.
+Title stays **500** even if artist was already claimed. Max per round → **600**.
 
 ---
 

@@ -161,7 +161,7 @@ function pickLobbyNames(count = 5) {
   return shuffle(picked).slice(0, count);
 }
 
-function makeOpponents(count = 5) {
+function makeOpponents(count = 3) {
   const names = pickLobbyNames(count);
   return names.map((name, i) => {
     const avatar = normalizeAvatar(
@@ -215,7 +215,7 @@ export default function OnlineRace({ profile, onExit }) {
   const [matchStatus, setMatchStatus] = useState("finding a room…");
 
   const [roundIdx, setRoundIdx] = useState(0);
-  const [myStep, setMyStep] = useState(0);
+  const [unlockByPlayer, setUnlockByPlayer] = useState({ [youId]: 0 });
   const [guesses, setGuesses] = useState([]);
   const [outcome, setOutcome] = useState(null);
   const [winnerId, setWinnerId] = useState(null);
@@ -239,9 +239,18 @@ export default function OnlineRace({ profile, onExit }) {
   artistClaimedRef.current = artistClaimedBy;
 
   const track = rounds[roundIdx];
+  const myStep = unlockByPlayer[youId] ?? 0;
   const unlocked = STEPS[Math.min(myStep, MAX_GUESSES - 1)];
   const revealed = phase === "reveal";
   const spinning = localPlaying && (phase === "play" || phase === "reveal");
+
+  function bumpUnlock(playerId) {
+    setUnlockByPlayer((prev) => {
+      const step = prev[playerId] ?? 0;
+      if (step >= MAX_GUESSES - 1) return prev;
+      return { ...prev, [playerId]: step + 1 };
+    });
+  }
 
   function clearTimers() {
     for (const t of timersRef.current) clearTimeout(t);
@@ -281,7 +290,7 @@ export default function OnlineRace({ profile, onExit }) {
   // Matchmaking + chart load
   useEffect(() => {
     let cancelled = false;
-    const opponents = makeOpponents(5);
+    const opponents = makeOpponents(3);
     const tag = HOT_TAGS[Math.floor(Math.random() * HOT_TAGS.length)];
 
     (async () => {
@@ -360,14 +369,13 @@ export default function OnlineRace({ profile, onExit }) {
     setPhase("reveal");
   }
 
-  function endRoundWin(player, titlePts, artistPts) {
+  function endRoundWin(player, titlePts, artistPts = 0) {
     clearTimers();
-    const earned = titlePts + artistPts;
     bumpScore(player.id, titlePts);
     bumpWins(player.id);
     setOutcome("win");
     setWinnerId(player.id);
-    setEarnedPts(earned);
+    setEarnedPts(titlePts + artistPts);
     setBonus(artistPts);
     setPhase("reveal");
     if (player.id === youId) fireConfetti("title");
@@ -402,8 +410,7 @@ export default function OnlineRace({ profile, onExit }) {
 
   function claimTitle(player, trackRef, artistPtsJustNow = 0) {
     if (phaseRef.current !== "play") return;
-    const artistWasClaimed = !!artistClaimedRef.current;
-    const titlePts = titlePointsForGuess({ artistAlreadyClaimed: artistWasClaimed });
+    const titlePts = titlePointsForGuess();
     setGuesses((g) => [
       ...g,
       {
@@ -412,7 +419,7 @@ export default function OnlineRace({ profile, onExit }) {
         color: player.color,
         avatar: player.avatar,
         title: trackRef.name,
-        artist: artistWasClaimed ? (trackRef.artists || []).join(", ") : null,
+        artist: artistClaimedRef.current ? (trackRef.artists || []).join(", ") : null,
         titleOk: true,
         artistOk: false,
         win: true,
@@ -435,6 +442,18 @@ export default function OnlineRace({ profile, onExit }) {
       const artistAt = (9000 + (1 - skill) * 16000) * (0.9 + Math.random() * 0.45);
       const titleAt = (16000 + (1 - skill) * 24000) * (0.9 + Math.random() * 0.5);
 
+      // Skips early + often so rail fills visibly update.
+      const skipCount = 2 + Math.floor(Math.random() * 2); // 2–3
+      for (let s = 0; s < skipCount; s++) {
+        const skipAt = 1200 + s * (2800 + Math.random() * 2200) + Math.random() * 800;
+        const tSkip = setTimeout(() => {
+          if (roundKeyRef.current !== key) return;
+          if (phaseRef.current !== "play") return;
+          bumpUnlock(op.id);
+        }, skipAt);
+        timersRef.current.push(tSkip);
+      }
+
       const tArtist = setTimeout(() => {
         if (roundKeyRef.current !== key) return;
         // Often skip the artist race entirely.
@@ -450,12 +469,12 @@ export default function OnlineRace({ profile, onExit }) {
             if (roundKeyRef.current !== key) return;
             if (phaseRef.current !== "play") return;
             if (Math.random() > 0.35 + skill * 0.4) return; // may never get it
-            claimTitle(op, track, 0);
+            claimTitle(op, track);
           }, 8000 + Math.random() * 10000);
           timersRef.current.push(retry);
           return;
         }
-        claimTitle(op, track, 0);
+        claimTitle(op, track);
       }, titleAt);
 
       timersRef.current.push(tArtist, tTitle);
@@ -510,8 +529,7 @@ export default function OnlineRace({ profile, onExit }) {
     }
 
     if (titleOk) {
-      const titlePts = titlePointsForGuess({ artistAlreadyClaimed: artistWasClaimed });
-      endRoundWin(you, titlePts, artistPts);
+      endRoundWin(you, titlePointsForGuess(), artistPts);
       return;
     }
 
@@ -524,7 +542,7 @@ export default function OnlineRace({ profile, onExit }) {
     setTitleGuess("");
     setArtistGuess("");
     if (myStep < MAX_GUESSES - 1) {
-      setMyStep((s) => s + 1);
+      bumpUnlock(youId);
     } else {
       endRoundLose();
     }
@@ -539,7 +557,7 @@ export default function OnlineRace({ profile, onExit }) {
       return;
     }
     setRoundIdx((i) => i + 1);
-    setMyStep(0);
+    setUnlockByPlayer({ [youId]: 0 });
     setGuesses([]);
     setOutcome(null);
     setWinnerId(null);
@@ -640,7 +658,7 @@ export default function OnlineRace({ profile, onExit }) {
           players={players}
           pulseId={lastGuesser?.playerId}
           winnerId={winnerId}
-          unlockByPlayer={{ [youId]: myStep }}
+          unlockByPlayer={unlockByPlayer}
         />
 
         <GuessMedia
