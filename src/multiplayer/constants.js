@@ -15,6 +15,15 @@ export const TITLE_POINTS_AFTER_ARTIST = TITLE_POINTS;
 /** Max points from one round (title + artist). */
 export const ROUND_MAX_POINTS = TITLE_POINTS + ARTIST_BONUS;
 
+/** Votes to advance after reveal: all players if ≤3, else cap at 3. */
+export function nextVotesNeeded(playerCount) {
+  return Math.min(3, Math.max(1, Number(playerCount) || 1));
+}
+
+export function activePlayerCount(players = []) {
+  return players.filter((p) => p && !p.left).length;
+}
+
 /** Title always awards full points. */
 export function titlePointsForGuess() {
   return TITLE_POINTS;
@@ -59,7 +68,7 @@ export const PLAYER_COLORS = [
   "#ebbcba", // rosé pine
   "#e9d5c6", // olivia
   "#d79921", // gruvbox
-  "#15ff00", // matrix
+  "#5dba63", // matrix
   "#f7768e", // tokyo pink
 ];
 

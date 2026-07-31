@@ -11,7 +11,7 @@ export const THEMES = {
   tokyo_night:  { name: "tokyo night",  bg: "#1a1b26", main: "#7aa2f7", sub: "#565f89", subAlt: "#16161e", text: "#c0caf5", error: "#f7768e" },
   rose_pine:    { name: "rosé pine",    bg: "#191724", main: "#ebbcba", sub: "#6e6a86", subAlt: "#1f1d2e", text: "#e0def4", error: "#eb6f92" },
   carbon:       { name: "carbon",       bg: "#313131", main: "#f66e0d", sub: "#616161", subAlt: "#3d3d3d", text: "#e7e7e7", error: "#da3333" },
-  matrix:       { name: "matrix",       bg: "#000000", main: "#15ff00", sub: "#006000", subAlt: "#0a0a0a", text: "#15ff00", error: "#d20f39" },
+  matrix:       { name: "matrix",       bg: "#0d120d", main: "#5dba63", sub: "#3a5f3c", subAlt: "#121812", text: "#c5e0c6", error: "#d20f39" },
   olivia:       { name: "olivia",       bg: "#1c1a1d", main: "#e9d5c6", sub: "#75696d", subAlt: "#282528", text: "#e9e9e9", error: "#e64b40" },
   bento:        { name: "bento",        bg: "#2d394d", main: "#ff7a90", sub: "#5c6b83", subAlt: "#28333f", text: "#fffaf4", error: "#fa5f55" },
 };
@@ -65,6 +65,38 @@ export function themeKeyForAccent(hex) {
     }
   }
   return best;
+}
+
+/** Live `--main-color` from the document (falls back to default theme). */
+export function currentMainColor() {
+  if (typeof document === "undefined") return THEMES[DEFAULT_THEME].main;
+  const live = getComputedStyle(document.documentElement)
+    .getPropertyValue("--main-color")
+    .trim();
+  return live || THEMES[DEFAULT_THEME].main;
+}
+
+/** Closest swatch in `palette` to `hex` (e.g. avatar accents). */
+export function nearestAccent(hex, palette = []) {
+  const target = parseHex(hex) || parseHex(currentMainColor());
+  if (!target || !palette.length) return palette[0] || THEMES[DEFAULT_THEME].main;
+  let best = palette[0];
+  let bestDist = Infinity;
+  for (const c of palette) {
+    const p = parseHex(c);
+    if (!p) continue;
+    const d = colorDist(target, p);
+    if (d < bestDist) {
+      bestDist = d;
+      best = c;
+    }
+  }
+  return best;
+}
+
+/** Accent color matching the currently applied theme. */
+export function accentMatchingTheme(palette) {
+  return nearestAccent(currentMainColor(), palette);
 }
 
 export function applyTheme(key, { persist = true } = {}) {

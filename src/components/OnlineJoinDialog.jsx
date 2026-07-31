@@ -5,7 +5,8 @@ import {
   loadLocalProfile,
   saveLocalProfile,
 } from "../localProfile.js";
-import { normalizeAvatar, randomAvatar } from "../multiplayer/constants.js";
+import { normalizeAvatar, randomAvatar, PLAYER_COLORS } from "../multiplayer/constants.js";
+import { accentMatchingTheme } from "../themes.js";
 
 /**
  * Spotlight-style join sheet: nickname + peep + accent before an online race.
@@ -13,10 +14,16 @@ import { normalizeAvatar, randomAvatar } from "../multiplayer/constants.js";
 export default function OnlineJoinDialog({ me, onJoin, onCancel }) {
   const titleId = useId();
   const local = loadLocalProfile();
-  const [draft, setDraft] = useState(() => ({
-    name: defaultOnlineName(me) || local.name || "",
-    avatar: normalizeAvatar(local.avatar || randomAvatar()),
-  }));
+  const [draft, setDraft] = useState(() => {
+    const base = normalizeAvatar(local.avatar || randomAvatar());
+    return {
+      name: defaultOnlineName(me) || local.name || "",
+      avatar: normalizeAvatar({
+        ...base,
+        color: accentMatchingTheme(PLAYER_COLORS),
+      }),
+    };
+  });
   const cardRef = useRef(null);
 
   useEffect(() => {

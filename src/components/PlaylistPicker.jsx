@@ -245,9 +245,8 @@ export default function PlaylistPicker({ onPick, needsLogin = false }) {
               onMouseEnter={openAllowInfo}
               onMouseLeave={scheduleCloseAllowInfo}
             >
-              Login will work but the playlists won’t load until I’ve added
-              your Spotify email — Spotify locked third-party apps to an
-              allowlist (with a max of 5) in Feb 2026.
+              Login will work but playlists wont load as spotify is a bum
+              and reduced personal project user limits to 5 :(
             </div>
           </div>
           <div className="shelf-locked" aria-hidden="true">

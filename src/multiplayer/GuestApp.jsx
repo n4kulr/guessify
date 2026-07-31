@@ -4,15 +4,24 @@ import { usePreviewPlayer } from "../usePreviewPlayer.js";
 import PlayerRail from "./PlayerRail.jsx";
 import ProfileEditor from "./ProfileEditor.jsx";
 import GuessPopups from "./GuessPopups.jsx";
-import { STEPS, TOTAL, randomAvatar, normalizeAvatar, unlockSecondsFor } from "./constants.js";
+import { STEPS, TOTAL, randomAvatar, normalizeAvatar, unlockSecondsFor, PLAYER_COLORS, nextVotesNeeded, activePlayerCount } from "./constants.js";
+import { accentMatchingTheme } from "../themes.js";
 import { fireConfetti, shakeEl } from "../fx.js";
 import GuessMedia from "../components/GuessMedia.jsx";
+import { loadLocalProfile } from "../localProfile.js";
 
 export default function GuestApp({ code }) {
   const upper = code.toUpperCase();
   const { state, playerId, status, error, setError, send } = usePartyRoom(upper);
   const [name, setName] = useState("");
-  const [avatar, setAvatar] = useState(() => randomAvatar());
+  const [avatar, setAvatar] = useState(() => {
+    const local = loadLocalProfile();
+    const base = normalizeAvatar(local.avatar || randomAvatar());
+    return normalizeAvatar({
+      ...base,
+      color: accentMatchingTheme(PLAYER_COLORS),
+    });
+  });
   const [titleGuess, setTitleGuess] = useState("");
   const [artistGuess, setArtistGuess] = useState("");
   const { errorMsg, play, pause } = usePreviewPlayer();
@@ -254,19 +263,66 @@ export default function GuestApp({ code }) {
           unlockByPlayer={state.unlockByPlayer || {}}
         />
 
-        <GuessMedia
-          mode="vinyl"
-          revealed={revealed}
-          spinning={spinning}
-          cover={track?.cover}
-          title={track?.name}
-          artist={(track?.artists || []).join(", ")}
-          canControl={canPlay}
-          interactive={canPlay}
-          vinylTitle={canPlay ? "play / pause · drag to scrub" : undefined}
-          onTogglePlay={togglePlay}
-          onScrubStart={stopAudio}
-        />
+        <div className="media-stage">
+          <GuessMedia
+            mode="vinyl"
+            revealed={revealed}
+            spinning={spinning}
+            cover={track?.cover}
+            title={track?.name}
+            artist={(track?.artists || []).join(", ")}
+            canControl={canPlay}
+            interactive={canPlay}
+            vinylTitle={canPlay ? "play / pause · drag to scrub" : undefined}
+            onTogglePlay={togglePlay}
+            onScrubStart={stopAudio}
+          />
+          <div className="media-stage-side">
+            {state.phase === "play" && (
+              <button
+                className="btn btn-big btn-play media-stage-btn"
+                onClick={togglePlay}
+                disabled={!canPlay || playBusy}
+              >
+                <span
+                  className={localPlaying ? "btn-pause-icon" : "btn-play-icon"}
+                  aria-hidden="true"
+                />
+                {playBusy
+                  ? "starting…"
+                  : localPlaying
+                  ? "pause"
+                  : canPlay
+                  ? `play ${unlocked}s`
+                  : "loading audio…"}
+              </button>
+            )}
+            {revealed && (
+              <button
+                className={`btn btn-big btn-play media-stage-btn ${
+                  playerId && (state.nextVotes || []).includes(playerId) ? "is-voted" : ""
+                }`}
+                onClick={() => {
+                  if (playerId && (state.nextVotes || []).includes(playerId)) return;
+                  stopAudio();
+                  send({ type: "next" });
+                }}
+                disabled={!!(playerId && (state.nextVotes || []).includes(playerId))}
+              >
+                <span className="btn-play-icon" aria-hidden="true" />
+                <span className="btn-label">
+                  {state.roundIdx + 1 >= state.roundCount ? "results" : "next"}
+                </span>
+                <span className="vote-tally">
+                  {(state.nextVotes || []).length}/
+                  {state.nextVotesNeeded ??
+                    nextVotesNeeded(activePlayerCount(state.players))}
+                </span>
+              </button>
+            )}
+          </div>
+        </div>
+        {errorMsg && <div className="error-banner">{errorMsg}</div>}
 
         {state.outcome === "win" && revealed && (
           <div className="inline-badge inline-badge--win">
@@ -294,29 +350,6 @@ export default function GuestApp({ code }) {
             <span>{revealed ? "revealed" : `${unlocked}s unlocked`}</span>
           </div>
         </div>
-
-        {state.phase === "play" && (
-          <div className="controls">
-            {errorMsg && <div className="error-banner">{errorMsg}</div>}
-            <button
-              className="btn btn-big btn-play"
-              onClick={togglePlay}
-              disabled={!canPlay || playBusy}
-            >
-              <span
-                className={localPlaying ? "btn-pause-icon" : "btn-play-icon"}
-                aria-hidden="true"
-              />
-              {playBusy
-                ? "starting…"
-                : localPlaying
-                ? "pause"
-                : canPlay
-                ? `play ${unlocked}s`
-                : "loading audio…"}
-            </button>
-          </div>
-        )}
 
         {state.phase === "play" && (
           <div className="guess-input-wrap">
@@ -368,16 +401,6 @@ export default function GuestApp({ code }) {
                 )}
               </div>
             </div>
-            <button
-              className="btn btn-big btn-play"
-              onClick={() => {
-                stopAudio();
-                send({ type: "next" });
-              }}
-            >
-              <span className="btn-play-icon" aria-hidden="true" />
-              {state.roundIdx + 1 >= state.roundCount ? "see results →" : "next song →"}
-            </button>
           </div>
         )}
 

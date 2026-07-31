@@ -9,6 +9,8 @@ import {
   randomAvatar,
   titlePointsForGuess,
   ARTIST_BONUS,
+  nextVotesNeeded,
+  activePlayerCount,
 } from "../src/multiplayer/constants.js";
 import { resolveItunesPreview } from "./itunesPreview.js";
 
@@ -240,6 +242,7 @@ export class Room extends Server {
         roundIdx: 0,
         unlockByPlayer: {},
         guesses: [],
+        nextVotes: {},
         outcome: null,
         winnerId: null,
         bonus: 0,
@@ -418,6 +421,7 @@ export class Room extends Server {
     this.state.roundIdx = 0;
     this.state.unlockByPlayer = {};
     this.state.guesses = [];
+    this.state.nextVotes = {};
     this.state.outcome = null;
     this.state.winnerId = null;
     this.state.bonus = 0;
@@ -485,6 +489,7 @@ export class Room extends Server {
       this.state.winnerId = player.id;
       this.state.outcome = "win";
       this.state.phase = "reveal";
+      this.state.nextVotes = {};
       player.score += titlePts;
       player.wins += 1;
     } else if (artistPts) {
@@ -508,6 +513,9 @@ export class Room extends Server {
     if (!this.state.unlockByPlayer) this.state.unlockByPlayer = {};
     const step = this.state.unlockByPlayer[player.id] ?? 0;
 
+    // Already at full unlock — no-op. Never end the round for the whole room.
+    if (step >= MAX_GUESSES - 1) return;
+
     this.state.guesses.push({
       playerId: player.id,
       name: player.name,
@@ -516,32 +524,46 @@ export class Room extends Server {
       skip: true,
     });
 
-    if (step < MAX_GUESSES - 1) {
-      // Only this player's snippet grows.
-      this.state.unlockByPlayer[player.id] = step + 1;
-    } else {
-      // Already at full unlock — same as solo: out of skips ends the round.
-      this.state.outcome = "lose";
-      this.state.phase = "reveal";
-      this.state.winnerId = null;
-      this.state.earnedPts = 0;
-      this.state.bonus = 0;
-    }
+    // Only this player's snippet grows.
+    this.state.unlockByPlayer[player.id] = step + 1;
     this.broadcastState();
     void this.persist();
   }
 
   async handleNext(sender) {
     if (!this.state || this.state.phase !== "reveal") return;
-    if (!this.playerFor(sender)) {
+    const player = this.playerFor(sender);
+    if (!player) {
       sender.send(JSON.stringify({ type: "error", error: "Join the race first." }));
       return;
     }
+
+    if (!this.state.nextVotes) this.state.nextVotes = {};
+    if (this.state.nextVotes[player.id]) {
+      this.broadcastState();
+      return;
+    }
+    this.state.nextVotes[player.id] = true;
+
+    const need = nextVotesNeeded(activePlayerCount(this.state.players));
+    const have = Object.keys(this.state.nextVotes).length;
+    if (have < need) {
+      this.broadcastState();
+      void this.persist();
+      return;
+    }
+
+    await this.advanceAfterReveal();
+  }
+
+  async advanceAfterReveal() {
+    if (!this.state || this.state.phase !== "reveal") return;
 
     if (this.state.roundIdx + 1 >= this.state.tracks.length) {
       this.state.phase = "over";
       this.state.previewUrl = null;
       this.state.previewArt = null;
+      this.state.nextVotes = {};
       this.broadcastState();
       await this.persist();
       return;
@@ -550,6 +572,7 @@ export class Room extends Server {
     this.state.roundIdx += 1;
     this.state.unlockByPlayer = {};
     this.state.guesses = [];
+    this.state.nextVotes = {};
     this.state.outcome = null;
     this.state.winnerId = null;
     this.state.bonus = 0;
@@ -646,6 +669,8 @@ export class Room extends Server {
       roundCount: this.state.tracks.length,
       unlockByPlayer: { ...(this.state.unlockByPlayer || {}) },
       guesses: this.state.guesses,
+      nextVotes: Object.keys(this.state.nextVotes || {}),
+      nextVotesNeeded: nextVotesNeeded(activePlayerCount(this.state.players)),
       outcome: this.state.outcome,
       winnerId: this.state.winnerId,
       bonus: this.state.bonus,

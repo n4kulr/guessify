@@ -1,8 +1,29 @@
 import { useEffect, useId, useRef } from "react";
 
+/** Shared how-to steps (first-run splash + ? fab). */
+export function PlayHowtoSteps({ race = true }) {
+  return (
+    <ol className="play-howto-steps">
+      <li>
+        <b>Play</b> a short snippet of a song.
+      </li>
+      <li>
+        Type the <b>song title</b> for most points. Artist is a small bonus.
+      </li>
+      <li>
+        <b>Skip</b> when you’re stuck — unlocks more of the track for you.
+      </li>
+      {race && (
+        <li>
+          First person to nail the <b>title</b> wins the round.
+        </li>
+      )}
+    </ol>
+  );
+}
+
 /**
  * First-run tips shown once before solo / host / online starts.
- * Short and scannable — not the long ? fab essay.
  */
 export default function PlayHowto({ mode, onDone }) {
   const titleId = useId();
@@ -45,22 +66,7 @@ export default function PlayHowto({ mode, onDone }) {
           <p className="spotlight-hint">{modeLine}</p>
         </div>
 
-        <ol className="play-howto-steps">
-          <li>
-            <b>Play</b> a short snippet of a song.
-          </li>
-            <li>
-              Type the <b>song title</b> for most points. Artist is a small bonus.
-            </li>
-          <li>
-            <b>Skip</b> when you’re stuck — unlocks more of the track for you.
-          </li>
-          {mode !== "solo" && (
-            <li>
-              First person to nail the <b>title</b> wins the round.
-            </li>
-          )}
-        </ol>
+        <PlayHowtoSteps race={mode !== "solo"} />
 
         <div className="spotlight-actions">
           <button

@@ -1,4 +1,5 @@
 import { useEffect, useId, useRef } from "react";
+import { PlayHowtoSteps } from "./PlayHowto.jsx";
 
 export default function HowToPlay({ open, onOpen, onClose }) {
   const titleId = useId();
@@ -19,7 +20,7 @@ export default function HowToPlay({ open, onOpen, onClose }) {
       <button
         type="button"
         className={`help-fab ${open ? "is-open" : ""}`}
-        aria-label={open ? "Close how Guessify works" : "How Guessify works"}
+        aria-label={open ? "Close how to play" : "How to play"}
         aria-expanded={open}
         aria-controls="help-panel"
         onClick={() => (open ? onClose() : onOpen())}
@@ -45,7 +46,7 @@ export default function HowToPlay({ open, onOpen, onClose }) {
       >
         <div className="help-panel-head">
           <h2 id={titleId} className="help-title">
-            how it works
+            quick how to play
           </h2>
           <button
             ref={closeRef}
@@ -59,53 +60,10 @@ export default function HowToPlay({ open, onOpen, onClose }) {
         </div>
 
         <div className="help-body">
-          <p>
-            <b>Guessify</b> is a music guessing game built on your Spotify
-            playlists — short snippets, fast guesses.
+          <p className="help-lead">
+            Short snippets, fast guesses — solo, host a party, or play online.
           </p>
-
-          <h3 className="help-section-title">why</h3>
-          <p>
-            I made Guessify because I used to play this with my school friends
-            while our parents drove us to tuition — we’d race to guess the radio
-            song. I still to this day challenge my uni friends to this game,
-            which is what made me start this project.
-          </p>
-
-          <h3 className="help-section-title">instructions</h3>
-          <p>
-            Log in with <b>Spotify</b> (any account) to load your playlists.
-            Snippets play from free iTunes / Deezer previews — no Premium needed. Guests
-            only need the party code.
-          </p>
-
-          <h3>host</h3>
-          <p>
-            Pick a playlist and host a game. Share the QR or room code so friends
-            can join.
-          </p>
-
-          <h3>guests</h3>
-          <p>
-            Friends join with the party code — no Spotify needed. Everyone plays
-            the snippet on their own phone and races to type guesses.
-          </p>
-
-          <h3>the round</h3>
-          <ul>
-            <li>A snippet unlocks more of the track over time.</li>
-            <li>
-              Correct <b>title</b> → <b>500</b>. Correct <b>artist</b> → <b>100</b>
-              (and reveals it). Title stays full even after artist.
-            </li>
-            <li>First correct title wins the round (party).</li>
-            <li>Skip unlocks more audio on your device only.</li>
-            <li>Anyone can advance after a reveal.</li>
-          </ul>
-
-          <p className="help-solo">
-            Playing alone? Same vibe — you play and guess on one device.
-          </p>
+          <PlayHowtoSteps race />
         </div>
       </div>
     </div>

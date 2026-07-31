@@ -15,6 +15,8 @@ import {
   randomAvatar,
   normalizeAvatar,
   PLAYER_COLORS,
+  nextVotesNeeded,
+  activePlayerCount,
 } from "../multiplayer/constants.js";
 
 const HOT_TAGS = ["pop", "hip-hop", "rnb", "2010s", "k-pop", "afrobeats", "latin", "indie"];
@@ -217,6 +219,7 @@ export default function OnlineRace({ profile, onExit }) {
   const [roundIdx, setRoundIdx] = useState(0);
   const [unlockByPlayer, setUnlockByPlayer] = useState({ [youId]: 0 });
   const [guesses, setGuesses] = useState([]);
+  const [nextVotes, setNextVotes] = useState({});
   const [outcome, setOutcome] = useState(null);
   const [winnerId, setWinnerId] = useState(null);
   const [earnedPts, setEarnedPts] = useState(0);
@@ -234,6 +237,7 @@ export default function OnlineRace({ profile, onExit }) {
   const timersRef = useRef([]);
   const artistClaimedRef = useRef(null);
   const roundKeyRef = useRef(0);
+  const advancingRef = useRef(false);
 
   phaseRef.current = phase;
   artistClaimedRef.current = artistClaimedBy;
@@ -243,6 +247,9 @@ export default function OnlineRace({ profile, onExit }) {
   const unlocked = STEPS[Math.min(myStep, MAX_GUESSES - 1)];
   const revealed = phase === "reveal";
   const spinning = localPlaying && (phase === "play" || phase === "reveal");
+  const voteNeed = nextVotesNeeded(activePlayerCount(players));
+  const voteHave = Object.keys(nextVotes).length;
+  const iVotedNext = !!nextVotes[youId];
 
   function bumpUnlock(playerId) {
     setUnlockByPlayer((prev) => {
@@ -362,6 +369,8 @@ export default function OnlineRace({ profile, onExit }) {
 
   function endRoundLose() {
     clearTimers();
+    setNextVotes({});
+    advancingRef.current = false;
     setOutcome("lose");
     setWinnerId(null);
     setEarnedPts(0);
@@ -371,6 +380,8 @@ export default function OnlineRace({ profile, onExit }) {
 
   function endRoundWin(player, titlePts, artistPts = 0) {
     clearTimers();
+    setNextVotes({});
+    advancingRef.current = false;
     bumpScore(player.id, titlePts);
     bumpWins(player.id);
     setOutcome("win");
@@ -551,6 +562,7 @@ export default function OnlineRace({ profile, onExit }) {
   function nextRound() {
     stopAudio();
     clearTimers();
+    advancingRef.current = false;
     if (roundIdx + 1 >= rounds.length) {
       setPhase("over");
       fireConfetti("victory");
@@ -559,6 +571,7 @@ export default function OnlineRace({ profile, onExit }) {
     setRoundIdx((i) => i + 1);
     setUnlockByPlayer({ [youId]: 0 });
     setGuesses([]);
+    setNextVotes({});
     setOutcome(null);
     setWinnerId(null);
     setEarnedPts(0);
@@ -570,6 +583,44 @@ export default function OnlineRace({ profile, onExit }) {
     setArtistGuess("");
     setPhase("play");
   }
+
+  function voteNext() {
+    if (phase !== "reveal" || nextVotes[youId]) return;
+    stopAudio();
+    setNextVotes((prev) => ({ ...prev, [youId]: true }));
+  }
+
+  // Opponents cast next-votes during reveal so the tally fills.
+  useEffect(() => {
+    if (phase !== "reveal") return;
+    const key = ++roundKeyRef.current;
+    const ops = players.filter((p) => p.id !== youId);
+    const timers = [];
+    for (const op of ops) {
+      const t = setTimeout(() => {
+        if (roundKeyRef.current !== key) return;
+        if (phaseRef.current !== "reveal") return;
+        setNextVotes((prev) => {
+          if (prev[op.id]) return prev;
+          return { ...prev, [op.id]: true };
+        });
+      }, 900 + Math.random() * 2800);
+      timers.push(t);
+    }
+    return () => timers.forEach(clearTimeout);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [phase, roundIdx]);
+
+  // Advance once enough next-votes land.
+  useEffect(() => {
+    if (phase !== "reveal") return;
+    if (voteHave < voteNeed) return;
+    if (advancingRef.current) return;
+    advancingRef.current = true;
+    const t = setTimeout(() => nextRound(), 350);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [phase, voteHave, voteNeed, roundIdx]);
 
   // ---- matching / error ----
   if (loadError) {
@@ -661,19 +712,56 @@ export default function OnlineRace({ profile, onExit }) {
           unlockByPlayer={unlockByPlayer}
         />
 
-        <GuessMedia
-          mode="vinyl"
-          revealed={revealed}
-          spinning={spinning}
-          cover={track?.cover}
-          title={track?.name}
-          artist={(track?.artists || []).join(", ")}
-          canControl={!!track}
-          interactive={!!track}
-          vinylTitle="play / pause · drag to scrub"
-          onTogglePlay={togglePlay}
-          onScrubStart={stopAudio}
-        />
+        <div className="media-stage">
+          <GuessMedia
+            mode="vinyl"
+            revealed={revealed}
+            spinning={spinning}
+            cover={track?.cover}
+            title={track?.name}
+            artist={(track?.artists || []).join(", ")}
+            canControl={!!track}
+            interactive={!!track}
+            vinylTitle="play / pause · drag to scrub"
+            onTogglePlay={togglePlay}
+            onScrubStart={stopAudio}
+          />
+          <div className="media-stage-side">
+            {phase === "play" && (
+              <button
+                className="btn btn-big btn-play media-stage-btn"
+                onClick={togglePlay}
+                disabled={playBusy}
+              >
+                <span
+                  className={localPlaying ? "btn-pause-icon" : "btn-play-icon"}
+                  aria-hidden="true"
+                />
+                {playBusy
+                  ? "starting…"
+                  : localPlaying
+                    ? "pause"
+                    : `play ${unlocked}s`}
+              </button>
+            )}
+            {revealed && (
+              <button
+                className={`btn btn-big btn-play media-stage-btn ${iVotedNext ? "is-voted" : ""}`}
+                onClick={voteNext}
+                disabled={iVotedNext}
+              >
+                <span className="btn-play-icon" aria-hidden="true" />
+                <span className="btn-label">
+                  {roundIdx + 1 >= rounds.length ? "results" : "next"}
+                </span>
+                <span className="vote-tally">
+                  {voteHave}/{voteNeed}
+                </span>
+              </button>
+            )}
+          </div>
+        </div>
+        {errorMsg && <div className="error-banner">{errorMsg}</div>}
 
         {revealed && outcome === "win" && (
           <div className="inline-badge inline-badge--win">
@@ -707,27 +795,6 @@ export default function OnlineRace({ profile, onExit }) {
             </span>
           </div>
         </div>
-
-        {phase === "play" && (
-          <div className="controls">
-            {errorMsg && <div className="error-banner">{errorMsg}</div>}
-            <button
-              className="btn btn-big btn-play"
-              onClick={togglePlay}
-              disabled={playBusy}
-            >
-              <span
-                className={localPlaying ? "btn-pause-icon" : "btn-play-icon"}
-                aria-hidden="true"
-              />
-              {playBusy
-                ? "starting…"
-                : localPlaying
-                  ? "pause"
-                  : `play ${unlocked}s`}
-            </button>
-          </div>
-        )}
 
         {phase === "play" && (
           <div className="guess-input-wrap">
@@ -787,10 +854,6 @@ export default function OnlineRace({ profile, onExit }) {
                 )}
               </div>
             </div>
-            <button className="btn btn-big btn-play" onClick={nextRound}>
-              <span className="btn-play-icon" aria-hidden="true" />
-              {roundIdx + 1 >= rounds.length ? "see results →" : "next song →"}
-            </button>
           </div>
         )}
       </div>

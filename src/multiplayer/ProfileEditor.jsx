@@ -1,11 +1,13 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import PlayerAvatar from "./PlayerAvatar.jsx";
 import {
   PLAYER_COLORS,
+  PEEP_COUNT,
+  peepSrc,
   randomAvatar,
   normalizeAvatar,
 } from "./constants.js";
-import { applyThemeForAccent } from "../themes.js";
+import { applyThemeForAccent, accentMatchingTheme } from "../themes.js";
 
 function syncThemeFromAccent(color) {
   if (!color) return;
@@ -16,8 +18,40 @@ function syncThemeFromAccent(color) {
   window.dispatchEvent(new CustomEvent("guessify:theme-picked"));
 }
 
+function avatarMatchingTheme(raw) {
+  const base = normalizeAvatar(raw || randomAvatar());
+  return normalizeAvatar({
+    ...base,
+    color: accentMatchingTheme(PLAYER_COLORS),
+  });
+}
+
+function FaceIcon() {
+  return (
+    <svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true">
+      <circle
+        cx="8"
+        cy="8"
+        r="6.25"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.4"
+      />
+      <circle cx="5.6" cy="7" r="1" fill="currentColor" />
+      <circle cx="10.4" cy="7" r="1" fill="currentColor" />
+      <path
+        d="M5.2 10.2c1.1 1.2 4.5 1.2 5.6 0"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.3"
+        strokeLinecap="round"
+      />
+    </svg>
+  );
+}
+
 /**
- * Compact nickname + randomize + accent dropdown.
+ * Compact nickname + randomize + peep + accent.
  * Calls onChange({ name, avatar }) whenever something updates.
  * Accent / randomize also switches the app theme to match.
  */
@@ -29,11 +63,16 @@ export default function ProfileEditor({
 }) {
   const [name, setName] = useState(nameProp);
   const [avatar, setAvatar] = useState(() =>
-    normalizeAvatar(avatarProp || randomAvatar())
+    avatarMatchingTheme(avatarProp || randomAvatar())
   );
-  const [accentOpen, setAccentOpen] = useState(false);
+  const [menu, setMenu] = useState(null); // null | "peep" | "accent"
+  const peepRef = useRef(null);
   const accentRef = useRef(null);
   const didEmitInit = useRef(false);
+  const peepIds = useMemo(
+    () => Array.from({ length: PEEP_COUNT }, (_, i) => i + 1),
+    []
+  );
 
   useEffect(() => {
     if (nameProp && nameProp !== name) setName(nameProp);
@@ -46,22 +85,24 @@ export default function ProfileEditor({
   }, [avatarProp?.peep, avatarProp?.color]);
 
   // Publish the starting look once so parent state matches what we show.
+  // Keep the current theme — pin accent to it; don't overwrite the theme.
   useEffect(() => {
     if (didEmitInit.current) return;
     didEmitInit.current = true;
     onChange?.({ name, avatar });
-    syncThemeFromAccent(avatar.color);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
-    if (!accentOpen) return;
+    if (!menu) return;
     function onDoc(e) {
-      if (!accentRef.current?.contains(e.target)) setAccentOpen(false);
+      const t = e.target;
+      if (peepRef.current?.contains(t) || accentRef.current?.contains(t)) return;
+      setMenu(null);
     }
     document.addEventListener("pointerdown", onDoc);
     return () => document.removeEventListener("pointerdown", onDoc);
-  }, [accentOpen]);
+  }, [menu]);
 
   function emit(nextName, nextAvatar) {
     onChange?.({
@@ -87,6 +128,7 @@ export default function ProfileEditor({
     setAvatar(next);
     emit(name, next);
     syncThemeFromAccent(next.color);
+    setMenu(null);
   }
 
   return (
@@ -106,12 +148,46 @@ export default function ProfileEditor({
               randomize
             </button>
           )}
+          <div className="profile-peep" ref={peepRef}>
+            <button
+              type="button"
+              className={`btn btn-mini profile-icon-btn ${menu === "peep" ? "open" : ""}`}
+              onClick={() => setMenu((m) => (m === "peep" ? null : "peep"))}
+              aria-expanded={menu === "peep"}
+              aria-haspopup="true"
+              aria-label="choose icon"
+              title="choose icon"
+            >
+              <FaceIcon />
+            </button>
+            {menu === "peep" && (
+              <div className="profile-peep-menu" role="listbox" aria-label="icons">
+                {peepIds.map((id) => (
+                  <button
+                    key={id}
+                    type="button"
+                    role="option"
+                    aria-selected={avatar.peep === id}
+                    className={`profile-peep-swatch ${avatar.peep === id ? "active" : ""}`}
+                    style={{ background: avatar.color }}
+                    onClick={() => {
+                      patchAvatar({ peep: id });
+                      setMenu(null);
+                    }}
+                    aria-label={`icon ${id}`}
+                  >
+                    <img src={peepSrc(id)} alt="" draggable={false} />
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
           <div className="profile-accent" ref={accentRef}>
             <button
               type="button"
-              className={`btn btn-mini profile-accent-btn ${accentOpen ? "open" : ""}`}
-              onClick={() => setAccentOpen((o) => !o)}
-              aria-expanded={accentOpen}
+              className={`btn btn-mini profile-accent-btn ${menu === "accent" ? "open" : ""}`}
+              onClick={() => setMenu((m) => (m === "accent" ? null : "accent"))}
+              aria-expanded={menu === "accent"}
               aria-haspopup="true"
             >
               <span
@@ -121,7 +197,7 @@ export default function ProfileEditor({
               />
               accent
             </button>
-            {accentOpen && (
+            {menu === "accent" && (
               <div className="profile-accent-menu" role="listbox" aria-label="accent colors">
                 {PLAYER_COLORS.map((c) => (
                   <button
@@ -133,7 +209,7 @@ export default function ProfileEditor({
                     style={{ background: c }}
                     onClick={() => {
                       patchAvatar({ color: c });
-                      setAccentOpen(false);
+                      setMenu(null);
                     }}
                     aria-label={`color ${c}`}
                   />
