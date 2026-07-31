@@ -91,12 +91,18 @@ Import the GitHub repo. Add env vars:
 | `SESSION_SECRET` | long random string (see below) |
 | `LASTFM_API_KEY` | [Last.fm API account](https://www.last.fm/api/account/create) (Charts & vibes tab) |
 | `VITE_PARTYKIT_HOST` | Cloudflare Worker host, **no** `https://` (after step 4) |
+| `OWNER_REFRESH_TOKEN` | optional — shows your playlists to logged-out visitors, see below |
 
 ```bash
 node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
 ```
 
 `VITE_*` vars are baked in at **build** time — redeploy after changing them.
+
+**Shared playlists for logged-out visitors (optional):** visit `/api/login?owner=1` on your deployed
+site and log in with your own Spotify account. The callback prints a refresh token instead of
+starting a session — copy it into `OWNER_REFRESH_TOKEN` in Vercel and redeploy. Logged-out visitors
+then see your playlists on the picker; "want your own playlists?" still lets them log in with theirs.
 
 ### 3. Custom domain + Spotify redirect URI
 

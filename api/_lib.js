@@ -179,3 +179,158 @@ export async function requireSession(req, res) {
     return null;
   }
 }
+
+// --- shared/public playlists: the site owner's library, readable without login ---
+// One-time setup: visit /api/login?owner=1, log in as the owner, and the
+// callback prints a refresh token to paste into OWNER_REFRESH_TOKEN.
+let ownerTokenCache = null; // { access, expiresAt } — reused across warm invocations
+
+export async function ownerAccess() {
+  const refresh = process.env.OWNER_REFRESH_TOKEN;
+  if (!refresh) return null;
+  if (ownerTokenCache && Date.now() < ownerTokenCache.expiresAt - 5000) {
+    return ownerTokenCache.access;
+  }
+  const data = await tokenRequest({ grant_type: "refresh_token", refresh_token: refresh });
+  ownerTokenCache = { access: data.access_token, expiresAt: Date.now() + data.expires_in * 1000 };
+  return ownerTokenCache.access;
+}
+
+// Guard for public routes serving the owner's library. Returns { access } or null (after sending an error).
+export async function requireOwner(req, res) {
+  try {
+    const access = await ownerAccess();
+    if (!access) {
+      res.status(503).json({ error: "Shared playlists aren't set up yet." });
+      return null;
+    }
+    return { access };
+  } catch (e) {
+    console.error(e);
+    res.status(503).json({ error: "Shared playlists aren't set up yet." });
+    return null;
+  }
+}
+
+export function setLinkOwnerCookie(res) {
+  appendCookie(res, cookie("gs_link_owner", "1", { maxAge: 600 }));
+}
+export function clearLinkOwnerCookie(res) {
+  appendCookie(res, cookie("gs_link_owner", "", { maxAge: 0 }));
+}
+
+// --- fetch helpers shared by /api and /api/shared routes (session token vs owner token) ---
+export async function fetchPlaylistsData(token) {
+  const me = await spotifyGet("https://api.spotify.com/v1/me", token);
+  const meId = me.id;
+
+  const playlists = [];
+  let next = "https://api.spotify.com/v1/me/playlists?limit=50";
+  while (next) {
+    const page = await spotifyGet(next, token);
+    for (const p of page.items || []) {
+      if (!p) continue;
+      playlists.push({
+        id: p.id,
+        name: p.name,
+        owner: p.owner?.display_name || "",
+        owned: p.owner?.id === meId,
+        cover: p.images?.[0]?.url || null,
+        // Feb 2026 API: playlist object's track-count moved tracks -> items
+        total: p.items?.total ?? p.tracks?.total ?? 0,
+      });
+    }
+    next = page.next;
+  }
+
+  let liked = null;
+  try {
+    const saved = await spotifyGet("https://api.spotify.com/v1/me/tracks?limit=1", token);
+    const first = saved.items?.[0];
+    const firstTrack = first?.track || first?.item;
+    liked = {
+      total: saved.total || 0,
+      cover: firstTrack?.album?.images?.[0]?.url || null,
+    };
+  } catch {
+    liked = null;
+  }
+
+  return { playlists, liked };
+}
+
+export async function fetchLikedTracks(token) {
+  // Cap pages so huge libraries don't blow the serverless timeout —
+  // 200 tracks is plenty for a 5-round game.
+  const MAX_PAGES = 4;
+  const tracks = [];
+  let next = "https://api.spotify.com/v1/me/tracks?limit=50";
+  let pages = 0;
+
+  while (next && pages < MAX_PAGES) {
+    const page = await spotifyGet(next, token);
+    pages += 1;
+    for (const entry of page.items || []) {
+      const t = entry.track || entry.item; // Feb 2026 rename tolerance
+      if (!t?.id) continue; // skip local files / unavailable
+      tracks.push({
+        id: t.id,
+        name: t.name,
+        artists: (t.artists || []).map((a) => a.name),
+        previewUrl: t.preview_url,
+        cover: t.album?.images?.[0]?.url || null,
+      });
+    }
+    next = page.next;
+  }
+
+  return {
+    id: "liked",
+    name: "Liked Songs",
+    owner: "you",
+    cover: tracks[0]?.cover || null,
+    total: tracks.length,
+    playableCount: tracks.length,
+    tracks,
+  };
+}
+
+export async function fetchPlaylistTracks(id, token) {
+  const meta = await spotifyGet(
+    `https://api.spotify.com/v1/playlists/${id}?fields=name,images,owner(display_name)`,
+    token
+  );
+
+  // Feb 2026 API migration: GET /playlists/{id}/tracks was removed in favour
+  // of /items, and each entry's `track` field was renamed to `item`.
+  const tracks = [];
+  let next =
+    `https://api.spotify.com/v1/playlists/${id}/items` +
+    `?fields=next,items(item(id,name,preview_url,artists(name),album(images)))&limit=100`;
+
+  while (next) {
+    const page = await spotifyGet(next, token);
+    for (const entry of page.items || []) {
+      const t = entry.item;
+      if (!t) continue;
+      tracks.push({
+        id: t.id,
+        name: t.name,
+        artists: (t.artists || []).map((a) => a.name),
+        previewUrl: t.preview_url,
+        cover: t.album?.images?.[0]?.url || null,
+      });
+    }
+    next = page.next;
+  }
+
+  return {
+    id,
+    name: meta.name,
+    owner: meta.owner?.display_name || "",
+    cover: meta.images?.[0]?.url || null,
+    total: tracks.length,
+    playableCount: tracks.length,
+    tracks,
+  };
+}

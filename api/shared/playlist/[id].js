@@ -1,7 +1,8 @@
-import { requireSession, fetchPlaylistTracks } from "../_lib.js";
+import { requireOwner, fetchPlaylistTracks } from "../../_lib.js";
 
+// Public: one of the site owner's playlists, readable without a visitor login.
 export default async function handler(req, res) {
-  const auth = await requireSession(req, res);
+  const auth = await requireOwner(req, res);
   if (!auth) return;
 
   try {
@@ -11,8 +12,7 @@ export default async function handler(req, res) {
     let error = "Failed to load playlist.";
     if (e.status === 404) error = "Playlist not found.";
     else if (e.status === 403) {
-      // Since the Feb 2026 API change, track access is limited to your own playlists.
-      error = "Spotify only lets apps read tracks from playlists you created. Pick one you own.";
+      error = "Spotify only lets apps read tracks from playlists it created.";
     }
     res.status(e.status || 500).json({ error, spotifyStatus: e.status || null });
   }

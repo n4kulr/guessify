@@ -1,18 +1,8 @@
-import { useEffect, useId, useMemo, useRef, useState } from "react";
+import { useEffect, useId, useMemo, useState } from "react";
 import ChartCdSpindle from "./ChartCdSpindle.jsx";
 import PlaylistCdShelf from "./PlaylistCdShelf.jsx";
 
 const YOURS_PREVIEW = 6;
-
-/** Teaser CDs behind the login blur (logged-out picker). */
-const TEASER_SHELF = [
-  { id: "t1", name: "Liked Songs", liked: true, owned: true, total: 128 },
-  { id: "t2", name: "Release Radar", owned: true, total: 30 },
-  { id: "t3", name: "Discover Weekly", owned: true, total: 30 },
-  { id: "t4", name: "On Repeat", owned: true, total: 30 },
-  { id: "t5", name: "Daily Mix 1", owned: true, total: 50 },
-  { id: "t6", name: "Road Trip", owned: true, total: 42 },
-];
 
 const CHART_PACKS = [
   { tag: "pop", label: "Pop", blurb: "chart pop", about: "Catchy, radio-friendly songs with big choruses.", artists: ["Dua Lipa", "Sabrina Carpenter", "Olivia Rodrigo", "The Weeknd", "Taylor Swift", "Harry Styles", "Billie Eilish", "Ariana Grande"] },
@@ -44,54 +34,34 @@ const CHART_PACKS = [
 export default function PlaylistPicker({ onPick, needsLogin = false }) {
   const [data, setData] = useState(null); // { playlists, liked }
   const [error, setError] = useState(null);
+  const [ownerUnavailable, setOwnerUnavailable] = useState(false);
   const [loadingId, setLoadingId] = useState(null);
   const [note, setNote] = useState(null);
   const [showAllYours, setShowAllYours] = useState(false);
   const [chartQuery, setChartQuery] = useState("");
   const [yoursView, setYoursView] = useState("cds"); // cds | list
-  const [allowInfoOpen, setAllowInfoOpen] = useState(false);
-  const allowInfoId = useId();
-  const allowCtaRef = useRef(null);
-  const allowCloseTimer = useRef(null);
-
-  function openAllowInfo() {
-    clearTimeout(allowCloseTimer.current);
-    setAllowInfoOpen(true);
-  }
-
-  function scheduleCloseAllowInfo() {
-    clearTimeout(allowCloseTimer.current);
-    allowCloseTimer.current = window.setTimeout(() => {
-      setAllowInfoOpen(false);
-    }, 140);
-  }
+  const [showLoginModal, setShowLoginModal] = useState(false);
+  const loginModalTitleId = useId();
 
   useEffect(() => {
-    return () => clearTimeout(allowCloseTimer.current);
-  }, []);
-
-  useEffect(() => {
-    if (!allowInfoOpen) return;
-    function onDoc(e) {
-      if (!allowCtaRef.current?.contains(e.target)) setAllowInfoOpen(false);
-    }
+    if (!showLoginModal) return;
     function onKey(e) {
-      if (e.key === "Escape") setAllowInfoOpen(false);
+      if (e.key === "Escape") setShowLoginModal(false);
     }
-    document.addEventListener("mousedown", onDoc);
     window.addEventListener("keydown", onKey);
-    return () => {
-      document.removeEventListener("mousedown", onDoc);
-      window.removeEventListener("keydown", onKey);
-    };
-  }, [allowInfoOpen]);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [showLoginModal]);
 
   useEffect(() => {
-    if (needsLogin) return;
-    fetch("/api/playlists", { credentials: "include" })
+    // Logged out: browse the site owner's shared library instead of your own.
+    const url = needsLogin ? "/api/shared/playlists" : "/api/playlists";
+    fetch(url, { credentials: "include" })
       .then((r) => (r.ok ? r.json() : Promise.reject(r)))
       .then(setData)
-      .catch(() => setError("Couldn't load your playlists."));
+      .catch((r) => {
+        if (needsLogin && r?.status === 503) setOwnerUnavailable(true);
+        else setError(needsLogin ? "Couldn't load playlists." : "Couldn't load your playlists.");
+      });
   }, [needsLogin]);
 
   // Liked Songs first, then owned playlists only (locked ones can't be played).
@@ -123,7 +93,8 @@ export default function PlaylistPicker({ onPick, needsLogin = false }) {
     setLoadingId(p.id);
     setNote(null);
     try {
-      const url = p.liked ? "/api/liked" : `/api/playlist/${p.id}`;
+      const base = needsLogin ? "/api/shared" : "/api";
+      const url = p.liked ? `${base}/liked` : `${base}/playlist/${p.id}`;
       const res = await fetch(url, { credentials: "include" });
       const d = await res.json();
       if (!res.ok) throw new Error(d.error || "failed");
@@ -173,9 +144,9 @@ export default function PlaylistPicker({ onPick, needsLogin = false }) {
     setYoursView((v) => (v === "cds" ? "list" : "cds"));
   }
 
-  if (!needsLogin) {
+  if (!ownerUnavailable) {
     if (error) return <div className="panel">{error}</div>;
-    if (!data) return <div className="loader">loading your playlists…</div>;
+    if (!data) return <div className="loader">loading{needsLogin ? "" : " your"} playlists…</div>;
   }
 
   const cdsMode = yoursView === "cds";
@@ -183,7 +154,7 @@ export default function PlaylistPicker({ onPick, needsLogin = false }) {
   return (
     <div className="picker">
       <div className="picker-heading">
-        {!needsLogin && yours.length > 0 && (
+        {yours.length > 0 && (
           <button
             type="button"
             className="view-toggle"
@@ -196,67 +167,23 @@ export default function PlaylistPicker({ onPick, needsLogin = false }) {
         )}
         <h2 className="section-title">Pick a record…</h2>
       </div>
-      <p className="section-sub">Your Spotify playlists only.</p>
+      <p className="section-sub">
+        {needsLogin ? "heres my playlists! hand curated :)" : "Your Spotify playlists only."}
+      </p>
+      {needsLogin && (
+        <button
+          type="button"
+          className="own-playlists-link"
+          onClick={() => setShowLoginModal(true)}
+        >
+          want your own playlists?
+        </button>
+      )}
 
       {note && <div className="error-banner">{note}</div>}
 
-      {needsLogin ? (
-        <div className="shelf-gate">
-          <div
-            className={`shelf-cta${allowInfoOpen ? " is-open" : ""}`}
-            ref={allowCtaRef}
-            onMouseLeave={scheduleCloseAllowInfo}
-          >
-            <a className="btn btn-big btn-spotify shelf-login" href="/api/login">
-              <svg
-                className="spotify-logo"
-                viewBox="0 0 24 24"
-                width="22"
-                height="22"
-                aria-hidden="true"
-              >
-                <path
-                  fill="currentColor"
-                  d="M12 0C5.4 0 0 5.4 0 12s5.4 12 12 12 12-5.4 12-12S18.66 0 12 0zm5.521 17.34c-.24.359-.66.48-1.021.24-2.82-1.74-6.36-2.101-10.561-1.141-.418.122-.779-.179-.899-.539-.12-.421.18-.78.54-.9 4.56-1.021 8.52-.6 11.64 1.32.42.18.479.659.301 1.02zm1.44-3.3c-.301.42-.841.6-1.262.3-3.239-1.98-8.159-2.58-11.939-1.38-.479.12-1.02-.12-1.14-.6-.12-.48.12-1.021.6-1.141C9.6 9.9 15 10.561 18.72 12.84c.361.181.54.78.241 1.2zm.12-3.36C15.24 8.4 8.82 8.16 5.16 9.301c-.6.179-1.2-.181-1.38-.721-.18-.601.18-1.2.72-1.381 4.26-1.26 11.28-1.02 15.721 1.621.539.3.719 1.02.419 1.56-.299.421-1.02.599-1.559.3z"
-                />
-              </svg>
-              Log in with Spotify
-            </a>
-            <button
-              type="button"
-              className={`shelf-allow-btn${allowInfoOpen ? " is-open" : ""}`}
-              aria-expanded={allowInfoOpen}
-              aria-controls={allowInfoId}
-              aria-label={
-                allowInfoOpen
-                  ? "Hide Spotify allowlist info"
-                  : "Why playlists might not load"
-              }
-              onMouseEnter={openAllowInfo}
-              onClick={() => setAllowInfoOpen((o) => !o)}
-            >
-              i
-            </button>
-            <div
-              id={allowInfoId}
-              className="shelf-allow-panel"
-              role="note"
-              aria-hidden={!allowInfoOpen}
-              onMouseEnter={openAllowInfo}
-              onMouseLeave={scheduleCloseAllowInfo}
-            >
-              Login will work but playlists wont load as spotify is a bum
-              and reduced personal project user limits to 5 :(
-            </div>
-          </div>
-          <div className="shelf-locked" aria-hidden="true">
-            <PlaylistCdShelf
-              playlists={TEASER_SHELF}
-              loadingId={null}
-              onChoose={() => {}}
-            />
-          </div>
-        </div>
+      {ownerUnavailable ? (
+        <p className="section-sub">Playlists aren’t set up for guests yet — log in with Spotify below.</p>
       ) : yours.length === 0 ? (
         <p className="section-sub">
           No owned playlists found — make one on Spotify, or describe one below.
@@ -359,6 +286,57 @@ export default function PlaylistPicker({ onPick, needsLogin = false }) {
         loadingId={loadingId}
         onChoose={chooseChart}
       />
+
+      {showLoginModal && (
+        <div
+          className="spotlight-scrim"
+          role="presentation"
+          onMouseDown={(e) => {
+            if (e.target === e.currentTarget) setShowLoginModal(false);
+          }}
+        >
+          <div
+            className="spotlight-card"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby={loginModalTitleId}
+          >
+            <div className="spotlight-head">
+              <h2 id={loginModalTitleId} className="spotlight-title">
+                log in with Spotify
+              </h2>
+            </div>
+            <p className="spotlight-hint">
+              Login will work but playlists wont load as spotify is a bum
+              and reduced personal project user limits to 5 :(
+            </p>
+            <div className="spotlight-actions">
+              <button
+                type="button"
+                className="btn btn-mini"
+                onClick={() => setShowLoginModal(false)}
+              >
+                cancel
+              </button>
+              <a className="btn btn-big btn-spotify" href="/api/login">
+                <svg
+                  className="spotify-logo"
+                  viewBox="0 0 24 24"
+                  width="22"
+                  height="22"
+                  aria-hidden="true"
+                >
+                  <path
+                    fill="currentColor"
+                    d="M12 0C5.4 0 0 5.4 0 12s5.4 12 12 12 12-5.4 12-12S18.66 0 12 0zm5.521 17.34c-.24.359-.66.48-1.021.24-2.82-1.74-6.36-2.101-10.561-1.141-.418.122-.779-.179-.899-.539-.12-.421.18-.78.54-.9 4.56-1.021 8.52-.6 11.64 1.32.42.18.479.659.301 1.02zm1.44-3.3c-.301.42-.841.6-1.262.3-3.239-1.98-8.159-2.58-11.939-1.38-.479.12-1.02-.12-1.14-.6-.12-.48.12-1.021.6-1.141C9.6 9.9 15 10.561 18.72 12.84c.361.181.54.78.241 1.2zm.12-3.36C15.24 8.4 8.82 8.16 5.16 9.301c-.6.179-1.2-.181-1.38-.721-.18-.601.18-1.2.72-1.381 4.26-1.26 11.28-1.02 15.721 1.621.539.3.719 1.02.419 1.56-.299.421-1.02.599-1.559.3z"
+                  />
+                </svg>
+                Log in with Spotify
+              </a>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

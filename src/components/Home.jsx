@@ -19,7 +19,7 @@ export default function Home({ me, onStartSolo, onStartMulti, onStartOnline }) {
           guess<span className="hero-title-accent">ify</span>
         </h1>
         <p className="hero-tagline">
-          <span className="hero-tagline-lead">Hey {name} —</span>
+          <span className="hero-tagline-lead">oi {name}!</span>
           <em className="hero-tagline-hook">name that song!</em>
         </p>
 
