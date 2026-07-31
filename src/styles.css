@@ -14,6 +14,10 @@
 
 * { box-sizing: border-box; }
 html, body, #root { height: 100%; }
+/* iOS Safari paints the gap exposed during rubber-band/dynamic-toolbar
+   gestures using <html>'s own background, not <body>'s — without this it
+   fell back to a stale color that didn't track theme switches. */
+html { background: var(--bg-color); }
 
 body {
   margin: 0;
