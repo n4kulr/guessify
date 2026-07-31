@@ -729,30 +729,31 @@ export default function OnlineRace({ profile, onExit }) {
           <div className="media-stage-side">
             {phase === "play" && (
               <button
-                className="btn btn-big btn-play media-stage-btn"
+                type="button"
+                className="btn btn-play media-stage-play"
                 onClick={togglePlay}
                 disabled={playBusy}
+                aria-label={localPlaying ? "Pause" : `Play ${unlocked}s`}
+                title={localPlaying ? "Pause" : `Play ${unlocked}s`}
               >
                 <span
                   className={localPlaying ? "btn-pause-icon" : "btn-play-icon"}
                   aria-hidden="true"
                 />
-                {playBusy
-                  ? "starting…"
-                  : localPlaying
-                    ? "pause"
-                    : `play ${unlocked}s`}
               </button>
             )}
             {revealed && (
               <button
-                className={`btn btn-big btn-play media-stage-btn ${iVotedNext ? "is-voted" : ""}`}
+                type="button"
+                className={`btn btn-play media-stage-btn ${iVotedNext ? "is-voted" : ""}`}
                 onClick={voteNext}
                 disabled={iVotedNext}
+                aria-label={
+                  roundIdx + 1 >= rounds.length ? "Results" : "Next song"
+                }
               >
-                <span className="btn-play-icon" aria-hidden="true" />
                 <span className="btn-label">
-                  {roundIdx + 1 >= rounds.length ? "results" : "next"}
+                  {roundIdx + 1 >= rounds.length ? "end" : "next"}
                 </span>
                 <span className="vote-tally">
                   {voteHave}/{voteNeed}

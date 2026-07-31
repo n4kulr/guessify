@@ -1523,6 +1523,14 @@ button { font-family: var(--font); }
   align-items: center;
   margin: 36px 0 22px;
 }
+.chart-search-block--top {
+  margin-top: 8px;
+}
+.picker-spotify {
+  margin-top: 40px;
+  padding-top: 28px;
+  border-top: 1px solid color-mix(in srgb, var(--text-color) 12%, transparent);
+}
 .chart-search-sub {
   margin-top: 4px;
   margin-bottom: 18px;
@@ -2825,7 +2833,7 @@ button { font-family: var(--font); }
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 14px;
+  gap: 16px;
   margin: 8px auto 18px;
   max-width: 100%;
 }
@@ -2836,30 +2844,47 @@ button { font-family: var(--font); }
 .media-stage-side {
   display: flex;
   flex-direction: column;
-  align-items: stretch;
-  gap: 8px;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
   flex: none;
-  min-width: 112px;
+  width: 52px;
+}
+.media-stage-play {
+  width: 48px;
+  height: 48px;
+  min-width: 48px;
+  padding: 0;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  gap: 0;
+  flex: none;
+}
+.media-stage-play .btn-play-icon {
+  margin-left: 3px;
 }
 .media-stage-btn {
   flex-direction: column;
-  gap: 6px;
-  padding: 12px 14px;
-  min-width: 112px;
-  font-size: 14px;
+  gap: 4px;
+  padding: 10px 8px;
+  min-width: 52px;
+  width: 52px;
+  font-size: 12px;
+  border-radius: 12px;
 }
 .media-stage-btn .btn-label {
-  font-size: 13px;
+  font-size: 11px;
   font-weight: 600;
   letter-spacing: 0.04em;
   text-transform: uppercase;
 }
 .media-stage-btn .vote-tally {
   font-family: "IBM Plex Mono", monospace;
-  font-size: 15px;
+  font-size: 13px;
   font-weight: 700;
-  color: var(--main-color);
-  letter-spacing: 0.04em;
+  color: var(--bg-color);
+  letter-spacing: 0.02em;
 }
 .media-stage-btn.is-voted,
 .media-stage-btn:disabled.is-voted {
@@ -4098,18 +4123,24 @@ button { font-family: var(--font); }
     margin: 8px auto 14px;
   }
   .media-stage {
-    gap: 10px;
+    gap: 12px;
     margin: 4px auto 12px;
   }
   .media-stage .turntable--game,
   .media-stage .turntable--md {
     margin: 0;
   }
-  .media-stage-side { min-width: 96px; }
+  .media-stage-side { width: 44px; }
+  .media-stage-play {
+    width: 42px;
+    height: 42px;
+    min-width: 42px;
+  }
   .media-stage-btn {
-    min-width: 96px;
-    padding: 10px 12px;
-    font-size: 13px;
+    min-width: 44px;
+    width: 44px;
+    padding: 8px 6px;
+    font-size: 11px;
   }
   .progress { margin: 10px 0 12px; }
   .progress-labels { font-size: 11px; }

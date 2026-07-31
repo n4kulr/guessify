@@ -401,24 +401,35 @@ export default function HostParty({ code, playlist, me, onExit }) {
         <div className="media-stage-side">
           {phase === "play" && (
             <button
-              className="btn btn-big btn-play media-stage-btn"
+              type="button"
+              className="btn btn-play media-stage-play"
               onClick={togglePlay}
               disabled={!canPlay || playBusy}
+              aria-label={
+                localPlaying
+                  ? "Pause"
+                  : canPlay
+                    ? `Play ${unlocked}s`
+                    : "Loading audio"
+              }
+              title={
+                localPlaying
+                  ? "Pause"
+                  : canPlay
+                    ? `Play ${unlocked}s`
+                    : "Loading audio"
+              }
             >
               <span
                 className={localPlaying ? "btn-pause-icon" : "btn-play-icon"}
                 aria-hidden="true"
               />
-              {playBusy
-                ? "starting…"
-                : localPlaying
-                ? "pause"
-                : `play ${unlocked}s`}
             </button>
           )}
           {revealed && (
             <button
-              className={`btn btn-big btn-play media-stage-btn ${
+              type="button"
+              className={`btn btn-play media-stage-btn ${
                 playerId && (state.nextVotes || []).includes(playerId) ? "is-voted" : ""
               }`}
               onClick={() => {
@@ -427,10 +438,12 @@ export default function HostParty({ code, playlist, me, onExit }) {
                 send({ type: "next" });
               }}
               disabled={!!(playerId && (state.nextVotes || []).includes(playerId))}
+              aria-label={
+                state.roundIdx + 1 >= state.roundCount ? "Results" : "Next song"
+              }
             >
-              <span className="btn-play-icon" aria-hidden="true" />
               <span className="btn-label">
-                {state.roundIdx + 1 >= state.roundCount ? "results" : "next"}
+                {state.roundIdx + 1 >= state.roundCount ? "end" : "next"}
               </span>
               <span className="vote-tally">
                 {(state.nextVotes || []).length}/

@@ -220,8 +220,6 @@ export default function Game({ playlist, me, onExit }) {
 
   const maxScore = rounds.length * ROUND_MAX_POINTS;
   const spinning = (playing || celebrate) && !scrubbing;
-  // Play button: only start a snippet — greyed out while playing / busy.
-  // Pause lives on the vinyl (click).
   const playDisabled = !canControl || playBusy;
 
   return (
@@ -256,27 +254,46 @@ export default function Game({ playlist, me, onExit }) {
               unlockByPlayer={{ [YOU_ID]: guessNum }}
             />
 
-            <GuessMedia
-              mode="vinyl"
-              revealed={resolved}
-              spinning={spinning}
-              celebrate={celebrate}
-              cover={track.cover}
-              title={track.name}
-              artist={(track.artists || []).join(", ")}
-              canControl={canControl}
-              interactive={canControl}
-              vinylTitle={
-                canControl
-                  ? playing
-                    ? "click to pause · drag to scrub"
-                    : "click to play · drag to scrub"
-                  : undefined
-              }
-              onTogglePlay={togglePlay}
-              onScrubStart={onVinylScrubStart}
-              onScrubEnd={onVinylScrubEnd}
-            />
+            <div className="media-stage">
+              <GuessMedia
+                mode="vinyl"
+                revealed={resolved}
+                spinning={spinning}
+                celebrate={celebrate}
+                cover={track.cover}
+                title={track.name}
+                artist={(track.artists || []).join(", ")}
+                canControl={canControl}
+                interactive={canControl}
+                vinylTitle={
+                  canControl
+                    ? playing
+                      ? "click to pause · drag to scrub"
+                      : "click to play · drag to scrub"
+                    : undefined
+                }
+                onTogglePlay={togglePlay}
+                onScrubStart={onVinylScrubStart}
+                onScrubEnd={onVinylScrubEnd}
+              />
+              {!resolved && (
+                <div className="media-stage-side">
+                  <button
+                    type="button"
+                    className="btn btn-play media-stage-play"
+                    onClick={togglePlay}
+                    disabled={playDisabled}
+                    aria-label={playing ? "Pause" : `Play ${unlocked}s`}
+                    title={playing ? "Pause" : `Play ${unlocked}s`}
+                  >
+                    <span
+                      className={playing ? "btn-pause-icon" : "btn-play-icon"}
+                      aria-hidden="true"
+                    />
+                  </button>
+                </div>
+              )}
+            </div>
 
             {outcome === "win" && (
               <div key={`badge-${roundIdx}`} className="inline-badge inline-badge--win">
@@ -285,6 +302,10 @@ export default function Game({ playlist, me, onExit }) {
             )}
             {outcome === "lose" && (
               <div className="inline-badge inline-badge--lose">MISSED</div>
+            )}
+
+            {errorMsg && !resolved && (
+              <div className="error-banner">{errorMsg}</div>
             )}
 
             <div className="progress">
@@ -312,27 +333,6 @@ export default function Game({ playlist, me, onExit }) {
                 </span>
               </div>
             </div>
-
-            {!resolved && (
-              <div className="controls">
-                {errorMsg && <div className="error-banner">{errorMsg}</div>}
-                <button
-                  className="btn btn-big btn-play"
-                  onClick={togglePlay}
-                  disabled={playDisabled}
-                >
-                  <span
-                    className={playing ? "btn-pause-icon" : "btn-play-icon"}
-                    aria-hidden="true"
-                  />
-                  {playBusy
-                    ? "starting…"
-                    : playing
-                    ? "pause"
-                    : `play ${unlocked}s`}
-                </button>
-              </div>
-            )}
 
             {resolved ? (
               <div className={`inline-reveal ${outcome}`}>
