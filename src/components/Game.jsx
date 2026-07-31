@@ -4,6 +4,7 @@ import { usePreviewPlayer } from "../usePreviewPlayer.js";
 import { fireConfetti, shakeEl } from "../fx.js";
 import { loadLocalProfile } from "../localProfile.js";
 import GuessMedia from "./GuessMedia.jsx";
+import GuessTransport from "./GuessTransport.jsx";
 import ScrubbableVinyl from "./ScrubbableVinyl.jsx";
 import PlayerRail from "../multiplayer/PlayerRail.jsx";
 import {
@@ -231,7 +232,6 @@ export default function Game({ playlist, me, onExit }) {
 
   const maxScore = rounds.length * ROUND_MAX_POINTS;
   const spinning = (playing || celebrate) && !scrubbing;
-  const playDisabled = !canControl || playBusy || playing;
 
   return (
     <div
@@ -367,28 +367,14 @@ export default function Game({ playlist, me, onExit }) {
                       onChange={(e) => setArtistGuess(e.target.value)}
                       onKeyDown={(e) => e.key === "Enter" && submitGuess()}
                     />
-                    <div className="guess-transport">
-                      <button
-                        type="button"
-                        className="btn btn-play guess-transport-btn"
-                        onClick={startPlay}
-                        disabled={playDisabled}
-                        aria-label={`Play ${unlocked}s`}
-                        title={`Play ${unlocked}s`}
-                      >
-                        <span className="btn-play-icon" aria-hidden="true" />
-                      </button>
-                      <button
-                        type="button"
-                        className="btn guess-transport-btn guess-transport-btn--pause"
-                        onClick={stopAudio}
-                        disabled={!playing}
-                        aria-label="Pause"
-                        title="Pause"
-                      >
-                        <span className="btn-pause-icon" aria-hidden="true" />
-                      </button>
-                    </div>
+                    <GuessTransport
+                      playing={playing}
+                      busy={playBusy}
+                      canPlay={canControl && !resolved}
+                      playLabel={`Play ${unlocked}s`}
+                      onPlay={startPlay}
+                      onPause={stopAudio}
+                    />
                   </div>
                 </div>
                 <div className="guess-actions">

@@ -6,6 +6,7 @@ import { resolvePreview } from "../itunes.js";
 import { STEPS, TOTAL, randomAvatar, normalizeAvatar, unlockSecondsFor, PLAYER_COLORS, nextVotesNeeded, activePlayerCount } from "./constants.js";
 import { fireConfetti, shakeEl } from "../fx.js";
 import GuessMedia from "../components/GuessMedia.jsx";
+import GuessTransport from "../components/GuessTransport.jsx";
 import PlayerRail from "./PlayerRail.jsx";
 import ProfileEditor from "./ProfileEditor.jsx";
 import GuessPopups from "./GuessPopups.jsx";
@@ -480,28 +481,14 @@ export default function HostParty({ code, playlist, me, onExit }) {
                 onChange={(e) => setArtistGuess(e.target.value)}
                 onKeyDown={(e) => e.key === "Enter" && submitGuess()}
               />
-              <div className="guess-transport">
-                <button
-                  type="button"
-                  className="btn btn-play guess-transport-btn"
-                  onClick={startPlay}
-                  disabled={!canPlay || playBusy || localPlaying}
-                  aria-label={canPlay ? `Play ${unlocked}s` : "Loading audio"}
-                  title={canPlay ? `Play ${unlocked}s` : "Loading audio"}
-                >
-                  <span className="btn-play-icon" aria-hidden="true" />
-                </button>
-                <button
-                  type="button"
-                  className="btn guess-transport-btn guess-transport-btn--pause"
-                  onClick={stopAudio}
-                  disabled={!localPlaying}
-                  aria-label="Pause"
-                  title="Pause"
-                >
-                  <span className="btn-pause-icon" aria-hidden="true" />
-                </button>
-              </div>
+              <GuessTransport
+                playing={localPlaying}
+                busy={playBusy}
+                canPlay={canPlay}
+                playLabel={canPlay ? `Play ${unlocked}s` : "Loading audio"}
+                onPlay={startPlay}
+                onPause={stopAudio}
+              />
             </div>
           </div>
           <div className="guess-actions">

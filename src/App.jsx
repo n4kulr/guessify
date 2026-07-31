@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Login from "./components/Login.jsx";
 import Home from "./components/Home.jsx";
 import PlaylistPicker from "./components/PlaylistPicker.jsx";
@@ -25,6 +25,15 @@ function joinCodeFromPath() {
   return m ? m[1].toUpperCase() : null;
 }
 
+function pathFor(step, mode, roomCode) {
+  if (step === "pick") return mode === "multi" ? "/pick/multi" : "/pick";
+  if (step === "play") return "/play";
+  if (step === "host") return roomCode ? `/host/${roomCode}` : "/host";
+  if (step === "online" || step === "online-prompt") return "/online";
+  if (step === "howto") return `/howto/${mode || "solo"}`;
+  return "/";
+}
+
 export default function App() {
   const [status, setStatus] = useState("checking"); // checking | loggedOut | loggedIn | guest
   const [me, setMe] = useState(null);
@@ -39,6 +48,119 @@ export default function App() {
   const [onlinePrompt, setOnlinePrompt] = useState(false);
   const [onlineProfile, setOnlineProfile] = useState(null);
   const [howtoMode, setHowtoMode] = useState(null); // null | solo | multi | online
+
+  const howtoRef = useRef(howtoMode);
+  const onlinePromptRef = useRef(onlinePrompt);
+  const playlistRef = useRef(playlist);
+  const onlineProfileRef = useRef(onlineProfile);
+  howtoRef.current = howtoMode;
+  onlinePromptRef.current = onlinePrompt;
+  playlistRef.current = playlist;
+  onlineProfileRef.current = onlineProfile;
+
+  function pushNav(step, nextMode = "solo", code = null) {
+    window.history.pushState(
+      { step, mode: nextMode, roomCode: code },
+      "",
+      pathFor(step, nextMode, code)
+    );
+  }
+
+  function replaceNav(step, nextMode = "solo", code = null) {
+    window.history.replaceState(
+      { step, mode: nextMode, roomCode: code },
+      "",
+      pathFor(step, nextMode, code)
+    );
+  }
+
+  function resetToHomeUi() {
+    setPlaylist(null);
+    setPicking(false);
+    setRoomCode(null);
+    setMode("solo");
+    setOnlinePrompt(false);
+    setOnlineProfile(null);
+    setHowtoMode(null);
+    setHomeNonce((n) => n + 1);
+  }
+
+  function applyHistory(entry) {
+    const step = entry?.step || "home";
+    const nextMode = entry?.mode || "solo";
+
+    setHowtoMode(null);
+    setOnlinePrompt(false);
+
+    if (step === "howto") {
+      setHowtoMode(nextMode);
+      return;
+    }
+    if (step === "online-prompt") {
+      setMode("online");
+      setPicking(false);
+      setPlaylist(null);
+      setRoomCode(null);
+      setOnlineProfile(null);
+      setOnlinePrompt(true);
+      return;
+    }
+    if (step === "pick") {
+      setPlaylist(null);
+      setPicking(true);
+      setRoomCode(null);
+      setOnlineProfile(null);
+      setMode(nextMode === "multi" ? "multi" : "solo");
+      setHomeNonce((n) => n + 1);
+      return;
+    }
+    if (step === "play") {
+      if (!playlistRef.current) {
+        setPicking(true);
+        setMode("solo");
+        setPlaylist(null);
+        setRoomCode(null);
+        setOnlineProfile(null);
+        replaceNav("pick", "solo");
+        return;
+      }
+      setPicking(false);
+      setMode("solo");
+      setRoomCode(null);
+      setOnlineProfile(null);
+      return;
+    }
+    if (step === "host") {
+      if (!playlistRef.current) {
+        setPicking(true);
+        setMode("multi");
+        setPlaylist(null);
+        setRoomCode(null);
+        setOnlineProfile(null);
+        replaceNav("pick", "multi");
+        return;
+      }
+      setPicking(false);
+      setMode("multi");
+      setOnlineProfile(null);
+      if (entry?.roomCode) setRoomCode(entry.roomCode);
+      return;
+    }
+    if (step === "online") {
+      if (!onlineProfileRef.current) {
+        resetToHomeUi();
+        replaceNav("home");
+        return;
+      }
+      setPicking(false);
+      setPlaylist(null);
+      setRoomCode(null);
+      setMode("online");
+      return;
+    }
+
+    resetToHomeUi();
+  }
 
   useEffect(() => attachKeyboardSounds(), []);
 
@@ -57,13 +179,35 @@ export default function App() {
     const params = new URLSearchParams(window.location.search);
     if (params.get("error")) {
       setAuthError(params.get("error"));
-      window.history.replaceState({}, "", window.location.pathname);
+      window.history.replaceState({ step: "home" }, "", "/");
+    } else if (!joinCode) {
+      // Seed so the first in-app push has a home entry to return to.
+      const existing = window.history.state;
+      if (!existing?.step) {
+        window.history.replaceState({ step: "home" }, "", "/");
+      }
     }
     if (joinCode) {
       setStatus("guest");
       return;
     }
     checkMe();
+  }, [joinCode]);
+
+  useEffect(() => {
+    if (joinCode) return;
+
+    function onPop(e) {
+      // Dismiss overlays first if somehow still open without a matching entry.
+      if (howtoRef.current && e.state?.step !== "howto") {
+        setHowtoMode(null);
+      }
+      applyHistory(e.state);
+    }
+
+    window.addEventListener("popstate", onPop);
+    return () => window.removeEventListener("popstate", onPop);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [joinCode]);
 
   async function checkMe() {
@@ -90,13 +234,9 @@ export default function App() {
   async function logout() {
     await fetch("/api/logout", { method: "POST", credentials: "include" });
     setMe(null);
-    setPlaylist(null);
-    setPicking(false);
-    setRoomCode(null);
-    setMode("solo");
-    setOnlinePrompt(false);
-    setOnlineProfile(null);
+    resetToHomeUi();
     setStatus("loggedOut");
+    replaceNav("home");
   }
 
   function goHome() {
@@ -104,13 +244,8 @@ export default function App() {
       window.location.href = "/";
       return;
     }
-    setPlaylist(null);
-    setPicking(false);
-    setRoomCode(null);
-    setMode("solo");
-    setOnlinePrompt(false);
-    setOnlineProfile(null);
-    setHomeNonce((n) => n + 1);
+    resetToHomeUi();
+    replaceNav("home");
   }
 
   function leaveGame() {
@@ -121,28 +256,40 @@ export default function App() {
     setOnlinePrompt(false);
     setOnlineProfile(null);
     setHomeNonce((n) => n + 1);
+    // Replace /play so Back from picker returns home, not an empty game.
+    replaceNav("pick", "solo");
   }
 
   function beginSolo() {
     setMode("solo");
     setPicking(true);
+    setPlaylist(null);
+    setRoomCode(null);
+    setOnlineProfile(null);
+    pushNav("pick", "solo");
   }
 
   function beginMulti() {
     setMode("multi");
     setPicking(true);
+    setPlaylist(null);
+    setRoomCode(null);
+    setOnlineProfile(null);
+    pushNav("pick", "multi");
   }
 
   function beginOnline() {
     setOnlinePrompt(true);
+    pushNav("online-prompt", "online");
   }
 
-  function withHowto(mode, next) {
+  function withHowto(nextMode, next) {
     if (hasSeenPlayHowto()) {
       next();
       return;
     }
-    setHowtoMode(mode);
+    setHowtoMode(nextMode);
+    pushNav("howto", nextMode);
   }
 
   function startSolo() {
@@ -158,12 +305,24 @@ export default function App() {
   }
 
   function finishHowto() {
-    const mode = howtoMode;
+    const next = howtoMode;
     markPlayHowtoSeen();
     setHowtoMode(null);
-    if (mode === "solo") beginSolo();
-    else if (mode === "multi") beginMulti();
-    else if (mode === "online") beginOnline();
+    // Replace howto entry with the real next screen.
+    if (next === "solo") {
+      setMode("solo");
+      setPicking(true);
+      setPlaylist(null);
+      replaceNav("pick", "solo");
+    } else if (next === "multi") {
+      setMode("multi");
+      setPicking(true);
+      setPlaylist(null);
+      replaceNav("pick", "multi");
+    } else if (next === "online") {
+      setOnlinePrompt(true);
+      replaceNav("online-prompt", "online");
+    }
   }
 
   function confirmOnline(profile) {
@@ -173,12 +332,31 @@ export default function App() {
     setPicking(false);
     setPlaylist(null);
     setRoomCode(null);
+    replaceNav("online", "online");
+  }
+
+  function cancelOnlinePrompt() {
+    setOnlinePrompt(false);
+    // Prefer stepping back to home entry if we pushed online-prompt.
+    if (window.history.state?.step === "online-prompt") {
+      window.history.back();
+      return;
+    }
+    resetToHomeUi();
+    replaceNav("home");
   }
 
   function onPlaylistPicked(pl) {
     setPlaylist(pl);
     setPicking(false);
-    if (mode === "multi") setRoomCode(makeRoomCode());
+    if (mode === "multi") {
+      const code = makeRoomCode();
+      setRoomCode(code);
+      pushNav("host", "multi", code);
+    } else {
+      setRoomCode(null);
+      pushNav("play", "solo");
+    }
   }
 
   return (
@@ -257,7 +435,7 @@ export default function App() {
         <OnlineJoinDialog
           me={me}
           onJoin={confirmOnline}
-          onCancel={() => setOnlinePrompt(false)}
+          onCancel={cancelOnlinePrompt}
         />
       )}
 

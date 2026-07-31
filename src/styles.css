@@ -3048,31 +3048,65 @@ button { font-family: var(--font); }
   align-items: stretch;
 }
 .guess-artist-row .guess-input { flex: 1; min-width: 0; }
-.guess-transport {
-  display: flex;
-  gap: 8px;
+.guess-transport-switch {
+  position: relative;
   flex: none;
+  width: 96px;
+  min-width: 96px;
+  height: 48px;
+  padding: 4px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
   align-items: stretch;
+  border: none;
+  border-radius: var(--radius);
+  background: var(--sub-alt-color);
+  color: var(--sub-color);
+  cursor: pointer;
+  user-select: none;
+  touch-action: pan-y;
+  transition: opacity 0.15s ease;
 }
-.guess-transport-btn {
-  width: 48px;
-  min-width: 48px;
-  padding: 0;
+.guess-transport-switch:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+.guess-transport-switch:disabled:hover {
+  background: var(--sub-alt-color);
+  color: var(--sub-color);
+}
+.guess-transport-thumb {
+  position: absolute;
+  top: 4px;
+  left: 4px;
+  width: calc(50% - 4px);
+  height: calc(100% - 8px);
+  border-radius: calc(var(--radius) - 2px);
+  background: var(--main-color);
+  box-shadow: 0 1px 4px color-mix(in srgb, #000 22%, transparent);
+  transition: transform 0.22s ease;
+  pointer-events: none;
+  z-index: 0;
+}
+.guess-transport-switch.is-playing .guess-transport-thumb {
+  transform: translateX(100%);
+}
+.guess-transport-slot {
+  position: relative;
+  z-index: 1;
   display: grid;
   place-items: center;
-  border-radius: var(--radius);
-  flex: none;
-  gap: 0;
+  transition: color 0.18s ease;
 }
-.guess-transport-btn .btn-play-icon { margin-left: 2px; }
-.guess-transport-btn--pause {
-  background: var(--sub-alt-color);
-  color: var(--text-color);
-}
-.guess-transport-btn--pause:hover {
-  background: var(--main-color);
+.guess-transport-switch.is-paused .guess-transport-slot--play,
+.guess-transport-switch.is-playing .guess-transport-slot--pause {
   color: var(--bg-color);
 }
+.guess-transport-switch.is-paused .guess-transport-slot--pause,
+.guess-transport-switch.is-playing .guess-transport-slot--play {
+  color: var(--sub-color);
+}
+.guess-transport-slot .btn-play-icon { margin-left: 2px; }
 .guess-input {
   width: 100%; font-family: var(--font); font-size: 16px; padding: 13px 15px;
   border: 2px solid transparent; border-radius: var(--radius);
@@ -3670,13 +3704,6 @@ button { font-family: var(--font); }
 }
 .profile-accent { position: relative; }
 .profile-peep { position: relative; }
-.profile-icon-btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  padding: 6px 9px;
-  line-height: 0;
-}
 .profile-icon-btn.open,
 .profile-accent-btn.open {
   border-color: var(--main-color);
@@ -3783,19 +3810,22 @@ button { font-family: var(--font); }
   box-shadow: 0 10px 24px color-mix(in srgb, #000 28%, transparent);
 }
 .profile-peep-menu {
-  flex-wrap: nowrap;
-  flex-direction: column;
-  gap: 0;
-  width: 200px;
-  max-height: 340px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  width: 148px;
+  max-height: 280px;
+  overflow-x: hidden;
   overflow-y: auto;
-  padding: 6px;
+  overscroll-behavior-x: none;
+  padding: 10px;
   border: none;
   border-radius: var(--radius);
   background: var(--sub-alt-color);
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.35);
   scrollbar-width: thin;
   scrollbar-color: color-mix(in srgb, var(--text-color) 28%, transparent) transparent;
+  scrollbar-gutter: stable;
 }
 .profile-peep-menu::-webkit-scrollbar { width: 6px; }
 .profile-peep-menu::-webkit-scrollbar-thumb {
@@ -3803,48 +3833,14 @@ button { font-family: var(--font); }
   border-radius: 99px;
 }
 .profile-peep-menu::-webkit-scrollbar-track { background: transparent; }
-.profile-peep-option {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  width: 100%;
-  text-align: left;
-  font-size: 13px;
-  color: var(--sub-color);
-  background: none;
-  border: none;
-  border-radius: 7px;
-  padding: 9px 10px;
-  cursor: pointer;
-}
-.profile-peep-option:hover {
-  background: var(--bg-color);
-  color: var(--text-color);
-}
-.profile-peep-option.active { color: var(--main-color); }
-.profile-peep-option-face {
-  width: 28px;
-  height: 28px;
-  border-radius: 50%;
-  flex: none;
-  overflow: hidden;
-  display: grid;
-  place-items: center;
-}
-.profile-peep-option-face img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  pointer-events: none;
-}
 .profile-peep-swatch {
-  width: 34px;
-  height: 34px;
+  width: 52px;
+  height: 52px;
   border-radius: 50%;
   border: 2px solid transparent;
   cursor: pointer;
   padding: 0;
-  flex: none;
+  justify-self: center;
   overflow: hidden;
   display: grid;
   place-items: center;
@@ -3857,7 +3853,6 @@ button { font-family: var(--font); }
 }
 .profile-peep-swatch.active {
   border-color: var(--text-color);
-  transform: scale(1.08);
 }
 .profile-label {
   font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--sub-color);
@@ -4201,9 +4196,10 @@ button { font-family: var(--font); }
     padding: 8px 6px;
     font-size: 11px;
   }
-  .guess-transport-btn {
-    width: 44px;
-    min-width: 44px;
+  .guess-transport-switch {
+    width: 88px;
+    min-width: 88px;
+    height: 44px;
   }
   .progress { margin: 10px 0 12px; }
   .progress-labels { font-size: 11px; }

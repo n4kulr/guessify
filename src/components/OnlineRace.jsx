@@ -3,6 +3,7 @@ import { isCorrect, matchesAnyArtist } from "../match.js";
 import { usePreviewPlayer } from "../usePreviewPlayer.js";
 import { fireConfetti, shakeEl } from "../fx.js";
 import GuessMedia from "./GuessMedia.jsx";
+import GuessTransport from "./GuessTransport.jsx";
 import PlayerRail from "../multiplayer/PlayerRail.jsx";
 import GuessPopups from "../multiplayer/GuessPopups.jsx";
 import {
@@ -806,28 +807,14 @@ export default function OnlineRace({ profile, onExit }) {
                   onChange={(e) => setArtistGuess(e.target.value)}
                   onKeyDown={(e) => e.key === "Enter" && submitGuess()}
                 />
-                <div className="guess-transport">
-                  <button
-                    type="button"
-                    className="btn btn-play guess-transport-btn"
-                    onClick={startPlay}
-                    disabled={playBusy || localPlaying || !track}
-                    aria-label={`Play ${unlocked}s`}
-                    title={`Play ${unlocked}s`}
-                  >
-                    <span className="btn-play-icon" aria-hidden="true" />
-                  </button>
-                  <button
-                    type="button"
-                    className="btn guess-transport-btn guess-transport-btn--pause"
-                    onClick={stopAudio}
-                    disabled={!localPlaying}
-                    aria-label="Pause"
-                    title="Pause"
-                  >
-                    <span className="btn-pause-icon" aria-hidden="true" />
-                  </button>
-                </div>
+                <GuessTransport
+                  playing={localPlaying}
+                  busy={playBusy}
+                  canPlay={!!track}
+                  playLabel={`Play ${unlocked}s`}
+                  onPlay={startPlay}
+                  onPause={stopAudio}
+                />
               </div>
             </div>
             <div className="guess-actions">
