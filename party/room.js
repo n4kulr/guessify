@@ -18,6 +18,8 @@ import { resolveItunesPreview } from "./itunesPreview.js";
 const LEAVE_AFTER_MS = 45 * 60 * 1000;
 /** Keep empty rooms around so friends can still rejoin after a long tab-away. */
 const ROOM_TTL_MS = 6 * 60 * 60 * 1000;
+/** Host + up to 3 guests. */
+const MAX_PLAYERS = 4;
 
 /**
  * Multiplayer room (PartyServer / Cloudflare Durable Object).
@@ -320,6 +322,12 @@ export class Room extends Server {
       return;
     }
 
+    const activeCount = this.state.players.filter((p) => p.connected && !p.left).length;
+    if (activeCount >= MAX_PLAYERS) {
+      sender.send(JSON.stringify({ type: "error", error: "This party is full (max 4 players)." }));
+      return;
+    }
+
     const name = String(msg.name || "").trim().slice(0, 16);
     if (!name) {
       sender.send(JSON.stringify({ type: "error", error: "Enter a nickname." }));
@@ -526,6 +534,23 @@ export class Room extends Server {
 
     // Only this player's snippet grows.
     this.state.unlockByPlayer[player.id] = step + 1;
+
+    // Round only ends once every currently-connected player has fully
+    // unlocked the snippet and still hasn't guessed it — reveal as a loss.
+    // (A stale disconnected player shouldn't be able to stall this forever.)
+    const active = this.state.players.filter((p) => p.connected && !p.left);
+    const allMaxed =
+      active.length > 0 &&
+      active.every((p) => (this.state.unlockByPlayer[p.id] ?? 0) >= MAX_GUESSES - 1);
+    if (allMaxed) {
+      this.state.outcome = "lose";
+      this.state.winnerId = null;
+      this.state.earnedPts = 0;
+      this.state.bonus = 0;
+      this.state.phase = "reveal";
+      this.state.nextVotes = {};
+    }
+
     this.broadcastState();
     void this.persist();
   }

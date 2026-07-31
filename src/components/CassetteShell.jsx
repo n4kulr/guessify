@@ -1,11 +1,19 @@
 import { useState } from "react";
 import { playCassetteButton } from "../cassetteSounds.js";
+import {
+  FastBackwardIcon,
+  PlayIcon,
+  PauseIcon,
+  FastForwardIcon,
+  VolumeHighIcon,
+  MuteIcon,
+} from "./icons.jsx";
 
 const TEETH = [
-  { id: "rew", label: "rewind", iconClass: "cassette-ico-rew" },
-  { id: "play", label: "play", iconClass: "cassette-ico-play" },
-  { id: "pause", label: "pause", iconClass: "cassette-ico-pause" },
-  { id: "ff", label: "fast forward", iconClass: "cassette-ico-ff" },
+  { id: "rew", label: "rewind", Icon: FastBackwardIcon },
+  { id: "play", label: "play", Icon: PlayIcon },
+  { id: "pause", label: "pause", Icon: PauseIcon },
+  { id: "ff", label: "fast forward", Icon: FastForwardIcon },
 ];
 
 /**
@@ -34,9 +42,7 @@ export default function CassetteShell({
           ? {
               id: "mute",
               label: muteControl.muted ? "unmute audio" : "mute audio",
-              iconClass: muteControl.muted
-                ? "cassette-ico-muted"
-                : "cassette-ico-sound",
+              Icon: muteControl.muted ? MuteIcon : VolumeHighIcon,
             }
           : t
       )
@@ -128,10 +134,7 @@ export default function CassetteShell({
                 aria-pressed={tooth.id === "mute" ? !!muteControl?.muted : undefined}
                 onClick={(e) => tapTooth(i, tooth, e)}
               >
-                <span
-                  className={`cassette-tooth-icon ${tooth.iconClass}`}
-                  aria-hidden="true"
-                />
+                <tooth.Icon className="cassette-tooth-icon" />
               </button>
             ) : (
               <span
@@ -139,10 +142,7 @@ export default function CassetteShell({
                 className="cassette-tooth cassette-tooth--static"
                 aria-hidden="true"
               >
-                <span
-                  className={`cassette-tooth-icon ${tooth.iconClass}`}
-                  aria-hidden="true"
-                />
+                <tooth.Icon className="cassette-tooth-icon" />
               </span>
             )
           )}

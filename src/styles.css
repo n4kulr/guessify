@@ -287,8 +287,15 @@ button { font-family: var(--font); }
 .btn-mini { font-size: 12px; padding: 6px 10px; }
 .btn-play { background: var(--main-color); color: var(--bg-color); font-weight: 600; }
 .btn-play:hover { filter: brightness(1.08); background: var(--main-color); color: var(--bg-color); }
-.btn-spotify { background: var(--sub-alt-color); color: var(--text-color); font-weight: 600; }
-.btn-spotify:hover { filter: brightness(1.08); background: var(--sub-alt-color); color: var(--text-color); }
+.btn-spotify {
+  background: color-mix(in srgb, var(--main-color) 16%, var(--bg-color));
+  color: var(--main-color);
+  font-weight: 600;
+}
+.btn-spotify:hover {
+  background: color-mix(in srgb, var(--main-color) 24%, var(--bg-color));
+  color: var(--main-color);
+}
 .spotify-logo {
   flex: none;
   display: block;
@@ -925,111 +932,12 @@ button { font-family: var(--font); }
   pointer-events: none;
 }
 .cassette-tooth-icon {
-  position: relative;
   display: block;
-  width: 12px;
-  height: 10px;
+  width: 13px;
+  height: 13px;
   flex: none;
   line-height: 0;
   opacity: 0.95;
-}
-.cassette-ico-play {
-  width: 0;
-  height: 0;
-  border-style: solid;
-  border-width: 5px 0 5px 8px;
-  border-color: transparent transparent transparent currentColor;
-  margin-left: 2px;
-}
-.cassette-ico-pause {
-  width: 9px;
-  height: 10px;
-}
-.cassette-ico-pause::before,
-.cassette-ico-pause::after {
-  content: "";
-  position: absolute;
-  top: 0;
-  width: 3px;
-  height: 100%;
-  border-radius: 0.5px;
-  background: currentColor;
-}
-.cassette-ico-pause::before { left: 0; }
-.cassette-ico-pause::after { right: 0; }
-.cassette-ico-ff,
-.cassette-ico-rew {
-  width: 12px;
-  height: 10px;
-}
-.cassette-ico-ff::before,
-.cassette-ico-ff::after,
-.cassette-ico-rew::before,
-.cassette-ico-rew::after {
-  content: "";
-  position: absolute;
-  top: 0;
-  width: 0;
-  height: 0;
-  border-style: solid;
-}
-.cassette-ico-ff::before,
-.cassette-ico-ff::after {
-  border-width: 5px 0 5px 6px;
-  border-color: transparent transparent transparent currentColor;
-}
-.cassette-ico-ff::before { left: 0; }
-.cassette-ico-ff::after { left: 5px; }
-.cassette-ico-rew::before,
-.cassette-ico-rew::after {
-  border-width: 5px 6px 5px 0;
-  border-color: transparent currentColor transparent transparent;
-}
-.cassette-ico-rew::before { left: 0; }
-.cassette-ico-rew::after { left: 5px; }
-.cassette-ico-sound,
-.cassette-ico-muted {
-  width: 14px;
-  height: 10px;
-}
-/* Speaker body + cone */
-.cassette-ico-sound::before,
-.cassette-ico-muted::before {
-  content: "";
-  position: absolute;
-  left: 0;
-  top: 0;
-  width: 8px;
-  height: 10px;
-  background: currentColor;
-  clip-path: polygon(0 28%, 40% 28%, 100% 0, 100% 100%, 40% 72%, 0 72%);
-}
-/* Sound wave — right-facing arc, vertically centered on the cone */
-.cassette-ico-sound::after {
-  content: "";
-  position: absolute;
-  left: 7px;
-  top: 50%;
-  width: 7px;
-  height: 7px;
-  box-sizing: border-box;
-  border: 1.5px solid currentColor;
-  border-color: transparent currentColor transparent transparent;
-  border-radius: 50%;
-  transform: translateY(-50%);
-}
-/* Mute slash */
-.cassette-ico-muted::after {
-  content: "";
-  position: absolute;
-  left: 0;
-  top: 50%;
-  width: 14px;
-  height: 1.5px;
-  border-radius: 1px;
-  background: currentColor;
-  transform: translateY(-50%) rotate(-40deg);
-  transform-origin: center;
 }
 .cassette-tooth:hover {
   background: color-mix(in srgb, var(--main-color) 35%, var(--bg-color));
@@ -2773,8 +2681,10 @@ button { font-family: var(--font); }
   margin: 0 0 18px;
 }
 .media-stage-btn {
+  display: flex;
   flex-direction: row;
   align-items: center;
+  justify-content: center;
   gap: 10px;
   padding: 10px 22px;
   min-width: 140px;
@@ -4113,10 +4023,14 @@ button { font-family: var(--font); }
   .demo-backdrop {
     display: block;
     position: fixed;
-    /* Edge-anchored (not vh/dvh sized) so it can't come up short of the real
-       visible viewport while iOS Safari's toolbar animates during the drag —
-       that gap was showing through as black bars top/bottom. */
-    inset: 0;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    width: 100%;
+    height: 100%;
+    min-height: 100vh;
+    min-height: 100dvh;
     z-index: 60;
     border: none;
     padding: 0;
