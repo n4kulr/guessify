@@ -1,7 +1,7 @@
-import { requireSession, fetchPlaylistsData } from "./_lib.js";
+import { requireAccess, fetchPlaylistsData } from "./_lib.js";
 
 export default async function handler(req, res) {
-  const auth = await requireSession(req, res);
+  const auth = await requireAccess(req, res);
   if (!auth) return;
   try {
     res.status(200).json(await fetchPlaylistsData(auth.access));

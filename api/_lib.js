@@ -196,20 +196,29 @@ export async function ownerAccess() {
   return ownerTokenCache.access;
 }
 
-// Guard for public routes serving the owner's library. Returns { access } or null (after sending an error).
-export async function requireOwner(req, res) {
-  try {
-    const access = await ownerAccess();
-    if (!access) {
-      res.status(503).json({ error: "Shared playlists aren't set up yet." });
+// Guard for library routes: your session if logged in, else the owner's
+// shared library, so the same route serves both cases (keeps the Vercel
+// Hobby-plan function count down — no separate /api/shared/* routes).
+// Returns { access } or null (after sending an error).
+export async function requireAccess(req, res) {
+  const session = readSession(req);
+  if (session) {
+    try {
+      return { access: await ensureAccess(session, res) };
+    } catch {
+      clearSession(res);
+      res.status(401).json({ error: "Session expired, log in again." });
       return null;
     }
-    return { access };
+  }
+  try {
+    const access = await ownerAccess();
+    if (access) return { access };
   } catch (e) {
     console.error(e);
-    res.status(503).json({ error: "Shared playlists aren't set up yet." });
-    return null;
   }
+  res.status(503).json({ error: "Log in with Spotify to load playlists." });
+  return null;
 }
 
 export function setLinkOwnerCookie(res) {

@@ -53,9 +53,8 @@ export default function PlaylistPicker({ onPick, needsLogin = false }) {
   }, [showLoginModal]);
 
   useEffect(() => {
-    // Logged out: browse the site owner's shared library instead of your own.
-    const url = needsLogin ? "/api/shared/playlists" : "/api/playlists";
-    fetch(url, { credentials: "include" })
+    // Logged out: the API falls back to the site owner's shared library.
+    fetch("/api/playlists", { credentials: "include" })
       .then((r) => (r.ok ? r.json() : Promise.reject(r)))
       .then(setData)
       .catch((r) => {
@@ -93,8 +92,7 @@ export default function PlaylistPicker({ onPick, needsLogin = false }) {
     setLoadingId(p.id);
     setNote(null);
     try {
-      const base = needsLogin ? "/api/shared" : "/api";
-      const url = p.liked ? `${base}/liked` : `${base}/playlist/${p.id}`;
+      const url = p.liked ? "/api/liked" : `/api/playlist/${p.id}`;
       const res = await fetch(url, { credentials: "include" });
       const d = await res.json();
       if (!res.ok) throw new Error(d.error || "failed");
