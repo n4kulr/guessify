@@ -373,11 +373,14 @@ export default function DemoPreview() {
   const dragging = dragX != null;
   const showBackdrop = progress > 0.02;
 
+  // No filter here during drag — recomputing saturate/brightness on every
+  // pointermove forced a repaint of the whole subtree every frame, which
+  // was heavy enough on iOS Safari to drop compositor tiles at the top/
+  // bottom edges of the panel (visible as black bars while swiping).
   const panelStyle = dragging
     ? {
         transform: `translateX(${dragX}px)`,
         transition: "none",
-        filter: `saturate(${0.85 + 0.15 * progress}) brightness(${0.92 + 0.08 * progress})`,
       }
     : undefined;
 

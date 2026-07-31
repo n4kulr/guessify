@@ -3910,6 +3910,9 @@ button { font-family: var(--font); }
     touch-action: none;
     max-height: min(78dvh, 560px);
   }
+  .hero-right .demo--dragging {
+    will-change: transform;
+  }
   .hero-right .demo--peek {
     filter: saturate(0.85) brightness(0.92);
   }
