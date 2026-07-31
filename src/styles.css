@@ -3884,18 +3884,22 @@ button { font-family: var(--font); }
     transform-origin: bottom right;
   }
 
-  /* Live demo peeks from the right until tapped */
+  /* Live demo peeks from the right until tapped. Edge-anchored (top/bottom:0
+     + flex centering) instead of top:50%/translateY — the percentage-of-
+     viewport-height trick is exactly the kind of thing Safari's animating
+     dynamic toolbar throws off during an active touch drag. */
   .hero-right {
     position: fixed;
-    top: 50%;
+    top: 0;
+    bottom: 0;
     right: -3px; /* bleed past the screen edge so no hairline shows */
     z-index: 70;
     width: min(340px, 86vw);
     margin: 0;
     order: 0;
+    align-items: center;
     justify-content: flex-end;
     pointer-events: none;
-    transform: translateY(-50%);
   }
   .hero-right .demo {
     pointer-events: auto;
