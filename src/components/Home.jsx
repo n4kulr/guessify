@@ -26,7 +26,7 @@ export default function Home({ me, onStartSolo, onStartMulti, onStartOnline }) {
         <div className="hero-vinyl-row">
           <HeroTurntable />
           <ol className="steps">
-            <li><b>1</b> pick a playlist (or Liked Songs)</li>
+            <li><b>1</b> pick a playlist</li>
             <li><b>2</b> hear a short snippet</li>
             <li><b>3</b> type the title + artist</li>
           </ol>

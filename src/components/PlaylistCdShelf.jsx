@@ -5,6 +5,20 @@ const TONES = [
   "blue", "purple", "yellowed",
 ];
 
+/** Notes for the curated shelf, matched case-insensitively by playlist name. */
+const PLAYLIST_NOTES = {
+  "nakul's favs": "songs ive liked at some point of my life - from 2017 to today",
+  "beats": "rap songs?",
+  "not beats": "not rap songs?",
+  "beat switch": "what da title says",
+  "calm": "calms me down",
+  "cultural roots": "representing kerala",
+};
+
+function notesFor(name) {
+  return PLAYLIST_NOTES[String(name || "").trim().toLowerCase()] || null;
+}
+
 function toneOf(i) {
   return TONES[i % TONES.length];
 }
@@ -200,6 +214,7 @@ export default function PlaylistCdShelf({ playlists, loadingId, onChoose }) {
     .filter(Boolean)
     .join(" ");
   const artists = preview?.artists || [];
+  const notes = pickedPlaylist ? notesFor(pickedPlaylist.name) : null;
 
   return (
     <div
@@ -271,7 +286,7 @@ export default function PlaylistCdShelf({ playlists, loadingId, onChoose }) {
                 {pickedPlaylist.name}
               </h2>
               <p className="cd-insert-meta">
-                {pickedPlaylist.total} tracks · burned for you
+                {pickedPlaylist.total} tracks · {notes || "burned for you"}
               </p>
             </div>
             <div className="cd-insert-body shelf-insert-body">

@@ -1,34 +1,12 @@
 import { useRef } from "react";
+import { PlayIcon, PauseIcon } from "./icons.jsx";
 
 function PlayGlyph() {
-  return (
-    <svg
-      className="guess-transport-glyph"
-      viewBox="0 0 12 14"
-      width="12"
-      height="14"
-      aria-hidden="true"
-      focusable="false"
-    >
-      <path fill="currentColor" d="M2.2 1.2v11.6L11 7 2.2 1.2z" />
-    </svg>
-  );
+  return <PlayIcon className="guess-transport-glyph" width="14" height="14" />;
 }
 
 function PauseGlyph() {
-  return (
-    <svg
-      className="guess-transport-glyph"
-      viewBox="0 0 12 14"
-      width="12"
-      height="14"
-      aria-hidden="true"
-      focusable="false"
-    >
-      <rect x="2" y="1" width="3" height="12" rx="1" fill="currentColor" />
-      <rect x="7" y="1" width="3" height="12" rx="1" fill="currentColor" />
-    </svg>
-  );
+  return <PauseIcon className="guess-transport-glyph" width="14" height="14" />;
 }
 
 /**

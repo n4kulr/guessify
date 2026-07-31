@@ -1,8 +1,9 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import CassetteShell from "./CassetteShell.jsx";
 import { resolvePreview } from "../itunes.js";
 import { getVolume, subscribeVolume } from "../volume.js";
+import { TITLE_POINTS, ARTIST_BONUS } from "../multiplayer/constants.js";
 
 // Self-playing fake rounds so people see the vibe before logging in.
 // Guess shape mirrors Game.jsx rows: title / artist / ok flags / win.
@@ -249,6 +250,20 @@ export default function DemoPreview() {
   const unlocked = STEPS[Math.min(step, STEPS.length - 1)];
   const label = `${answer.title} — ${answer.artist}`;
 
+  // Real scoring (title 500 + artist bonus 100), tallied live as the scripted
+  // round plays out — resets each loop like an actual game does.
+  const priorScore = useMemo(() => {
+    let sum = 0;
+    for (let i = 0; i < roundIdx; i++) {
+      const artistPts = ROUNDS[i].guesses.some((g) => g.artistOk) ? ARTIST_BONUS : 0;
+      sum += TITLE_POINTS + artistPts;
+    }
+    return sum;
+  }, [roundIdx]);
+  const liveArtistPts = script.slice(0, step).some((g) => g.artistOk) ? ARTIST_BONUS : 0;
+  const liveTitlePts = done ? TITLE_POINTS : 0;
+  const score = priorScore + liveArtistPts + liveTitlePts;
+
   function isMobileDemo() {
     return window.matchMedia("(max-width: 820px)").matches;
   }
@@ -418,7 +433,7 @@ export default function DemoPreview() {
           <div className="demo-head">
             <span className="demo-playlist">liked-songs</span>
             <span className="demo-score">
-              SCORE <b>4200</b>
+              SCORE <b>{score}</b>
             </span>
           </div>
 
@@ -453,7 +468,7 @@ export default function DemoPreview() {
                 style={{ width: `${(unlocked / 16) * 100}%` }}
               />
             </div>
-            <span className="demo-time">0:0{unlocked} unlocked</span>
+            <span className="demo-time">{unlocked}s unlocked</span>
           </div>
 
           <div className="demo-result">

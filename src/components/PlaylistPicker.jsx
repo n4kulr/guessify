@@ -339,7 +339,9 @@ export default function PlaylistPicker({ onPick, needsLogin = false }) {
             </h2>
             <p className="spotlight-hint login-modal-hint">
               Login will work but playlists wont load as spotify is a bum
-              and reduced personal project user limits to 5 :(
+              and reduced personal project user limits to 5 :( if you really
+              really wanna play, send your email through feedback (bottom
+              right pencil button) and i will add it to my webapi userbase.
             </p>
             <a className="btn btn-big btn-spotify login-modal-primary" href="/api/login">
               Log in with Spotify

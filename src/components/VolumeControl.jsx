@@ -1,50 +1,11 @@
 import { useEffect, useRef, useState } from "react";
 import { getVolume, setVolume, subscribeVolume } from "../volume.js";
+import { MuteIcon, VolumeLowIcon, VolumeHighIcon } from "./icons.jsx";
 
 function SpeakerIcon({ level }) {
   // level: 0 muted, 1 low, 2 high
-  return (
-    <svg
-      className="volume-ico"
-      viewBox="0 0 24 24"
-      width="16"
-      height="16"
-      aria-hidden="true"
-    >
-      <path
-        fill="currentColor"
-        d="M3 9v6h4l5 4V5L7 9H3z"
-      />
-      {level === 0 ? (
-        <path
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="2"
-          strokeLinecap="round"
-          d="M16 9l5 5M21 9l-5 5"
-        />
-      ) : (
-        <>
-          <path
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="1.75"
-            strokeLinecap="round"
-            d="M14.5 9.5a3.2 3.2 0 010 5"
-          />
-          {level >= 2 && (
-            <path
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="1.75"
-              strokeLinecap="round"
-              d="M17 7.5a6 6 0 010 9"
-            />
-          )}
-        </>
-      )}
-    </svg>
-  );
+  const Icon = level === 0 ? MuteIcon : level === 1 ? VolumeLowIcon : VolumeHighIcon;
+  return <Icon className="volume-ico" width="16" height="16" />;
 }
 
 export default function VolumeControl() {

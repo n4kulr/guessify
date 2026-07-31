@@ -287,8 +287,8 @@ button { font-family: var(--font); }
 .btn-mini { font-size: 12px; padding: 6px 10px; }
 .btn-play { background: var(--main-color); color: var(--bg-color); font-weight: 600; }
 .btn-play:hover { filter: brightness(1.08); background: var(--main-color); color: var(--bg-color); }
-.btn-spotify { background: var(--main-color); color: var(--bg-color); font-weight: 600; }
-.btn-spotify:hover { filter: brightness(1.08); background: var(--main-color); color: var(--bg-color); }
+.btn-spotify { background: var(--sub-alt-color); color: var(--text-color); font-weight: 600; }
+.btn-spotify:hover { filter: brightness(1.08); background: var(--sub-alt-color); color: var(--text-color); }
 .spotify-logo {
   flex: none;
   display: block;
@@ -1574,7 +1574,9 @@ button { font-family: var(--font); }
 .own-playlists-link {
   display: block;
   width: fit-content;
-  margin: 0 auto 10px;
+  /* section-sub above already carries a 26px margin-bottom for the shelf
+     below — pull up under it, then re-add that gap before the shelf. */
+  margin: -20px auto 22px;
   padding: 0;
   border: none;
   background: none;
@@ -2765,22 +2767,19 @@ button { font-family: var(--font); }
   margin: 0;
   flex: none;
 }
-.media-stage-side {
+.media-stage-vote {
   display: flex;
-  flex-direction: column;
-  align-items: center;
   justify-content: center;
-  gap: 10px;
-  flex: none;
-  width: 52px;
+  margin: 0 0 18px;
 }
 .media-stage-btn {
-  flex-direction: column;
-  gap: 4px;
-  padding: 10px 8px;
-  min-width: 52px;
-  width: 52px;
-  font-size: 12px;
+  flex-direction: row;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 22px;
+  min-width: 140px;
+  width: auto;
+  font-size: 14px;
   border-radius: 12px;
 }
 .media-stage-btn .btn-label {
@@ -3788,7 +3787,7 @@ button { font-family: var(--font); }
   font-size: 17px;
 }
 .login-modal-hint {
-  max-width: 30ch;
+  max-width: 42ch;
   font-size: 13px;
   line-height: 1.55;
 }
@@ -4114,15 +4113,10 @@ button { font-family: var(--font); }
   .demo-backdrop {
     display: block;
     position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    width: 100%;
-    height: 100%;
-    min-height: 100vh;
-    min-height: 100dvh;
-    min-height: -webkit-fill-available;
+    /* Edge-anchored (not vh/dvh sized) so it can't come up short of the real
+       visible viewport while iOS Safari's toolbar animates during the drag —
+       that gap was showing through as black bars top/bottom. */
+    inset: 0;
     z-index: 60;
     border: none;
     padding: 0;
@@ -4232,12 +4226,11 @@ button { font-family: var(--font); }
   .media-stage .turntable--md {
     margin: 0;
   }
-  .media-stage-side { width: 44px; }
+  .media-stage-vote { margin-bottom: 12px; }
   .media-stage-btn {
-    min-width: 44px;
-    width: 44px;
-    padding: 8px 6px;
-    font-size: 11px;
+    min-width: 120px;
+    padding: 8px 16px;
+    font-size: 12px;
   }
   .guess-transport-switch {
     width: 88px;
@@ -4270,7 +4263,10 @@ button { font-family: var(--font); }
 .play-howto-steps li {
   padding: 10px 12px;
   border-radius: 10px;
-  background: color-mix(in srgb, var(--text-color) 6%, var(--bg-color));
+  /* Tint against --sub-alt-color, the actual panel/card background this
+     sits on — tinting against --bg-color instead left near-invisible
+     contrast in themes where bg and sub-alt are close (e.g. matrix). */
+  background: color-mix(in srgb, var(--text-color) 6%, var(--sub-alt-color));
 }
 .play-howto-steps b { color: var(--main-color); font-weight: 600; }
 .play-howto .spotlight-actions { justify-content: stretch; }

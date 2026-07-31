@@ -596,13 +596,16 @@ export default function OnlineRace({ profile, onExit }) {
     setNextVotes((prev) => ({ ...prev, [youId]: true }));
   }
 
-  // Opponents cast next-votes during reveal so the tally fills.
+  // Opponents cast next-votes during reveal so the tally fills — staggered
+  // per opponent (not fully independent random) so they trickle in one at a
+  // time instead of occasionally landing all at once.
   useEffect(() => {
     if (phase !== "reveal") return;
     const key = ++roundKeyRef.current;
-    const ops = players.filter((p) => p.id !== youId);
+    const ops = shuffle(players.filter((p) => p.id !== youId));
     const timers = [];
-    for (const op of ops) {
+    ops.forEach((op, i) => {
+      const delay = 1100 + i * 1300 + Math.random() * 1500;
       const t = setTimeout(() => {
         if (roundKeyRef.current !== key) return;
         if (phaseRef.current !== "reveal") return;
@@ -610,9 +613,9 @@ export default function OnlineRace({ profile, onExit }) {
           if (prev[op.id]) return prev;
           return { ...prev, [op.id]: true };
         });
-      }, 900 + Math.random() * 2800);
+      }, delay);
       timers.push(t);
-    }
+    });
     return () => timers.forEach(clearTimeout);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [phase, roundIdx]);
@@ -732,27 +735,27 @@ export default function OnlineRace({ profile, onExit }) {
             onTogglePlay={togglePlay}
             onScrubStart={stopAudio}
           />
-          {revealed && (
-            <div className="media-stage-side">
-              <button
-                type="button"
-                className={`btn btn-play media-stage-btn ${iVotedNext ? "is-voted" : ""}`}
-                onClick={voteNext}
-                disabled={iVotedNext}
-                aria-label={
-                  roundIdx + 1 >= rounds.length ? "Results" : "Next song"
-                }
-              >
-                <span className="btn-label">
-                  {roundIdx + 1 >= rounds.length ? "end" : "next"}
-                </span>
-                <span className="vote-tally">
-                  {voteHave}/{voteNeed}
-                </span>
-              </button>
-            </div>
-          )}
         </div>
+        {revealed && (
+          <div className="media-stage-vote">
+            <button
+              type="button"
+              className={`btn btn-play media-stage-btn ${iVotedNext ? "is-voted" : ""}`}
+              onClick={voteNext}
+              disabled={iVotedNext}
+              aria-label={
+                roundIdx + 1 >= rounds.length ? "Results" : "Next song"
+              }
+            >
+              <span className="btn-label">
+                {roundIdx + 1 >= rounds.length ? "end" : "next"}
+              </span>
+              <span className="vote-tally">
+                {voteHave}/{voteNeed}
+              </span>
+            </button>
+          </div>
+        )}
         {errorMsg && <div className="error-banner">{errorMsg}</div>}
 
         {revealed && outcome === "win" && (
