@@ -300,9 +300,7 @@ export default function HostParty({ code, playlist, me, onExit }) {
             </div>
           </div>
           <div className="mp-lobby-side">
-            <h3 className="mp-side-title">
-              playlists · <span className="mp-side-accent">{playlist.name}</span>
-            </h3>
+            <h3 className="mp-side-title mp-side-accent">{playlist.name}</h3>
             <h3 className="mp-side-title">players</h3>
             <PlayerRail players={players} />
             {error && <div className="error-banner">{error}</div>}

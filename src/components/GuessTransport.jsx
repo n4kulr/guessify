@@ -1,8 +1,39 @@
 import { useRef } from "react";
 
+function PlayGlyph() {
+  return (
+    <svg
+      className="guess-transport-glyph"
+      viewBox="0 0 12 14"
+      width="12"
+      height="14"
+      aria-hidden="true"
+      focusable="false"
+    >
+      <path fill="currentColor" d="M2.2 1.2v11.6L11 7 2.2 1.2z" />
+    </svg>
+  );
+}
+
+function PauseGlyph() {
+  return (
+    <svg
+      className="guess-transport-glyph"
+      viewBox="0 0 12 14"
+      width="12"
+      height="14"
+      aria-hidden="true"
+      focusable="false"
+    >
+      <rect x="2" y="1" width="3" height="12" rx="1" fill="currentColor" />
+      <rect x="7" y="1" width="3" height="12" rx="1" fill="currentColor" />
+    </svg>
+  );
+}
+
 /**
  * Play ↔ pause swipe switch beside the artist field.
- * Always shows a track background; the thumb slides under the active icon.
+ * SVG glyphs (not emoji) so mobile stays crisp; track always has a clear well.
  */
 export default function GuessTransport({
   playing,
@@ -35,7 +66,6 @@ export default function GuessTransport({
     if (startX.current == null) return;
     const dx = e.clientX - startX.current;
     startX.current = null;
-    // Swipe toward pause (right) or play (left); small moves = click toggle.
     if (dx > 24) goPause();
     else if (dx < -24) goPlay();
     else if (playing) goPause();
@@ -58,10 +88,10 @@ export default function GuessTransport({
     >
       <span className="guess-transport-thumb" aria-hidden="true" />
       <span className="guess-transport-slot guess-transport-slot--play" aria-hidden="true">
-        <span className="btn-play-icon" />
+        <PlayGlyph />
       </span>
       <span className="guess-transport-slot guess-transport-slot--pause" aria-hidden="true">
-        <span className="btn-pause-icon" />
+        <PauseGlyph />
       </span>
     </button>
   );

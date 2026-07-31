@@ -18,6 +18,32 @@ function syncThemeFromAccent(color) {
   window.dispatchEvent(new CustomEvent("guessify:theme-picked"));
 }
 
+/** Balances the accent color dot — a plain circle with a small smiley face. */
+function SmileyDot() {
+  return (
+    <svg className="profile-icon-dot" viewBox="0 0 10 10" width="10" height="10" aria-hidden="true">
+      <circle cx="5" cy="5" r="5" fill="currentColor" opacity="0.16" />
+      <circle cx="3.4" cy="4.1" r="0.8" fill="currentColor" />
+      <circle cx="6.6" cy="4.1" r="0.8" fill="currentColor" />
+      <path
+        d="M3 6.2c0.6 0.9 2.4 0.9 4 0"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="0.9"
+        strokeLinecap="round"
+      />
+    </svg>
+  );
+}
+
+function Chevron() {
+  return (
+    <svg className="profile-dd-chevron" viewBox="0 0 10 6" width="10" height="6" aria-hidden="true">
+      <path d="M1 1l4 4 4-4" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
 function avatarMatchingTheme(raw) {
   const base = normalizeAvatar(raw || randomAvatar());
   return normalizeAvatar({
@@ -124,72 +150,83 @@ export default function ProfileEditor({
               randomize
             </button>
           )}
-          <div className="profile-peep" ref={peepRef}>
-            <button
-              type="button"
-              className={`btn btn-mini profile-icon-btn ${menu === "peep" ? "open" : ""}`}
-              onClick={() => setMenu((m) => (m === "peep" ? null : "peep"))}
-              aria-expanded={menu === "peep"}
-              aria-haspopup="true"
-            >
-              icon
-            </button>
-            {menu === "peep" && (
-              <div className="profile-peep-menu" role="listbox" aria-label="icons">
-                {peepIds.map((id) => (
-                  <button
-                    key={id}
-                    type="button"
-                    role="option"
-                    aria-selected={avatar.peep === id}
-                    className={`profile-peep-swatch ${avatar.peep === id ? "active" : ""}`}
-                    style={{ background: avatar.color }}
-                    onClick={() => {
-                      patchAvatar({ peep: id });
-                      setMenu(null);
-                    }}
-                    aria-label={`icon ${id}`}
-                  >
-                    <img src={peepSrc(id)} alt="" draggable={false} />
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
-          <div className="profile-accent" ref={accentRef}>
-            <button
-              type="button"
-              className={`btn btn-mini profile-accent-btn ${menu === "accent" ? "open" : ""}`}
-              onClick={() => setMenu((m) => (m === "accent" ? null : "accent"))}
-              aria-expanded={menu === "accent"}
-              aria-haspopup="true"
-            >
-              <span
-                className="profile-accent-dot"
-                style={{ background: avatar.color }}
-                aria-hidden="true"
-              />
-              accent
-            </button>
-            {menu === "accent" && (
-              <div className="profile-accent-menu" role="listbox" aria-label="accent colors">
-                {PLAYER_COLORS.map((c) => (
-                  <button
-                    key={c}
-                    type="button"
-                    role="option"
-                    aria-selected={avatar.color === c}
-                    className={`profile-swatch ${avatar.color === c ? "active" : ""}`}
-                    style={{ background: c }}
-                    onClick={() => {
-                      patchAvatar({ color: c });
-                      setMenu(null);
-                    }}
-                    aria-label={`color ${c}`}
-                  />
-                ))}
-              </div>
-            )}
+          <div className="profile-icon-accent">
+            <div className="profile-peep" ref={peepRef}>
+              <button
+                type="button"
+                className={`btn btn-mini profile-icon-btn ${menu === "peep" ? "open" : ""}`}
+                onClick={() => setMenu((m) => (m === "peep" ? null : "peep"))}
+                aria-expanded={menu === "peep"}
+                aria-haspopup="true"
+              >
+                <SmileyDot />
+                icon
+                <Chevron />
+              </button>
+              {menu === "peep" && (
+                <div className="profile-peep-menu" role="listbox" aria-label="icons">
+                  <p className="profile-dd-label">pick an icon</p>
+                  <div className="profile-peep-grid">
+                    {peepIds.map((id) => (
+                      <button
+                        key={id}
+                        type="button"
+                        role="option"
+                        aria-selected={avatar.peep === id}
+                        className={`profile-peep-swatch ${avatar.peep === id ? "active" : ""}`}
+                        style={{ background: avatar.color }}
+                        onClick={() => {
+                          patchAvatar({ peep: id });
+                          setMenu(null);
+                        }}
+                        aria-label={`icon ${id}`}
+                      >
+                        <img src={peepSrc(id)} alt="" draggable={false} />
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+            <div className="profile-accent" ref={accentRef}>
+              <button
+                type="button"
+                className={`btn btn-mini profile-accent-btn ${menu === "accent" ? "open" : ""}`}
+                onClick={() => setMenu((m) => (m === "accent" ? null : "accent"))}
+                aria-expanded={menu === "accent"}
+                aria-haspopup="true"
+              >
+                <span
+                  className="profile-accent-dot"
+                  style={{ background: avatar.color }}
+                  aria-hidden="true"
+                />
+                accent
+                <Chevron />
+              </button>
+              {menu === "accent" && (
+                <div className="profile-accent-menu" role="listbox" aria-label="accent colors">
+                  <p className="profile-dd-label">pick a color</p>
+                  <div className="profile-swatch-grid">
+                    {PLAYER_COLORS.map((c) => (
+                      <button
+                        key={c}
+                        type="button"
+                        role="option"
+                        aria-selected={avatar.color === c}
+                        className={`profile-swatch ${avatar.color === c ? "active" : ""}`}
+                        style={{ background: c }}
+                        onClick={() => {
+                          patchAvatar({ color: c });
+                          setMenu(null);
+                        }}
+                        aria-label={`color ${c}`}
+                      />
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
         </div>
       </div>
