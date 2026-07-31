@@ -4,6 +4,19 @@ import PlaylistCdShelf from "./PlaylistCdShelf.jsx";
 
 const YOURS_PREVIEW = 6;
 
+// Fixed display order for the "yours" shelf, matched case-insensitively by
+// name. Anything not on the list falls after it, shuffled.
+const PLAYLIST_ORDER = [
+  "nakuls favs",
+  "beats",
+  "not beats",
+  "cultural roots",
+  "nostalgia",
+  "beat switch",
+  "calm",
+  "liked songs",
+];
+
 const CHART_PACKS = [
   { tag: "pop", label: "Pop", blurb: "chart pop", about: "Catchy, radio-friendly songs with big choruses.", artists: ["Dua Lipa", "Sabrina Carpenter", "Olivia Rodrigo", "The Weeknd", "Taylor Swift", "Harry Styles", "Billie Eilish", "Ariana Grande"] },
   { tag: "2000s", label: "2000s", blurb: "decade pack", about: "Hits and radio staples from the 2000s.", artists: ["Beyoncé", "Linkin Park", "Rihanna", "The Killers", "Eminem", "Coldplay", "Usher", "OutKast"] },
@@ -63,7 +76,7 @@ export default function PlaylistPicker({ onPick, needsLogin = false }) {
       });
   }, [needsLogin]);
 
-  // Liked Songs first, then owned playlists only (locked ones can't be played).
+  // Liked Songs + owned playlists only (locked ones can't be played), sorted per PLAYLIST_ORDER.
   const yours = useMemo(() => {
     if (!data) return [];
     const list = [];
@@ -78,10 +91,16 @@ export default function PlaylistPicker({ onPick, needsLogin = false }) {
         total: data.liked.total,
       });
     }
-    const owned = (data.playlists || [])
-      .filter((p) => p.owned)
-      .sort((a, b) => a.name.localeCompare(b.name));
-    return list.concat(owned);
+    list.push(...(data.playlists || []).filter((p) => p.owned));
+
+    const rank = (p) => {
+      const i = PLAYLIST_ORDER.indexOf(p.name.trim().toLowerCase());
+      return i === -1 ? PLAYLIST_ORDER.length : i;
+    };
+    return list
+      .map((p) => [p, rank(p), Math.random()])
+      .sort((a, b) => a[1] - b[1] || a[2] - b[2])
+      .map(([p]) => p);
   }, [data]);
 
   const visibleYours = showAllYours ? yours : yours.slice(0, YOURS_PREVIEW);
