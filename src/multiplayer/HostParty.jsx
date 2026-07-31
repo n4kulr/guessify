@@ -234,6 +234,11 @@ export default function HostParty({ code, playlist, me, onExit }) {
     playSnippet(phase === "reveal" ? null : unlocked);
   }
 
+  function startPlay() {
+    if (!canPlay || playBusy || localPlaying || phase !== "play") return;
+    playSnippet(unlocked);
+  }
+
   // After a round resolves, play the full preview until next song (or end).
   const revealPlayKey = `${state?.roundIdx ?? ""}-${phase}`;
   useEffect(() => {
@@ -398,35 +403,8 @@ export default function HostParty({ code, playlist, me, onExit }) {
           onTogglePlay={togglePlay}
           onScrubStart={stopAudio}
         />
-        <div className="media-stage-side">
-          {phase === "play" && (
-            <button
-              type="button"
-              className="btn btn-play media-stage-play"
-              onClick={togglePlay}
-              disabled={!canPlay || playBusy}
-              aria-label={
-                localPlaying
-                  ? "Pause"
-                  : canPlay
-                    ? `Play ${unlocked}s`
-                    : "Loading audio"
-              }
-              title={
-                localPlaying
-                  ? "Pause"
-                  : canPlay
-                    ? `Play ${unlocked}s`
-                    : "Loading audio"
-              }
-            >
-              <span
-                className={localPlaying ? "btn-pause-icon" : "btn-play-icon"}
-                aria-hidden="true"
-              />
-            </button>
-          )}
-          {revealed && (
+        {revealed && (
+          <div className="media-stage-side">
             <button
               type="button"
               className={`btn btn-play media-stage-btn ${
@@ -451,8 +429,8 @@ export default function HostParty({ code, playlist, me, onExit }) {
                   nextVotesNeeded(activePlayerCount(state.players))}
               </span>
             </button>
-          )}
-        </div>
+          </div>
+        )}
       </div>
       {errorMsg && <div className="error-banner">{errorMsg}</div>}
 
@@ -493,14 +471,38 @@ export default function HostParty({ code, playlist, me, onExit }) {
               onChange={(e) => setTitleGuess(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && submitGuess()}
             />
-            <input
-              className="guess-input"
-              placeholder="artist…"
-              value={state.revealedArtist || artistGuess}
-              disabled={!!state.revealedArtist}
-              onChange={(e) => setArtistGuess(e.target.value)}
-              onKeyDown={(e) => e.key === "Enter" && submitGuess()}
-            />
+            <div className="guess-artist-row">
+              <input
+                className="guess-input"
+                placeholder="artist…"
+                value={state.revealedArtist || artistGuess}
+                disabled={!!state.revealedArtist}
+                onChange={(e) => setArtistGuess(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && submitGuess()}
+              />
+              <div className="guess-transport">
+                <button
+                  type="button"
+                  className="btn btn-play guess-transport-btn"
+                  onClick={startPlay}
+                  disabled={!canPlay || playBusy || localPlaying}
+                  aria-label={canPlay ? `Play ${unlocked}s` : "Loading audio"}
+                  title={canPlay ? `Play ${unlocked}s` : "Loading audio"}
+                >
+                  <span className="btn-play-icon" aria-hidden="true" />
+                </button>
+                <button
+                  type="button"
+                  className="btn guess-transport-btn guess-transport-btn--pause"
+                  onClick={stopAudio}
+                  disabled={!localPlaying}
+                  aria-label="Pause"
+                  title="Pause"
+                >
+                  <span className="btn-pause-icon" aria-hidden="true" />
+                </button>
+              </div>
+            </div>
           </div>
           <div className="guess-actions">
             <button className="btn btn-skip" onClick={skipGuess}>

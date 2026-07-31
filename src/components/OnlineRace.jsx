@@ -294,6 +294,11 @@ export default function OnlineRace({ profile, onExit }) {
     playSnippet(phase === "reveal" ? null : unlocked);
   }
 
+  function startPlay() {
+    if (!track || playBusy || localPlaying || phase !== "play") return;
+    playSnippet(unlocked);
+  }
+
   // Matchmaking + chart load
   useEffect(() => {
     let cancelled = false;
@@ -726,23 +731,8 @@ export default function OnlineRace({ profile, onExit }) {
             onTogglePlay={togglePlay}
             onScrubStart={stopAudio}
           />
-          <div className="media-stage-side">
-            {phase === "play" && (
-              <button
-                type="button"
-                className="btn btn-play media-stage-play"
-                onClick={togglePlay}
-                disabled={playBusy}
-                aria-label={localPlaying ? "Pause" : `Play ${unlocked}s`}
-                title={localPlaying ? "Pause" : `Play ${unlocked}s`}
-              >
-                <span
-                  className={localPlaying ? "btn-pause-icon" : "btn-play-icon"}
-                  aria-hidden="true"
-                />
-              </button>
-            )}
-            {revealed && (
+          {revealed && (
+            <div className="media-stage-side">
               <button
                 type="button"
                 className={`btn btn-play media-stage-btn ${iVotedNext ? "is-voted" : ""}`}
@@ -759,8 +749,8 @@ export default function OnlineRace({ profile, onExit }) {
                   {voteHave}/{voteNeed}
                 </span>
               </button>
-            )}
-          </div>
+            </div>
+          )}
         </div>
         {errorMsg && <div className="error-banner">{errorMsg}</div>}
 
@@ -807,14 +797,38 @@ export default function OnlineRace({ profile, onExit }) {
                 onChange={(e) => setTitleGuess(e.target.value)}
                 onKeyDown={(e) => e.key === "Enter" && submitGuess()}
               />
-              <input
-                className="guess-input"
-                placeholder="artist…"
-                value={revealedArtist || artistGuess}
-                disabled={!!revealedArtist}
-                onChange={(e) => setArtistGuess(e.target.value)}
-                onKeyDown={(e) => e.key === "Enter" && submitGuess()}
-              />
+              <div className="guess-artist-row">
+                <input
+                  className="guess-input"
+                  placeholder="artist…"
+                  value={revealedArtist || artistGuess}
+                  disabled={!!revealedArtist}
+                  onChange={(e) => setArtistGuess(e.target.value)}
+                  onKeyDown={(e) => e.key === "Enter" && submitGuess()}
+                />
+                <div className="guess-transport">
+                  <button
+                    type="button"
+                    className="btn btn-play guess-transport-btn"
+                    onClick={startPlay}
+                    disabled={playBusy || localPlaying || !track}
+                    aria-label={`Play ${unlocked}s`}
+                    title={`Play ${unlocked}s`}
+                  >
+                    <span className="btn-play-icon" aria-hidden="true" />
+                  </button>
+                  <button
+                    type="button"
+                    className="btn guess-transport-btn guess-transport-btn--pause"
+                    onClick={stopAudio}
+                    disabled={!localPlaying}
+                    aria-label="Pause"
+                    title="Pause"
+                  >
+                    <span className="btn-pause-icon" aria-hidden="true" />
+                  </button>
+                </div>
+              </div>
             </div>
             <div className="guess-actions">
               <button className="btn btn-skip" onClick={skip}>

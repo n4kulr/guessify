@@ -168,15 +168,20 @@ export default function ProfileEditor({
                     type="button"
                     role="option"
                     aria-selected={avatar.peep === id}
-                    className={`profile-peep-swatch ${avatar.peep === id ? "active" : ""}`}
-                    style={{ background: avatar.color }}
+                    className={`profile-peep-option ${avatar.peep === id ? "active" : ""}`}
                     onClick={() => {
                       patchAvatar({ peep: id });
                       setMenu(null);
                     }}
-                    aria-label={`icon ${id}`}
                   >
-                    <img src={peepSrc(id)} alt="" draggable={false} />
+                    <span
+                      className="profile-peep-option-face"
+                      style={{ background: avatar.color }}
+                      aria-hidden="true"
+                    >
+                      <img src={peepSrc(id)} alt="" draggable={false} />
+                    </span>
+                    icon {id}
                   </button>
                 ))}
               </div>

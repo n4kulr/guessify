@@ -54,6 +54,7 @@ export default function Game({ playlist, me, onExit }) {
   const [bonus, setBonus] = useState(0);
   const [earnedPts, setEarnedPts] = useState(0);
   const [artistBonusTaken, setArtistBonusTaken] = useState(false);
+  const [revealedArtist, setRevealedArtist] = useState(null);
   const [titleGuess, setTitleGuess] = useState("");
   const [artistGuess, setArtistGuess] = useState("");
   const [playing, setPlaying] = useState(false);
@@ -124,6 +125,11 @@ export default function Game({ playlist, me, onExit }) {
     await playSnippet(secs);
   }
 
+  function startPlay() {
+    if (!track || phase !== "play" || playBusy || playing || resolved) return;
+    playSnippet(unlocked);
+  }
+
   function onVinylScrubStart() {
     setScrubbing(true);
     pause();
@@ -157,16 +163,20 @@ export default function Game({ playlist, me, onExit }) {
     const win = titleOk;
 
     setTitleGuess("");
-    setArtistGuess("");
     stopAudio();
 
-    // Correct artist = small bonus + fills the field. Title still pays full.
+    // Correct artist = small bonus + locks the field. Title still pays full.
     let artistPts = 0;
     if (artistOk && !artistBonusTaken) {
+      const locked = (track.artists || []).join(", ");
       artistPts = ARTIST_BONUS;
       setArtistBonusTaken(true);
+      setRevealedArtist(locked);
+      setArtistGuess("");
       setBonus(artistPts);
       setScore((s) => s + artistPts);
+    } else if (!artistBonusTaken) {
+      setArtistGuess("");
     }
 
     if (win) {
@@ -187,7 +197,7 @@ export default function Game({ playlist, me, onExit }) {
   function skip() {
     if (phase !== "play" || resolved) return;
     setTitleGuess("");
-    setArtistGuess("");
+    if (!revealedArtist) setArtistGuess("");
     stopAudio();
     consumeGuess();
   }
@@ -204,6 +214,7 @@ export default function Game({ playlist, me, onExit }) {
     setBonus(0);
     setEarnedPts(0);
     setArtistBonusTaken(false);
+    setRevealedArtist(null);
     setCelebrate(false);
     setTitleGuess("");
     setArtistGuess("");
@@ -220,12 +231,12 @@ export default function Game({ playlist, me, onExit }) {
 
   const maxScore = rounds.length * ROUND_MAX_POINTS;
   const spinning = (playing || celebrate) && !scrubbing;
-  const playDisabled = !canControl || playBusy;
+  const playDisabled = !canControl || playBusy || playing;
 
   return (
     <div
       ref={rootRef}
-      className={`game mp-board ${outcome === "win" ? "game--win" : ""} ${outcome === "lose" ? "game--lose" : ""}`}
+      className={`game mp-board mp-board--solo ${outcome === "win" ? "game--win" : ""} ${outcome === "lose" ? "game--lose" : ""}`}
     >
       <div className="mp-board-main">
         <div className="game-head">
@@ -254,46 +265,27 @@ export default function Game({ playlist, me, onExit }) {
               unlockByPlayer={{ [YOU_ID]: guessNum }}
             />
 
-            <div className="media-stage">
-              <GuessMedia
-                mode="vinyl"
-                revealed={resolved}
-                spinning={spinning}
-                celebrate={celebrate}
-                cover={track.cover}
-                title={track.name}
-                artist={(track.artists || []).join(", ")}
-                canControl={canControl}
-                interactive={canControl}
-                vinylTitle={
-                  canControl
-                    ? playing
-                      ? "click to pause · drag to scrub"
-                      : "click to play · drag to scrub"
-                    : undefined
-                }
-                onTogglePlay={togglePlay}
-                onScrubStart={onVinylScrubStart}
-                onScrubEnd={onVinylScrubEnd}
-              />
-              {!resolved && (
-                <div className="media-stage-side">
-                  <button
-                    type="button"
-                    className="btn btn-play media-stage-play"
-                    onClick={togglePlay}
-                    disabled={playDisabled}
-                    aria-label={playing ? "Pause" : `Play ${unlocked}s`}
-                    title={playing ? "Pause" : `Play ${unlocked}s`}
-                  >
-                    <span
-                      className={playing ? "btn-pause-icon" : "btn-play-icon"}
-                      aria-hidden="true"
-                    />
-                  </button>
-                </div>
-              )}
-            </div>
+            <GuessMedia
+              mode="vinyl"
+              revealed={resolved}
+              spinning={spinning}
+              celebrate={celebrate}
+              cover={track.cover}
+              title={track.name}
+              artist={(track.artists || []).join(", ")}
+              canControl={canControl}
+              interactive={canControl}
+              vinylTitle={
+                canControl
+                  ? playing
+                    ? "click to pause · drag to scrub"
+                    : "click to play · drag to scrub"
+                  : undefined
+              }
+              onTogglePlay={togglePlay}
+              onScrubStart={onVinylScrubStart}
+              onScrubEnd={onVinylScrubEnd}
+            />
 
             {outcome === "win" && (
               <div key={`badge-${roundIdx}`} className="inline-badge inline-badge--win">
@@ -366,13 +358,38 @@ export default function Game({ playlist, me, onExit }) {
                     onChange={(e) => setTitleGuess(e.target.value)}
                     onKeyDown={(e) => e.key === "Enter" && submitGuess()}
                   />
-                  <input
-                    className="guess-input"
-                    placeholder="artist…"
-                    value={artistGuess}
-                    onChange={(e) => setArtistGuess(e.target.value)}
-                    onKeyDown={(e) => e.key === "Enter" && submitGuess()}
-                  />
+                  <div className="guess-artist-row">
+                    <input
+                      className="guess-input"
+                      placeholder="artist…"
+                      value={revealedArtist || artistGuess}
+                      disabled={!!revealedArtist}
+                      onChange={(e) => setArtistGuess(e.target.value)}
+                      onKeyDown={(e) => e.key === "Enter" && submitGuess()}
+                    />
+                    <div className="guess-transport">
+                      <button
+                        type="button"
+                        className="btn btn-play guess-transport-btn"
+                        onClick={startPlay}
+                        disabled={playDisabled}
+                        aria-label={`Play ${unlocked}s`}
+                        title={`Play ${unlocked}s`}
+                      >
+                        <span className="btn-play-icon" aria-hidden="true" />
+                      </button>
+                      <button
+                        type="button"
+                        className="btn guess-transport-btn guess-transport-btn--pause"
+                        onClick={stopAudio}
+                        disabled={!playing}
+                        aria-label="Pause"
+                        title="Pause"
+                      >
+                        <span className="btn-pause-icon" aria-hidden="true" />
+                      </button>
+                    </div>
+                  </div>
                 </div>
                 <div className="guess-actions">
                   <button className="btn btn-skip" onClick={skip}>
