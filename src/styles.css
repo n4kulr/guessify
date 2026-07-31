@@ -1523,14 +1523,6 @@ button { font-family: var(--font); }
   align-items: center;
   margin: 36px 0 22px;
 }
-.chart-search-block--top {
-  margin-top: 8px;
-}
-.picker-spotify {
-  margin-top: 40px;
-  padding-top: 28px;
-  border-top: 1px solid color-mix(in srgb, var(--text-color) 12%, transparent);
-}
 .chart-search-sub {
   margin-top: 4px;
   margin-bottom: 18px;
