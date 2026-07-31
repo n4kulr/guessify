@@ -4026,14 +4026,10 @@ button { font-family: var(--font); }
   .demo-backdrop {
     display: block;
     position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    width: 100%;
-    height: 100%;
-    min-height: 100vh;
-    min-height: 100dvh;
+    /* Edge-anchored, not vh/dvh-sized — a plain height/min-height chain can
+       come up short of the real visible area while iOS Safari's toolbar
+       animates during the drag, exposing a gap at the top/bottom. */
+    inset: 0;
     z-index: 60;
     border: none;
     padding: 0;
