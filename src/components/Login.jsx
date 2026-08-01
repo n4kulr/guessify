@@ -34,8 +34,8 @@ export default function Login({ error, onStartSolo, onStartMulti, onStartOnline 
           <HeroTurntable />
           <ol className="steps">
             <li><b>1</b> pick a playlist</li>
-            <li><b>2</b> hear a short snippet</li>
-            <li><b>3</b> type the title + artist</li>
+            <li><b>2</b> hear a snippet</li>
+            <li><b>3</b> guess the song!</li>
           </ol>
         </div>
 

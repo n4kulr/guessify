@@ -142,7 +142,7 @@ export default function Game({ playlist, me, onExit }) {
     setScrubbing(false);
   }
 
-  // Advance to the next attempt, or lose the round if out of guesses.
+  // Skip only: unlock more audio, or lose the round when steps are exhausted.
   function consumeGuess() {
     const nextNum = guessNum + 1;
     if (nextNum >= MAX_GUESSES) {
@@ -189,9 +189,9 @@ export default function Game({ playlist, me, onExit }) {
       fireConfetti("title");
       playSnippet(null); // full preview until next song
     } else {
+      // Unlimited guesses — only Skip unlocks more audio / ends the round.
       if (!artistOk) shakeEl(rootRef.current);
       if (artistPts) setEarnedPts(artistPts);
-      consumeGuess();
     }
   }
 

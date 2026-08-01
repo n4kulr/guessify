@@ -359,9 +359,18 @@ export default function App() {
     }
   }
 
+  // Landing already has a hero brand — hide the duplicate top-left logo there.
+  const onLanding =
+    !joinCode &&
+    !picking &&
+    !playlist &&
+    !onlineProfile &&
+    mode !== "online" &&
+    (status === "loggedIn" || status === "loggedOut");
+
   return (
     <div className="app">
-      <header className="topbar">
+      <header className={`topbar${onLanding ? " topbar--landing" : ""}`}>
         <button className="logo" onClick={goHome} title="home">
           <span className="logo-disc" aria-hidden="true" />
           <span className="logo-word">
