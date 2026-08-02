@@ -5,6 +5,7 @@ import { fireConfetti, shakeEl } from "../fx.js";
 import GuessMedia from "./GuessMedia.jsx";
 import GuessTransport from "./GuessTransport.jsx";
 import ShareScoreButton from "./ShareScoreButton.jsx";
+import PenaltyPop from "./PenaltyPop.jsx";
 import PlayerRail from "../multiplayer/PlayerRail.jsx";
 import GuessPopups from "../multiplayer/GuessPopups.jsx";
 import { isNoPreviewError } from "../shareScore.js";
@@ -244,6 +245,8 @@ export default function OnlineRace({ profile, onExit }) {
   const [playBusy, setPlayBusy] = useState(false);
   const [hintUsed, setHintUsed] = useState(false);
   const [titleHintText, setTitleHintText] = useState("");
+  const [skipPop, setSkipPop] = useState(null);
+  const [hintPop, setHintPop] = useState(null);
 
   const { errorMsg, setErrorMsg, play, pause } = usePreviewPlayer();
   const rootRef = useRef(null);
@@ -645,9 +648,12 @@ export default function OnlineRace({ profile, onExit }) {
 
   function skip() {
     if (phase !== "play") return;
+    if (myStep >= MAX_GUESSES - 1) return;
     stopAudio();
     setTitleGuess("");
     setArtistGuess("");
+    setSkipPop(Date.now());
+    shakeEl(rootRef.current);
     // Grow unlock only — never end the round alone. Loss waits until
     // every active player has fully skipped (see effect below).
     bumpUnlock(youId);
@@ -656,8 +662,13 @@ export default function OnlineRace({ profile, onExit }) {
   function applyTitleHint() {
     if (phase !== "play" || !track?.name) return;
     if (myStep < HINT_AFTER_SKIPS) return;
-    if (!hintUsed) setHintUsed(true);
+    const first = !hintUsed;
+    if (first) setHintUsed(true);
     setTitleHintText(titleHintMask(track.name));
+    if (first) {
+      setHintPop(Date.now());
+      shakeEl(rootRef.current);
+    }
   }
 
   // Lose only once everyone still in the race has maxed their skip ladder.
@@ -895,14 +906,25 @@ export default function OnlineRace({ profile, onExit }) {
                     onKeyDown={(e) => e.key === "Enter" && submitGuess()}
                   />
                   {myStep >= HINT_AFTER_SKIPS && (
-                    <button
-                      type="button"
-                      className="guess-hint-link"
-                      onClick={applyTitleHint}
-                      aria-label={`Reveal title hint (−${HINT_PENALTY})`}
-                    >
-                      hint · −{HINT_PENALTY}
-                    </button>
+                    <div className="guess-hint-slot">
+                      {hintPop ? (
+                        <PenaltyPop
+                          token={hintPop}
+                          pts={HINT_PENALTY}
+                          className="penalty-pop--hint"
+                          onDone={() => setHintPop(null)}
+                        />
+                      ) : (
+                        <button
+                          type="button"
+                          className="guess-hint-link"
+                          onClick={applyTitleHint}
+                          aria-label="Reveal title hint"
+                        >
+                          hint
+                        </button>
+                      )}
+                    </div>
                   )}
                 </div>
               </div>
@@ -926,10 +948,17 @@ export default function OnlineRace({ profile, onExit }) {
               </div>
             </div>
             <div className="guess-actions">
-              <button className="btn btn-skip" onClick={skip}>
-                <span className="btn-label">skip</span>
-                <span className="btn-hint">+audio · −{SKIP_PENALTY}</span>
-              </button>
+              <div className="btn-skip-wrap">
+                <button className="btn btn-skip" onClick={skip}>
+                  <span className="btn-label">skip</span>
+                  <span className="btn-hint">+audio</span>
+                </button>
+                <PenaltyPop
+                  token={skipPop}
+                  pts={SKIP_PENALTY}
+                  onDone={() => setSkipPop(null)}
+                />
+              </div>
               <button
                 className="btn btn-guess"
                 onClick={submitGuess}

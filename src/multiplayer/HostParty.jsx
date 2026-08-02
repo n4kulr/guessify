@@ -3,11 +3,12 @@ import QRCode from "qrcode";
 import { usePartyRoom } from "./usePartyRoom.js";
 import { usePreviewPlayer } from "../usePreviewPlayer.js";
 import { resolvePreview } from "../itunes.js";
-import { STEPS, TOTAL, randomAvatar, normalizeAvatar, unlockSecondsFor, PLAYER_COLORS, nextVotesNeeded, activePlayerCount, SKIP_PENALTY, HINT_PENALTY } from "./constants.js";
+import { STEPS, TOTAL, MAX_GUESSES, randomAvatar, normalizeAvatar, unlockSecondsFor, PLAYER_COLORS, nextVotesNeeded, activePlayerCount, SKIP_PENALTY, HINT_PENALTY } from "./constants.js";
 import { fireConfetti, shakeEl } from "../fx.js";
 import GuessMedia from "../components/GuessMedia.jsx";
 import GuessTransport from "../components/GuessTransport.jsx";
 import ShareScoreButton from "../components/ShareScoreButton.jsx";
+import PenaltyPop from "../components/PenaltyPop.jsx";
 import PlayerRail from "./PlayerRail.jsx";
 import ProfileEditor from "./ProfileEditor.jsx";
 import GuessPopups from "./GuessPopups.jsx";
@@ -32,6 +33,9 @@ export default function HostParty({ code, playlist, me, profile, onExit }) {
   const [titleGuess, setTitleGuess] = useState("");
   const [artistGuess, setArtistGuess] = useState("");
   const [titleHintText, setTitleHintText] = useState("");
+  const [hintUsed, setHintUsed] = useState(false);
+  const [skipPop, setSkipPop] = useState(null);
+  const [hintPop, setHintPop] = useState(null);
   const [hostName, setHostName] = useState(() => {
     const fromProfile = profile?.name?.trim();
     if (fromProfile) return fromProfile.slice(0, 16);
@@ -169,6 +173,7 @@ export default function HostParty({ code, playlist, me, profile, onExit }) {
   useEffect(() => {
     if (!state?.revealedArtist) setArtistGuess("");
     setTitleHintText("");
+    setHintUsed(false);
   }, [state?.roundIdx]); // eslint-disable-line react-hooks/exhaustive-deps
 
   function updateHostProfile({ name, avatar }) {
@@ -364,16 +369,24 @@ export default function HostParty({ code, playlist, me, profile, onExit }) {
   }
 
   function skipGuess() {
+    if (myStep >= MAX_GUESSES - 1) return;
     send({ type: "skip" });
     setTitleGuess("");
     setArtistGuess("");
     stopAudio();
+    setSkipPop(Date.now());
+    shakeEl(rootRef.current);
   }
 
   function applyTitleHint() {
     if (phase !== "play") return;
     if (myStep < HINT_AFTER_SKIPS) return;
     send({ type: "hint" });
+    if (!hintUsed) {
+      setHintUsed(true);
+      setHintPop(Date.now());
+      shakeEl(rootRef.current);
+    }
   }
 
   // ---- game over ----
@@ -486,14 +499,25 @@ export default function HostParty({ code, playlist, me, profile, onExit }) {
                   onKeyDown={(e) => e.key === "Enter" && submitGuess()}
                 />
                 {myStep >= HINT_AFTER_SKIPS && (
-                  <button
-                    type="button"
-                    className="guess-hint-link"
-                    onClick={applyTitleHint}
-                    aria-label={`Reveal title hint (−${HINT_PENALTY})`}
-                  >
-                    hint · −{HINT_PENALTY}
-                  </button>
+                  <div className="guess-hint-slot">
+                    {hintPop ? (
+                      <PenaltyPop
+                        token={hintPop}
+                        pts={HINT_PENALTY}
+                        className="penalty-pop--hint"
+                        onDone={() => setHintPop(null)}
+                      />
+                    ) : (
+                      <button
+                        type="button"
+                        className="guess-hint-link"
+                        onClick={applyTitleHint}
+                        aria-label="Reveal title hint"
+                      >
+                        hint
+                      </button>
+                    )}
+                  </div>
                 )}
               </div>
             </div>
@@ -517,10 +541,17 @@ export default function HostParty({ code, playlist, me, profile, onExit }) {
             </div>
           </div>
           <div className="guess-actions">
-            <button className="btn btn-skip" onClick={skipGuess}>
-              <span className="btn-label">skip</span>
-              <span className="btn-hint">+audio · −{SKIP_PENALTY}</span>
-            </button>
+            <div className="btn-skip-wrap">
+              <button className="btn btn-skip" onClick={skipGuess}>
+                <span className="btn-label">skip</span>
+                <span className="btn-hint">+audio</span>
+              </button>
+              <PenaltyPop
+                token={skipPop}
+                pts={SKIP_PENALTY}
+                onDone={() => setSkipPop(null)}
+              />
+            </div>
             <button
               className="btn btn-guess"
               onClick={submitGuess}

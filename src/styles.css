@@ -3060,6 +3060,64 @@ button { font-family: var(--font); }
 .guess-hint-link:hover {
   color: var(--main-color);
 }
+.guess-hint-slot {
+  position: absolute;
+  right: 14px;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 1;
+  display: grid;
+  place-items: center;
+  min-width: 2.5rem;
+  pointer-events: none;
+}
+.guess-hint-slot .guess-hint-link {
+  position: static;
+  right: auto;
+  top: auto;
+  transform: none;
+  pointer-events: auto;
+}
+.penalty-pop {
+  position: absolute;
+  font-size: 14px;
+  font-weight: 800;
+  color: var(--error-color);
+  white-space: nowrap;
+  pointer-events: none;
+  animation: penalty-pop 1s ease-out forwards;
+}
+.btn-skip-wrap {
+  position: relative;
+  flex: 1;
+  display: flex;
+}
+.btn-skip-wrap .btn-skip {
+  flex: 1;
+  width: 100%;
+}
+.btn-skip-wrap .penalty-pop {
+  left: 50%;
+  top: -6px;
+  transform: translate(-50%, -100%);
+}
+.penalty-pop--hint {
+  position: static;
+  transform: none;
+  font-size: 13px;
+  letter-spacing: 0.04em;
+  animation-name: penalty-pop-hint;
+}
+@keyframes penalty-pop {
+  0% { opacity: 0; transform: translate(-50%, -70%) scale(0.85); }
+  15% { opacity: 1; transform: translate(-50%, -100%) scale(1.12); }
+  100% { opacity: 0; transform: translate(-50%, -140%) scale(1); }
+}
+@keyframes penalty-pop-hint {
+  0% { opacity: 0; transform: scale(0.85); }
+  15% { opacity: 1; transform: scale(1.12); }
+  100% { opacity: 0; transform: translateY(-8px) scale(1); }
+}
 .guess-transport-switch {
   position: relative;
   flex: none;

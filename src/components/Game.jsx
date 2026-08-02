@@ -11,6 +11,7 @@ import GuessMedia from "./GuessMedia.jsx";
 import GuessTransport from "./GuessTransport.jsx";
 import ShareScoreButton from "./ShareScoreButton.jsx";
 import ScrubbableVinyl from "./ScrubbableVinyl.jsx";
+import PenaltyPop from "./PenaltyPop.jsx";
 import PlayerRail from "../multiplayer/PlayerRail.jsx";
 import {
   STEPS,
@@ -76,6 +77,8 @@ export default function Game({ playlist, me, onExit, onReplay }) {
   const [scrubbing, setScrubbing] = useState(false);
   const [hintUsed, setHintUsed] = useState(false);
   const [titleHintText, setTitleHintText] = useState("");
+  const [skipPop, setSkipPop] = useState(null);
+  const [hintPop, setHintPop] = useState(null);
 
   const { errorMsg, setErrorMsg, play, pause } = usePreviewPlayer();
 
@@ -291,14 +294,21 @@ export default function Game({ playlist, me, onExit, onReplay }) {
     setTitleGuess("");
     if (!revealedArtist) setArtistGuess("");
     stopAudio();
+    setSkipPop(Date.now());
+    shakeEl(rootRef.current);
     consumeGuess();
   }
 
   function applyTitleHint() {
     if (phase !== "play" || resolved || !track?.name) return;
     if (guessNum < HINT_AFTER_SKIPS) return;
-    if (!hintUsed) setHintUsed(true);
+    const first = !hintUsed;
+    if (first) setHintUsed(true);
     setTitleHintText(titleHintMask(track.name));
+    if (first) {
+      setHintPop(Date.now());
+      shakeEl(rootRef.current);
+    }
   }
 
   function nextRound() {
@@ -456,14 +466,25 @@ export default function Game({ playlist, me, onExit, onReplay }) {
                         onKeyDown={(e) => e.key === "Enter" && submitGuess()}
                       />
                       {guessNum >= HINT_AFTER_SKIPS && (
-                        <button
-                          type="button"
-                          className="guess-hint-link"
-                          onClick={applyTitleHint}
-                          aria-label={`Reveal title hint (−${HINT_PENALTY})`}
-                        >
-                          hint · −{HINT_PENALTY}
-                        </button>
+                        <div className="guess-hint-slot">
+                          {hintPop ? (
+                            <PenaltyPop
+                              token={hintPop}
+                              pts={HINT_PENALTY}
+                              className="penalty-pop--hint"
+                              onDone={() => setHintPop(null)}
+                            />
+                          ) : (
+                            <button
+                              type="button"
+                              className="guess-hint-link"
+                              onClick={applyTitleHint}
+                              aria-label="Reveal title hint"
+                            >
+                              hint
+                            </button>
+                          )}
+                        </div>
                       )}
                     </div>
                   </div>
@@ -487,10 +508,17 @@ export default function Game({ playlist, me, onExit, onReplay }) {
                   </div>
                 </div>
                 <div className="guess-actions">
-                  <button className="btn btn-skip" onClick={skip}>
-                    <span className="btn-label">skip</span>
-                    <span className="btn-hint">+audio · −{SKIP_PENALTY}</span>
-                  </button>
+                  <div className="btn-skip-wrap">
+                    <button className="btn btn-skip" onClick={skip}>
+                      <span className="btn-label">skip</span>
+                      <span className="btn-hint">+audio</span>
+                    </button>
+                    <PenaltyPop
+                      token={skipPop}
+                      pts={SKIP_PENALTY}
+                      onDone={() => setSkipPop(null)}
+                    />
+                  </div>
                   <button
                     className="btn btn-guess"
                     onClick={submitGuess}
