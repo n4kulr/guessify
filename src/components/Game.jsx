@@ -3,8 +3,10 @@ import { isCorrect, matchesAnyArtist } from "../match.js";
 import { usePreviewPlayer } from "../usePreviewPlayer.js";
 import { fireConfetti, shakeEl } from "../fx.js";
 import { loadLocalProfile } from "../localProfile.js";
+import { isNoPreviewError } from "../shareScore.js";
 import GuessMedia from "./GuessMedia.jsx";
 import GuessTransport from "./GuessTransport.jsx";
+import ShareScoreButton from "./ShareScoreButton.jsx";
 import ScrubbableVinyl from "./ScrubbableVinyl.jsx";
 import PlayerRail from "../multiplayer/PlayerRail.jsx";
 import {
@@ -62,8 +64,9 @@ export default function Game({ playlist, me, onExit }) {
   const [playBusy, setPlayBusy] = useState(false);
   const [celebrate, setCelebrate] = useState(false);
   const [scrubbing, setScrubbing] = useState(false);
+  const softSkipRef = useRef(false);
 
-  const { errorMsg, play, pause } = usePreviewPlayer();
+  const { errorMsg, setErrorMsg, play, pause } = usePreviewPlayer();
 
   const track = rounds[roundIdx];
   const unlocked = STEPS[Math.min(guessNum, MAX_GUESSES - 1)];
@@ -109,8 +112,23 @@ export default function Game({ playlist, me, onExit }) {
     try {
       await play(track, seconds, { onStop: () => setPlaying(false) });
       setPlaying(true);
-    } catch {
+      softSkipRef.current = false;
+    } catch (e) {
       setPlaying(false);
+      // Dead preview mid-round → advance so the game doesn't stall silent.
+      if (
+        isNoPreviewError(e) &&
+        phase === "play" &&
+        outcome === null &&
+        !softSkipRef.current
+      ) {
+        softSkipRef.current = true;
+        window.setTimeout(() => {
+          softSkipRef.current = false;
+          setErrorMsg(null);
+          nextRound();
+        }, 700);
+      }
     } finally {
       setPlayBusy(false);
     }
@@ -205,6 +223,8 @@ export default function Game({ playlist, me, onExit }) {
 
   function nextRound() {
     stopAudio();
+    setErrorMsg(null);
+    softSkipRef.current = false;
     if (roundIdx + 1 >= rounds.length) {
       setPhase("over");
       return;
@@ -413,6 +433,7 @@ export default function Game({ playlist, me, onExit }) {
             </p>
             <PlayerRail players={players} />
             <div className="gameover-actions">
+              <ShareScoreButton mode="solo" score={score} maxScore={maxScore} />
               <button className="btn btn-big btn-play" onClick={() => window.location.reload()}>
                 play again
               </button>

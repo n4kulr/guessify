@@ -7,11 +7,13 @@ import { STEPS, TOTAL, randomAvatar, normalizeAvatar, unlockSecondsFor, PLAYER_C
 import { fireConfetti, shakeEl } from "../fx.js";
 import GuessMedia from "../components/GuessMedia.jsx";
 import GuessTransport from "../components/GuessTransport.jsx";
+import ShareScoreButton from "../components/ShareScoreButton.jsx";
 import PlayerRail from "./PlayerRail.jsx";
 import ProfileEditor from "./ProfileEditor.jsx";
 import GuessPopups from "./GuessPopups.jsx";
 import { loadLocalProfile, saveLocalProfile } from "../localProfile.js";
 import { applyThemeForAccent, accentMatchingTheme } from "../themes.js";
+import { isNoPreviewError } from "../shareScore.js";
 
 /**
  * Host multiplayer session — picks playlist / starts game; audio plays locally
@@ -226,8 +228,11 @@ export default function HostParty({ code, playlist, me, profile, onExit }) {
         },
       });
       setLocalPlaying(true);
-    } catch {
+    } catch (e) {
       setLocalPlaying(false);
+      if (isNoPreviewError(e) && phase === "play") {
+        skipGuess();
+      }
     } finally {
       setPlayBusy(false);
     }
@@ -357,11 +362,17 @@ export default function HostParty({ code, playlist, me, profile, onExit }) {
   // ---- game over ----
   if (phase === "over") {
     const ranked = [...state.players].sort((a, b) => b.score - a.score);
+    const mine = ranked.find((p) => p.id === playerId);
     return (
       <div className="mp-over">
         <h2 className="title">That's a wrap!</h2>
         <PlayerRail players={ranked} />
         <div className="gameover-actions">
+          <ShareScoreButton
+            mode="party"
+            score={mine?.score ?? 0}
+            name={mine?.name || hostName}
+          />
           <button className="btn btn-big btn-play" onClick={onExit}>
             back home
           </button>

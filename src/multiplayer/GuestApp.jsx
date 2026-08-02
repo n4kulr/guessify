@@ -9,6 +9,8 @@ import { accentMatchingTheme } from "../themes.js";
 import { fireConfetti, shakeEl } from "../fx.js";
 import GuessMedia from "../components/GuessMedia.jsx";
 import GuessTransport from "../components/GuessTransport.jsx";
+import ShareScoreButton from "../components/ShareScoreButton.jsx";
+import { isNoPreviewError } from "../shareScore.js";
 import { loadLocalProfile } from "../localProfile.js";
 
 export default function GuestApp({ code }) {
@@ -136,8 +138,11 @@ export default function GuestApp({ code }) {
         onStop: () => setLocalPlaying(false),
       });
       setLocalPlaying(true);
-    } catch {
+    } catch (e) {
       setLocalPlaying(false);
+      if (isNoPreviewError(e) && state?.phase === "play") {
+        skipGuess();
+      }
     } finally {
       setPlayBusy(false);
     }
@@ -244,6 +249,13 @@ export default function GuestApp({ code }) {
           You finished with <strong>{mine?.score ?? 0}</strong> pts.
         </p>
         <PlayerRail players={ranked} />
+        <div className="gameover-actions">
+          <ShareScoreButton
+            mode="party"
+            score={mine?.score ?? 0}
+            name={mine?.name || name}
+          />
+        </div>
       </div>
     );
   }

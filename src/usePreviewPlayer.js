@@ -74,7 +74,7 @@ export function usePreviewPlayer() {
     setErrorMsg(null);
     const url = await resolvePreview(track);
     if (!url) {
-      setErrorMsg("No preview found for this track. Sorry :(");
+      setErrorMsg("No preview for this one — skipping.");
       throw new Error("no preview");
     }
 

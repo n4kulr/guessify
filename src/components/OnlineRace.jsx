@@ -4,8 +4,10 @@ import { usePreviewPlayer } from "../usePreviewPlayer.js";
 import { fireConfetti, shakeEl } from "../fx.js";
 import GuessMedia from "./GuessMedia.jsx";
 import GuessTransport from "./GuessTransport.jsx";
+import ShareScoreButton from "./ShareScoreButton.jsx";
 import PlayerRail from "../multiplayer/PlayerRail.jsx";
 import GuessPopups from "../multiplayer/GuessPopups.jsx";
+import { isNoPreviewError } from "../shareScore.js";
 import {
   STEPS,
   MAX_GUESSES,
@@ -280,8 +282,11 @@ export default function OnlineRace({ profile, onExit }) {
     try {
       await play(track, seconds, { onStop: () => setLocalPlaying(false) });
       setLocalPlaying(true);
-    } catch {
+    } catch (e) {
       setLocalPlaying(false);
+      if (isNoPreviewError(e) && phase === "play") {
+        skip();
+      }
     } finally {
       setPlayBusy(false);
     }
@@ -689,6 +694,11 @@ export default function OnlineRace({ profile, onExit }) {
           ))}
         </ol>
         <div className="gameover-actions">
+          <ShareScoreButton
+            mode="online"
+            score={mine?.score ?? 0}
+            place={place}
+          />
           <button className="btn btn-big btn-play" onClick={onExit}>
             back home
           </button>
