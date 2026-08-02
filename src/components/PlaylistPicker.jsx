@@ -1,6 +1,7 @@
 import { useEffect, useId, useMemo, useRef, useState } from "react";
 import ChartCdSpindle from "./ChartCdSpindle.jsx";
 import PlaylistCdShelf from "./PlaylistCdShelf.jsx";
+import { buildChartSuggestions } from "../chartSuggest.js";
 
 const YOURS_PREVIEW = 6;
 
@@ -80,7 +81,7 @@ export default function PlaylistPicker({ onPick, needsLogin = false }) {
     return () => window.removeEventListener("keydown", onKey);
   }, [showLoginModal]);
 
-  // Local pack hits instantly; Last.fm tag.search fills the rest (malayalam etc.).
+  // Instant seeds (malayalam 2000s etc.) + Last.fm tag.search when available.
   useEffect(() => {
     const q = chartQuery.trim().toLowerCase();
     if (q.length < 1) {
@@ -90,14 +91,8 @@ export default function PlaylistPicker({ onPick, needsLogin = false }) {
       return;
     }
 
-    const local = CHART_PACKS.filter(
-      (p) =>
-        p.tag.includes(q) ||
-        p.label.toLowerCase().includes(q) ||
-        p.blurb.toLowerCase().includes(q)
-    ).map((p) => ({ name: p.tag, label: p.label, local: true }));
-
-    setChartSuggestions(local.slice(0, 8));
+    const local = buildChartSuggestions(q);
+    setChartSuggestions(local);
     setSuggestOpen(local.length > 0);
     setSuggestHi(-1);
 
@@ -110,19 +105,7 @@ export default function PlaylistPicker({ onPick, needsLogin = false }) {
         );
         if (!r.ok) return;
         const d = await r.json();
-        const remote = (d.tags || []).map((tag) => ({
-          name: tag.name,
-          label: tag.name,
-          local: false,
-        }));
-        const seen = new Set(local.map((x) => x.name));
-        const merged = [...local];
-        for (const hit of remote) {
-          if (seen.has(hit.name)) continue;
-          seen.add(hit.name);
-          merged.push(hit);
-          if (merged.length >= 8) break;
-        }
+        const merged = buildChartSuggestions(q, d.tags || []);
         if (!ac.signal.aborted) {
           setChartSuggestions(merged);
           setSuggestOpen(merged.length > 0);
@@ -434,7 +417,7 @@ export default function PlaylistPicker({ onPick, needsLogin = false }) {
                         onClick={() => pickSuggestion(s.name)}
                       >
                         <span className="chart-suggest-name">{s.name}</span>
-                        {s.local && (
+                        {s.pack && (
                           <span className="chart-suggest-badge">pack</span>
                         )}
                       </button>
