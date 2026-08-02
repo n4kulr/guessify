@@ -270,6 +270,12 @@ export default function HostParty({ code, playlist, me, profile, onExit }) {
     playSnippet(null);
   }, [phase, revealPlayKey, canPlay]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  useEffect(() => {
+    if (!titleHint) return;
+    setTitleGuess(titleHint);
+    consumeTitleHint();
+  }, [titleHint, consumeTitleHint]);
+
   async function copyLink() {
     try {
       await navigator.clipboard.writeText(joinUrl);
@@ -368,12 +374,6 @@ export default function HostParty({ code, playlist, me, profile, onExit }) {
     send({ type: "hint" });
   }
 
-  useEffect(() => {
-    if (!titleHint) return;
-    setTitleGuess(titleHint);
-    consumeTitleHint();
-  }, [titleHint, consumeTitleHint]);
-
   // ---- game over ----
   if (phase === "over") {
     const ranked = [...state.players].sort((a, b) => b.score - a.score);
@@ -399,7 +399,7 @@ export default function HostParty({ code, playlist, me, profile, onExit }) {
   // ---- play / reveal board ----
   const revealed = phase === "reveal";
   const track = state.track;
-  const lastGuesser = state.guesses[state.guesses.length - 1];
+  const lastGuesser = state.guesses?.[state.guesses.length - 1];
 
   return (
     <div className="game mp-host mp-board" ref={rootRef}>
