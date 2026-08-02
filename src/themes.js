@@ -138,6 +138,14 @@ export function applyTheme(key, { persist = true } = {}) {
   r.style.setProperty("--sub-alt-color", t.subAlt);
   r.style.setProperty("--text-color", t.text);
   r.style.setProperty("--error-color", t.error);
+  // iOS Safari toolbar / status chrome follows theme-color, not CSS vars.
+  let meta = document.querySelector('meta[name="theme-color"]');
+  if (!meta) {
+    meta = document.createElement("meta");
+    meta.setAttribute("name", "theme-color");
+    document.head.appendChild(meta);
+  }
+  meta.setAttribute("content", t.bg);
   if (!persist) return;
   try { localStorage.setItem(KEY, key); } catch { /* ignore */ }
 }
