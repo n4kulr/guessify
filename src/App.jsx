@@ -53,7 +53,7 @@ export default function App() {
   const [hostProfile, setHostProfile] = useState(null);
   const [howtoMode, setHowtoMode] = useState(null); // null | solo | multi | online
   // Capture ?fast=1 before history seeding strips the query.
-  const [fastMode] = useState(() => isFastTest());
+  useRef(isFastTest());
 
   const howtoRef = useRef(howtoMode);
   const onlinePromptRef = useRef(onlinePrompt);
@@ -446,12 +446,6 @@ export default function App() {
       </header>
 
       <main className="stage">
-        {fastMode && (
-          <div className="fast-mode-banner" role="status">
-            fast test on — start solo / quick play / host, then use the{" "}
-            <b>end now</b> button(s) bottom-left
-          </div>
-        )}
         {status === "checking" && <div className="loader">loading…</div>}
 
         {status === "guest" && joinCode && <GuestApp code={joinCode} />}
