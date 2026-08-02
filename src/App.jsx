@@ -38,6 +38,7 @@ export default function App() {
   const [status, setStatus] = useState("checking"); // checking | loggedOut | loggedIn | guest
   const [me, setMe] = useState(null);
   const [playlist, setPlaylist] = useState(null);
+  const [gameKey, setGameKey] = useState(0);
   const [picking, setPicking] = useState(false);
   const [mode, setMode] = useState("solo"); // solo | multi | online
   const [roomCode, setRoomCode] = useState(null);
@@ -274,6 +275,11 @@ export default function App() {
     replaceNav("pick", "solo");
   }
 
+  /** Same playlist, new shuffle — remount solo Game. */
+  function rematchSolo() {
+    setGameKey((k) => k + 1);
+  }
+
   function beginSolo() {
     setMode("solo");
     setPicking(true);
@@ -463,7 +469,15 @@ export default function App() {
 
         {(status === "loggedIn" || status === "loggedOut") &&
           mode === "solo" &&
-          playlist && <Game playlist={playlist} me={me} onExit={leaveGame} />}
+          playlist && (
+            <Game
+              key={gameKey}
+              playlist={playlist}
+              me={me}
+              onExit={leaveGame}
+              onReplay={rematchSolo}
+            />
+          )}
 
         {(status === "loggedIn" || status === "loggedOut") &&
           mode === "multi" &&

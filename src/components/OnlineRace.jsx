@@ -8,6 +8,9 @@ import ShareScoreButton from "./ShareScoreButton.jsx";
 import PlayerRail from "../multiplayer/PlayerRail.jsx";
 import GuessPopups from "../multiplayer/GuessPopups.jsx";
 import { isNoPreviewError } from "../shareScore.js";
+import { resolvePreview } from "../itunes.js";
+import { nextSpareTrack } from "../deadPreview.js";
+import { titleHintMask, HINT_AFTER_SKIPS } from "../titleHint.js";
 import {
   STEPS,
   MAX_GUESSES,
@@ -205,6 +208,9 @@ export default function OnlineRace({ profile, onExit }) {
   const [loadError, setLoadError] = useState(null);
   const [playlistName, setPlaylistName] = useState("charts");
   const [rounds, setRounds] = useState([]);
+  const poolRef = useRef([]);
+  const usedIdsRef = useRef(new Set());
+  const replacingRef = useRef(false);
   const [players, setPlayers] = useState(() => [
     {
       id: youId,
@@ -235,7 +241,7 @@ export default function OnlineRace({ profile, onExit }) {
   const [localPlaying, setLocalPlaying] = useState(false);
   const [playBusy, setPlayBusy] = useState(false);
 
-  const { errorMsg, play, pause } = usePreviewPlayer();
+  const { errorMsg, setErrorMsg, play, pause } = usePreviewPlayer();
   const rootRef = useRef(null);
   const phaseRef = useRef(phase);
   const timersRef = useRef([]);
@@ -274,6 +280,57 @@ export default function OnlineRace({ profile, onExit }) {
     setPlayBusy(false);
   }
 
+  function resetInRound() {
+    setUnlockByPlayer(() => {
+      const next = {};
+      for (const p of players) next[p.id] = 0;
+      return next;
+    });
+    setGuesses([]);
+    setNextVotes({});
+    setOutcome(null);
+    setWinnerId(null);
+    setEarnedPts(0);
+    setBonus(0);
+    setRevealedArtist(null);
+    setArtistClaimedBy(null);
+    setTitleGuess("");
+    setArtistGuess("");
+    setPhase("play");
+  }
+
+  async function replaceDeadTrack(deadTrack) {
+    if (replacingRef.current || phase !== "play") return false;
+    replacingRef.current = true;
+    try {
+      const used = usedIdsRef.current;
+      if (deadTrack?.id) used.add(deadTrack.id);
+      for (;;) {
+        const spare = nextSpareTrack(poolRef.current, used, deadTrack?.id);
+        if (!spare) {
+          setErrorMsg("No preview left — skipping round.");
+          return false;
+        }
+        used.add(spare.id);
+        const url = await resolvePreview(spare);
+        if (!url) continue;
+        const patched = { ...spare, previewUrl: url };
+        setRounds((rs) => {
+          const copy = [...rs];
+          copy[roundIdx] = patched;
+          return copy;
+        });
+        stopAudio();
+        resetInRound();
+        setErrorMsg("No preview — swapped for another song.");
+        window.setTimeout(() => setErrorMsg(null), 1600);
+        return true;
+      }
+    } finally {
+      replacingRef.current = false;
+    }
+  }
+
   async function playSnippet(seconds) {
     if (!track) return;
     pause();
@@ -285,7 +342,11 @@ export default function OnlineRace({ profile, onExit }) {
     } catch (e) {
       setLocalPlaying(false);
       if (isNoPreviewError(e) && phase === "play") {
-        skip();
+        const ok = await replaceDeadTrack(track);
+        if (!ok) {
+          // Last resort: don't burn unlocks — end as a miss for the room.
+          endRoundLose();
+        }
       }
     } finally {
       setPlayBusy(false);
@@ -306,6 +367,22 @@ export default function OnlineRace({ profile, onExit }) {
     playSnippet(unlocked);
   }
 
+  // Swap dead chart tracks before anyone has to hit play.
+  useEffect(() => {
+    if (phase !== "play" || !track?.id) return;
+    let cancelled = false;
+    (async () => {
+      const url = await resolvePreview(track);
+      if (cancelled || url) return;
+      const ok = await replaceDeadTrack(track);
+      if (!cancelled && !ok) endRoundLose();
+    })();
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [phase, track?.id, roundIdx]);
+
   // Matchmaking + chart load
   useEffect(() => {
     let cancelled = false;
@@ -319,11 +396,11 @@ export default function OnlineRace({ profile, onExit }) {
         if (!r.ok) throw new Error("charts");
         const data = await r.json();
         if (cancelled) return;
-        const tracks = shuffle(data.tracks || []).slice(
-          0,
-          Math.min(ROUND_COUNT, (data.tracks || []).length)
-        );
+        const all = shuffle(data.tracks || []);
+        const tracks = all.slice(0, Math.min(ROUND_COUNT, all.length));
         if (tracks.length < 2) throw new Error("short");
+        poolRef.current = all;
+        usedIdsRef.current = new Set(tracks.map((t) => t.id).filter(Boolean));
         setRounds(tracks);
         setPlaylistName(data.name || "today’s charts");
 
@@ -569,6 +646,12 @@ export default function OnlineRace({ profile, onExit }) {
     bumpUnlock(youId);
   }
 
+  function applyTitleHint() {
+    if (phase !== "play" || !track?.name) return;
+    if (myStep < HINT_AFTER_SKIPS) return;
+    setTitleGuess(titleHintMask(track.name));
+  }
+
   // Lose only once everyone still in the race has maxed their skip ladder.
   useEffect(() => {
     if (phase !== "play") return;
@@ -792,13 +875,25 @@ export default function OnlineRace({ profile, onExit }) {
         {phase === "play" && (
           <div className="guess-input-wrap">
             <div className="guess-fields">
-              <input
-                className="guess-input"
-                placeholder="song title…"
-                value={titleGuess}
-                onChange={(e) => setTitleGuess(e.target.value)}
-                onKeyDown={(e) => e.key === "Enter" && submitGuess()}
-              />
+              <div className="guess-title-row">
+                <input
+                  className="guess-input"
+                  placeholder="song title…"
+                  value={titleGuess}
+                  onChange={(e) => setTitleGuess(e.target.value)}
+                  onKeyDown={(e) => e.key === "Enter" && submitGuess()}
+                />
+                {myStep >= HINT_AFTER_SKIPS && (
+                  <button
+                    type="button"
+                    className="btn btn-mini guess-hint-btn"
+                    onClick={applyTitleHint}
+                    aria-label="Reveal title hint"
+                  >
+                    hint
+                  </button>
+                )}
+              </div>
               <div className="guess-artist-row">
                 <input
                   className="guess-input"

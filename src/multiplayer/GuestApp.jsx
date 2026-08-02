@@ -12,10 +12,12 @@ import GuessTransport from "../components/GuessTransport.jsx";
 import ShareScoreButton from "../components/ShareScoreButton.jsx";
 import { isNoPreviewError } from "../shareScore.js";
 import { loadLocalProfile } from "../localProfile.js";
+import { HINT_AFTER_SKIPS } from "../titleHint.js";
 
 export default function GuestApp({ code }) {
   const upper = code.toUpperCase();
-  const { state, playerId, status, error, setError, send } = usePartyRoom(upper);
+  const { state, playerId, status, error, setError, send, titleHint, consumeTitleHint } =
+    usePartyRoom(upper);
   const [name, setName] = useState("");
   const [avatar, setAvatar] = useState(() => {
     const local = loadLocalProfile();
@@ -27,7 +29,7 @@ export default function GuestApp({ code }) {
   });
   const [titleGuess, setTitleGuess] = useState("");
   const [artistGuess, setArtistGuess] = useState("");
-  const { errorMsg, play, pause } = usePreviewPlayer();
+  const { errorMsg, setErrorMsg, play, pause } = usePreviewPlayer();
   const [playBusy, setPlayBusy] = useState(false);
   const [localPlaying, setLocalPlaying] = useState(false);
   const lastTrackRef = useRef(null);
@@ -128,6 +130,18 @@ export default function GuestApp({ code }) {
     stopAudio();
   }
 
+  function applyTitleHint() {
+    const step = state?.unlockByPlayer?.[playerId] ?? 0;
+    if (state?.phase !== "play" || step < HINT_AFTER_SKIPS) return;
+    send({ type: "hint" });
+  }
+
+  useEffect(() => {
+    if (!titleHint) return;
+    setTitleGuess(titleHint);
+    consumeTitleHint();
+  }, [titleHint, consumeTitleHint]);
+
   async function playSnippet(seconds) {
     if (!canPlay) return;
     pause();
@@ -141,7 +155,7 @@ export default function GuestApp({ code }) {
     } catch (e) {
       setLocalPlaying(false);
       if (isNoPreviewError(e) && state?.phase === "play") {
-        skipGuess();
+        setErrorMsg("No preview for this one.");
       }
     } finally {
       setPlayBusy(false);
@@ -262,6 +276,7 @@ export default function GuestApp({ code }) {
 
   const revealed = state.phase === "reveal";
   const unlocked = unlockSecondsFor(state.unlockByPlayer, playerId, state);
+  const myStep = state.unlockByPlayer?.[playerId] ?? 0;
   const track = state.track;
   const spinning = localPlaying && (state.phase === "play" || state.phase === "reveal");
 
@@ -328,13 +343,25 @@ export default function GuestApp({ code }) {
         {state.phase === "play" && (
           <div className="guess-input-wrap">
             <div className="guess-fields">
-              <input
-                className="guess-input"
-                placeholder="song title…"
-                value={titleGuess}
-                onChange={(e) => setTitleGuess(e.target.value)}
-                onKeyDown={(e) => e.key === "Enter" && submitGuess()}
-              />
+              <div className="guess-title-row">
+                <input
+                  className="guess-input"
+                  placeholder="song title…"
+                  value={titleGuess}
+                  onChange={(e) => setTitleGuess(e.target.value)}
+                  onKeyDown={(e) => e.key === "Enter" && submitGuess()}
+                />
+                {myStep >= HINT_AFTER_SKIPS && (
+                  <button
+                    type="button"
+                    className="btn btn-mini guess-hint-btn"
+                    onClick={applyTitleHint}
+                    aria-label="Reveal title hint"
+                  >
+                    hint
+                  </button>
+                )}
+              </div>
               <div className="guess-artist-row">
                 <input
                   className="guess-input"

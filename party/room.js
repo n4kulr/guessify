@@ -13,6 +13,7 @@ import {
   activePlayerCount,
   allPlayersMaxUnlocked,
 } from "../src/multiplayer/constants.js";
+import { titleHintMask, HINT_AFTER_SKIPS } from "../src/titleHint.js";
 import { resolveItunesPreview } from "./itunesPreview.js";
 
 /** Soft-offline (grey) until this long, then marked left (strikethrough). */
@@ -171,6 +172,9 @@ export class Room extends Server {
         break;
       case "skip":
         this.handleSkip(sender);
+        break;
+      case "hint":
+        this.handleHint(sender);
         break;
       case "next":
         await this.handleNext(sender);
@@ -548,6 +552,27 @@ export class Room extends Server {
 
     this.broadcastState();
     void this.persist();
+  }
+
+  /** Private title mask — only to the requester, never the raw title. */
+  handleHint(sender) {
+    if (!this.state || this.state.phase !== "play") return;
+    const player = this.playerFor(sender);
+    if (!player) {
+      sender.send(JSON.stringify({ type: "error", error: "Join the race first." }));
+      return;
+    }
+    const step = this.state.unlockByPlayer?.[player.id] ?? 0;
+    if (step < HINT_AFTER_SKIPS) {
+      sender.send(
+        JSON.stringify({ type: "error", error: "Skip a few more times for a hint." })
+      );
+      return;
+    }
+    const t = this.state.tracks?.[this.state.roundIdx];
+    const hint = titleHintMask(t?.name || "");
+    if (!hint) return;
+    sender.send(JSON.stringify({ type: "titleHint", hint }));
   }
 
   async handleNext(sender) {

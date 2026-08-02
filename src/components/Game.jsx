@@ -1,9 +1,12 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { isCorrect, matchesAnyArtist } from "../match.js";
 import { usePreviewPlayer } from "../usePreviewPlayer.js";
+import { resolvePreview } from "../itunes.js";
 import { fireConfetti, shakeEl } from "../fx.js";
 import { loadLocalProfile } from "../localProfile.js";
 import { isNoPreviewError } from "../shareScore.js";
+import { nextSpareTrack } from "../deadPreview.js";
+import { titleHintMask, HINT_AFTER_SKIPS } from "../titleHint.js";
 import GuessMedia from "./GuessMedia.jsx";
 import GuessTransport from "./GuessTransport.jsx";
 import ShareScoreButton from "./ShareScoreButton.jsx";
@@ -32,11 +35,16 @@ function shuffle(arr) {
 
 const YOU_ID = "you";
 
-export default function Game({ playlist, me, onExit }) {
-  const rounds = useMemo(
-    () => shuffle(playlist.tracks).slice(0, Math.min(ROUND_COUNT, playlist.tracks.length)),
+export default function Game({ playlist, me, onExit, onReplay }) {
+  const pool = useMemo(
+    () => shuffle(playlist.tracks || []),
     [playlist]
   );
+  const [rounds, setRounds] = useState(() =>
+    pool.slice(0, Math.min(ROUND_COUNT, pool.length))
+  );
+  const usedIdsRef = useRef(new Set(rounds.map((t) => t.id).filter(Boolean)));
+  const replacingRef = useRef(false);
   const rootRef = useRef(null);
 
   const { soloName, soloAvatar } = useMemo(() => {
@@ -64,7 +72,6 @@ export default function Game({ playlist, me, onExit }) {
   const [playBusy, setPlayBusy] = useState(false);
   const [celebrate, setCelebrate] = useState(false);
   const [scrubbing, setScrubbing] = useState(false);
-  const softSkipRef = useRef(false);
 
   const { errorMsg, setErrorMsg, play, pause } = usePreviewPlayer();
 
@@ -89,6 +96,54 @@ export default function Game({ playlist, me, onExit }) {
     [soloName, soloAvatar, score]
   );
 
+  function resetInRound() {
+    setGuessNum(0);
+    setOutcome(null);
+    setBonus(0);
+    setEarnedPts(0);
+    setArtistBonusTaken(false);
+    setRevealedArtist(null);
+    setCelebrate(false);
+    setTitleGuess("");
+    setArtistGuess("");
+    setPhase("play");
+  }
+
+  /** Same round number; pull another track from the playlist/chart pool. */
+  async function replaceDeadTrack(deadTrack) {
+    if (replacingRef.current) return false;
+    replacingRef.current = true;
+    try {
+      const used = usedIdsRef.current;
+      if (deadTrack?.id) used.add(deadTrack.id);
+
+      // Try spares until one resolves a preview (or pool runs out).
+      for (;;) {
+        const spare = nextSpareTrack(pool, used, deadTrack?.id);
+        if (!spare) {
+          setErrorMsg("No preview left in this playlist — skipping round.");
+          return false;
+        }
+        used.add(spare.id);
+        const url = await resolvePreview(spare);
+        if (!url) continue;
+        const patched = { ...spare, previewUrl: url };
+        setRounds((rs) => {
+          const copy = [...rs];
+          copy[roundIdx] = patched;
+          return copy;
+        });
+        stopAudio();
+        resetInRound();
+        setErrorMsg("No preview — swapped for another song.");
+        window.setTimeout(() => setErrorMsg(null), 1600);
+        return true;
+      }
+    } finally {
+      replacingRef.current = false;
+    }
+  }
+
   // Stop playback whenever the track changes (and on unmount).
   useEffect(() => {
     stopAudio();
@@ -96,7 +151,28 @@ export default function Game({ playlist, me, onExit }) {
     setPlayBusy(false);
     return stopAudio;
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [roundIdx]);
+  }, [roundIdx, track?.id]);
+
+  // Before the player hits play: if this track has no preview, swap in-place.
+  useEffect(() => {
+    if (phase !== "play" || outcome !== null || !track?.id) return;
+    let cancelled = false;
+    (async () => {
+      const url = await resolvePreview(track);
+      if (cancelled || url) return;
+      const ok = await replaceDeadTrack(track);
+      if (!cancelled && !ok) {
+        // Pool exhausted — burn the round so the game can finish.
+        window.setTimeout(() => {
+          if (!cancelled) nextRound();
+        }, 700);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [track?.id, roundIdx, phase, outcome]);
 
   function stopAudio() {
     pause();
@@ -112,22 +188,16 @@ export default function Game({ playlist, me, onExit }) {
     try {
       await play(track, seconds, { onStop: () => setPlaying(false) });
       setPlaying(true);
-      softSkipRef.current = false;
     } catch (e) {
       setPlaying(false);
-      // Dead preview mid-round → advance so the game doesn't stall silent.
-      if (
-        isNoPreviewError(e) &&
-        phase === "play" &&
-        outcome === null &&
-        !softSkipRef.current
-      ) {
-        softSkipRef.current = true;
-        window.setTimeout(() => {
-          softSkipRef.current = false;
-          setErrorMsg(null);
-          nextRound();
-        }, 700);
+      if (isNoPreviewError(e) && phase === "play" && outcome === null) {
+        const ok = await replaceDeadTrack(track);
+        if (!ok) {
+          window.setTimeout(() => {
+            setErrorMsg(null);
+            nextRound();
+          }, 700);
+        }
       }
     } finally {
       setPlayBusy(false);
@@ -221,29 +291,30 @@ export default function Game({ playlist, me, onExit }) {
     consumeGuess();
   }
 
+  function applyTitleHint() {
+    if (phase !== "play" || resolved || !track?.name) return;
+    if (guessNum < HINT_AFTER_SKIPS) return;
+    setTitleGuess(titleHintMask(track.name));
+  }
+
   function nextRound() {
     stopAudio();
     setErrorMsg(null);
-    softSkipRef.current = false;
     if (roundIdx + 1 >= rounds.length) {
       setPhase("over");
       return;
     }
     setRoundIdx((i) => i + 1);
-    setGuessNum(0);
-    setOutcome(null);
-    setBonus(0);
-    setEarnedPts(0);
-    setArtistBonusTaken(false);
-    setRevealedArtist(null);
-    setCelebrate(false);
-    setTitleGuess("");
-    setArtistGuess("");
-    setPhase("play");
+    resetInRound();
   }
 
   function restart() {
     onExit();
+  }
+
+  function playAgain() {
+    if (onReplay) onReplay();
+    else window.location.reload();
   }
 
   useEffect(() => {
@@ -371,13 +442,25 @@ export default function Game({ playlist, me, onExit }) {
             ) : (
               <div className="guess-input-wrap">
                 <div className="guess-fields">
-                  <input
-                    className="guess-input"
-                    placeholder="song title…"
-                    value={titleGuess}
-                    onChange={(e) => setTitleGuess(e.target.value)}
-                    onKeyDown={(e) => e.key === "Enter" && submitGuess()}
-                  />
+                  <div className="guess-title-row">
+                    <input
+                      className="guess-input"
+                      placeholder="song title…"
+                      value={titleGuess}
+                      onChange={(e) => setTitleGuess(e.target.value)}
+                      onKeyDown={(e) => e.key === "Enter" && submitGuess()}
+                    />
+                    {guessNum >= HINT_AFTER_SKIPS && (
+                      <button
+                        type="button"
+                        className="btn btn-mini guess-hint-btn"
+                        onClick={applyTitleHint}
+                        aria-label="Reveal title hint"
+                      >
+                        hint
+                      </button>
+                    )}
+                  </div>
                   <div className="guess-artist-row">
                     <input
                       className="guess-input"
@@ -434,7 +517,7 @@ export default function Game({ playlist, me, onExit }) {
             <PlayerRail players={players} />
             <div className="gameover-actions">
               <ShareScoreButton mode="solo" score={score} maxScore={maxScore} />
-              <button className="btn btn-big btn-play" onClick={() => window.location.reload()}>
+              <button className="btn btn-big btn-play" onClick={playAgain}>
                 play again
               </button>
               <button className="btn btn-ghost" onClick={restart}>

@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import PartySocket from "partysocket";
 
 function partyHost() {
@@ -17,6 +17,7 @@ export function usePartyRoom(code, { enabled = true } = {}) {
   const [playerId, setPlayerId] = useState(null);
   const [status, setStatus] = useState("idle"); // idle | connecting | connected | error
   const [error, setError] = useState(null);
+  const [titleHint, setTitleHint] = useState(null);
   const socketRef = useRef(null);
   const retriesRef = useRef(0);
 
@@ -87,6 +88,9 @@ export function usePartyRoom(code, { enabled = true } = {}) {
         }
       }
       if (msg.type === "error") setError(msg.error);
+      if (msg.type === "titleHint" && typeof msg.hint === "string") {
+        setTitleHint(msg.hint);
+      }
     });
 
     return () => {
@@ -101,5 +105,19 @@ export function usePartyRoom(code, { enabled = true } = {}) {
     s.send(JSON.stringify(msg));
   }
 
-  return { state, role, playerId, status, error, setError, send };
+  const consumeTitleHint = useCallback(() => {
+    setTitleHint(null);
+  }, []);
+
+  return {
+    state,
+    role,
+    playerId,
+    status,
+    error,
+    setError,
+    send,
+    titleHint,
+    consumeTitleHint,
+  };
 }

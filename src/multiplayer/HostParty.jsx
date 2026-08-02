@@ -14,6 +14,7 @@ import GuessPopups from "./GuessPopups.jsx";
 import { loadLocalProfile, saveLocalProfile } from "../localProfile.js";
 import { applyThemeForAccent, accentMatchingTheme } from "../themes.js";
 import { isNoPreviewError } from "../shareScore.js";
+import { titleHintMask, HINT_AFTER_SKIPS } from "../titleHint.js";
 
 /**
  * Host multiplayer session — picks playlist / starts game; audio plays locally
@@ -46,7 +47,7 @@ export default function HostParty({ code, playlist, me, profile, onExit }) {
       color: accentMatchingTheme(PLAYER_COLORS),
     });
   });
-  const { errorMsg, play, pause } = usePreviewPlayer();
+  const { errorMsg, setErrorMsg, play, pause } = usePreviewPlayer();
   const [playBusy, setPlayBusy] = useState(false);
   const [localPlaying, setLocalPlaying] = useState(false);
   const lastTrackRef = useRef(null);
@@ -213,6 +214,7 @@ export default function HostParty({ code, playlist, me, profile, onExit }) {
   }, [state?.phase]);
 
   const unlocked = unlockSecondsFor(state?.unlockByPlayer, playerId, state);
+  const myStep = state?.unlockByPlayer?.[playerId] ?? 0;
   const phase = state?.phase || "lobby";
   const spinning = localPlaying && (phase === "play" || phase === "reveal");
 
@@ -231,7 +233,8 @@ export default function HostParty({ code, playlist, me, profile, onExit }) {
     } catch (e) {
       setLocalPlaying(false);
       if (isNoPreviewError(e) && phase === "play") {
-        skipGuess();
+        // Don't burn a skip unlock — host/guest can't swap the room track here.
+        setErrorMsg("No preview for this one.");
       }
     } finally {
       setPlayBusy(false);
@@ -359,6 +362,14 @@ export default function HostParty({ code, playlist, me, profile, onExit }) {
     stopAudio();
   }
 
+  function applyTitleHint() {
+    if (phase !== "play") return;
+    if (myStep < HINT_AFTER_SKIPS) return;
+    const name = hostMeta?.name || track?.name;
+    if (!name) return;
+    setTitleGuess(titleHintMask(name));
+  }
+
   // ---- game over ----
   if (phase === "over") {
     const ranked = [...state.players].sort((a, b) => b.score - a.score);
@@ -459,13 +470,25 @@ export default function HostParty({ code, playlist, me, profile, onExit }) {
       {phase === "play" && (
         <div className="guess-input-wrap">
           <div className="guess-fields">
-            <input
-              className="guess-input"
-              placeholder="song title…"
-              value={titleGuess}
-              onChange={(e) => setTitleGuess(e.target.value)}
-              onKeyDown={(e) => e.key === "Enter" && submitGuess()}
-            />
+            <div className="guess-title-row">
+              <input
+                className="guess-input"
+                placeholder="song title…"
+                value={titleGuess}
+                onChange={(e) => setTitleGuess(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && submitGuess()}
+              />
+              {myStep >= HINT_AFTER_SKIPS && (hostMeta?.name || track?.name) && (
+                <button
+                  type="button"
+                  className="btn btn-mini guess-hint-btn"
+                  onClick={applyTitleHint}
+                  aria-label="Reveal title hint"
+                >
+                  hint
+                </button>
+              )}
+            </div>
             <div className="guess-artist-row">
               <input
                 className="guess-input"
