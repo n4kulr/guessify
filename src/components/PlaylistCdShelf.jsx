@@ -1,4 +1,5 @@
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { useDragScroll } from "../useDragScroll.js";
 
 const TONES = [
   "clear", "white", "black", "grey", "smoke", "amber", "slate", "frost",
@@ -33,92 +34,6 @@ function topArtists(tracks, limit = 24) {
     }
   }
   return out;
-}
-
-function useDragScroll(scrollRef, surfaceRef) {
-  useEffect(() => {
-    const el = scrollRef.current;
-    if (!el) return;
-    const surface = surfaceRef?.current || el;
-    let dragging = false;
-    let startX = 0;
-    let startScroll = 0;
-    let pointerId = null;
-    let suppressClick = false;
-
-    function onDown(e) {
-      if (e.pointerType === "touch") return;
-      if (e.button !== 0) return;
-      dragging = false;
-      startX = e.clientX;
-      startScroll = el.scrollLeft;
-      pointerId = e.pointerId;
-    }
-    function onMove(e) {
-      if (pointerId !== e.pointerId) return;
-      if (e.pointerType === "touch") return;
-      const dx = e.clientX - startX;
-      if (!dragging) {
-        if (Math.abs(dx) < 8) return;
-        dragging = true;
-        suppressClick = true;
-        el.setPointerCapture?.(e.pointerId);
-      }
-      el.scrollLeft = startScroll - dx;
-    }
-    function onUp(e) {
-      if (pointerId != null && e.pointerId !== pointerId) return;
-      pointerId = null;
-      if (dragging) {
-        dragging = false;
-        requestAnimationFrame(() => {
-          suppressClick = false;
-        });
-      }
-    }
-    function onClickCapture(e) {
-      if (suppressClick) {
-        e.preventDefault();
-        e.stopPropagation();
-      }
-    }
-    function onDragStart(e) {
-      e.preventDefault();
-    }
-    function onWheel(e) {
-      // Mac trackpads often emit a tiny deltaX with a large deltaY on
-      // vertical two-finger scroll — prefer the dominant axis.
-      const dx =
-        Math.abs(e.deltaX) > Math.abs(e.deltaY) ? e.deltaX : e.deltaY;
-      if (dx === 0) return;
-      const max = el.scrollWidth - el.clientWidth;
-      if (max <= 0) return;
-      const next = Math.max(0, Math.min(max, el.scrollLeft + dx));
-      if (next === el.scrollLeft) return;
-      e.preventDefault();
-      el.scrollLeft = next;
-    }
-
-    el.addEventListener("pointerdown", onDown);
-    el.addEventListener("pointermove", onMove);
-    el.addEventListener("pointerup", onUp);
-    el.addEventListener("pointercancel", onUp);
-    el.addEventListener("click", onClickCapture, true);
-    el.addEventListener("dragstart", onDragStart);
-    // Capture so we win over page scroll before the gesture is claimed.
-    surface.addEventListener("wheel", onWheel, { passive: false, capture: true });
-    el.addEventListener("wheel", onWheel, { passive: false, capture: true });
-    return () => {
-      el.removeEventListener("pointerdown", onDown);
-      el.removeEventListener("pointermove", onMove);
-      el.removeEventListener("pointerup", onUp);
-      el.removeEventListener("pointercancel", onUp);
-      el.removeEventListener("click", onClickCapture, true);
-      el.removeEventListener("dragstart", onDragStart);
-      surface.removeEventListener("wheel", onWheel, { capture: true });
-      el.removeEventListener("wheel", onWheel, { capture: true });
-    };
-  }, [scrollRef, surfaceRef]);
 }
 
 /** Horizontal jewel-case shelf for Spotify playlists (covers face out). */
