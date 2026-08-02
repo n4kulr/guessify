@@ -28,7 +28,10 @@ export default function ShareScoreButton({
       bestStreak: stats?.bestStreak,
       artistsClaimed: stats?.artistsClaimed,
       artistsTotal: stats?.artistsTotal,
-      timeline: stats?.timeline,
+      timeline:
+        mode === "solo"
+          ? stats?.timeline
+          : stats?.timelineWins || stats?.timeline,
     });
     if (result === "cancelled") return;
     clearTimeout(timer.current);

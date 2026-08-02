@@ -15,7 +15,7 @@ import PenaltyPop from "./PenaltyPop.jsx";
 import AlmostFlash from "./AlmostFlash.jsx";
 import GameOverStats from "./GameOverStats.jsx";
 import PlayerRail from "../multiplayer/PlayerRail.jsx";
-import { computeGameStats } from "../gameStats.js";
+import { computeGameStats, roundResultsFromLog } from "../gameStats.js";
 import { recordPlaylistScore } from "../playlistBests.js";
 import {
   STEPS,
@@ -617,7 +617,16 @@ export default function Game({ playlist, me, onExit, onReplay }) {
             </p>
             <PlayerRail players={players} />
             {endStats && (
-              <GameOverStats stats={endStats} bests={playlistBests} />
+              <GameOverStats
+                stats={endStats}
+                bests={playlistBests}
+                roundResults={roundResultsFromLog(roundLog, YOU_ID, {
+                  name: soloName,
+                  color: soloAvatar?.color,
+                })}
+                players={players}
+                myId={YOU_ID}
+              />
             )}
             <div className="gameover-actions">
               <ShareScoreButton

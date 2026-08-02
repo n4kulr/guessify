@@ -464,7 +464,14 @@ export default function HostParty({ code, playlist, me, profile, onExit }) {
       <div className="mp-over">
         <h2 className="title">That's a wrap!</h2>
         <PlayerRail players={ranked} />
-        <GameOverStats stats={endStats} bests={playlistBests} />
+        <GameOverStats
+          stats={endStats}
+          bests={playlistBests}
+          roundResults={state.roundResults || []}
+          players={ranked}
+          myId={playerId}
+          hideMisses
+        />
         <div className="gameover-actions">
           <ShareScoreButton
             mode="party"

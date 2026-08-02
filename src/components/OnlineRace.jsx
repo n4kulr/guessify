@@ -254,6 +254,7 @@ export default function OnlineRace({ profile, onExit }) {
   const [almostTitle, setAlmostTitle] = useState(null);
   const [almostArtist, setAlmostArtist] = useState(null);
   const [roundLog, setRoundLog] = useState([]);
+  const [roundResults, setRoundResults] = useState([]);
   const [playlistBests, setPlaylistBests] = useState(null);
   const [chartKey, setChartKey] = useState(null);
 
@@ -511,14 +512,14 @@ export default function OnlineRace({ profile, onExit }) {
     if (player.id === youId) fireConfetti("title");
   }
 
-  // Personal round log (you only) when the round resolves.
+  // Personal round log + shared solve results when the round resolves.
   useEffect(() => {
     if (phase !== "reveal") return;
     if (loggedRoundRef.current === roundIdx) return;
     loggedRoundRef.current = roundIdx;
     const won = winnerId === youId;
     const wallMs =
-      won && roundStartedAt.current != null
+      winnerId && roundStartedAt.current != null
         ? Date.now() - roundStartedAt.current
         : null;
     setRoundLog((prev) => [
@@ -526,10 +527,27 @@ export default function OnlineRace({ profile, onExit }) {
       {
         won,
         artistClaimed: artistClaimedBy === youId,
-        wallMs,
+        wallMs: won ? wallMs : null,
         unlockStep: unlockByPlayer[youId] ?? 0,
       },
     ]);
+    if (winnerId && wallMs != null) {
+      const w = players.find((p) => p.id === winnerId);
+      setRoundResults((prev) => {
+        const round = roundIdx + 1;
+        if (prev.some((r) => r.round === round)) return prev;
+        return [
+          ...prev,
+          {
+            round,
+            winnerId,
+            winnerName: winnerId === youId ? youName : w?.name || "?",
+            color: w?.color || w?.avatar?.color || youAvatar?.color,
+            wallMs,
+          },
+        ];
+      });
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [phase, roundIdx, winnerId, artistClaimedBy]);
 
@@ -864,7 +882,14 @@ export default function OnlineRace({ profile, onExit }) {
             </li>
           ))}
         </ol>
-        <GameOverStats stats={endStats} bests={playlistBests} />
+        <GameOverStats
+          stats={endStats}
+          bests={playlistBests}
+          roundResults={roundResults}
+          players={ranked}
+          myId={youId}
+          hideMisses
+        />
         <div className="gameover-actions">
           <ShareScoreButton
             mode="online"

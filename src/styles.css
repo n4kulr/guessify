@@ -3376,7 +3376,16 @@ button { font-family: var(--font); }
 
 .gameover { text-align: center; }
 .gameover-actions { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; margin-top: 22px; }
-.gameover-actions .btn-online { width: auto; }
+.gameover-actions .btn-online {
+  width: auto;
+  background: color-mix(in srgb, var(--bg-color) 55%, #000);
+  border-color: color-mix(in srgb, var(--sub-color) 35%, transparent);
+}
+.gameover-actions .btn-online:hover {
+  filter: none;
+  background: color-mix(in srgb, var(--bg-color) 35%, #000);
+  color: var(--text-color);
+}
 
 .gos {
   margin: 20px 0 4px;
@@ -3480,6 +3489,46 @@ button { font-family: var(--font); }
   color: color-mix(in srgb, var(--sub-color) 70%, transparent);
   line-height: 10px;
   font-size: 12px;
+}
+.gos-chart-wrap {
+  margin-top: 4px;
+}
+.gos-chart {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+.gos-chart-grid {
+  stroke: color-mix(in srgb, var(--sub-color) 28%, transparent);
+  stroke-width: 1;
+}
+.gos-chart-axis {
+  fill: var(--sub-color);
+  font-size: 9px;
+  font-family: var(--font);
+}
+.gos-chart-legend {
+  list-style: none;
+  margin: 10px 0 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 14px;
+  justify-content: center;
+  font-size: 12px;
+  color: var(--sub-color);
+}
+.gos-chart-legend .is-me {
+  color: var(--text-color);
+  font-weight: 600;
+}
+.gos-chart-swatch {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  margin-right: 6px;
+  vertical-align: middle;
 }
 .mp-over .gos {
   margin-top: 18px;

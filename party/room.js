@@ -264,6 +264,8 @@ export class Room extends Server {
         previewArt: null,
         revealedArtist: null,
         artistClaimedBy: null,
+        roundResults: [],
+        roundStartedAt: null,
         colorIdx: 1,
         updatedAt: Date.now(),
       };
@@ -448,6 +450,8 @@ export class Room extends Server {
     this.state.earnedPts = 0;
     this.state.revealedArtist = null;
     this.state.artistClaimedBy = null;
+    this.state.roundResults = [];
+    this.state.roundStartedAt = Date.now();
     await this.resolveCurrentPreview();
     this.broadcastState();
     await this.persist();
@@ -519,6 +523,7 @@ export class Room extends Server {
       this.state.nextVotes = {};
       player.score += titlePts;
       player.wins += 1;
+      this.pushRoundResult();
     } else if (artistPts) {
       this.state.bonus = artistPts;
       this.state.earnedPts = artistPts;
@@ -562,6 +567,7 @@ export class Room extends Server {
       this.state.bonus = 0;
       this.state.phase = "reveal";
       this.state.nextVotes = {};
+      // Miss — omit from roundResults (stats ignore songs nobody got).
     }
 
     this.broadcastState();
@@ -649,9 +655,30 @@ export class Room extends Server {
     this.state.revealedArtist = null;
     this.state.artistClaimedBy = null;
     this.state.phase = "play";
+    this.state.roundStartedAt = Date.now();
     await this.resolveCurrentPreview();
     this.broadcastState();
     await this.persist();
+  }
+
+  /** Record a solved round for end-game compare (misses are skipped). */
+  pushRoundResult() {
+    if (!this.state || this.state.outcome !== "win" || !this.state.winnerId) return;
+    if (!this.state.roundResults) this.state.roundResults = [];
+    const round = (this.state.roundIdx ?? 0) + 1;
+    if (this.state.roundResults.some((r) => r.round === round)) return;
+    const w = this.state.players.find((p) => p.id === this.state.winnerId);
+    const wallMs =
+      this.state.roundStartedAt != null
+        ? Math.max(0, Date.now() - this.state.roundStartedAt)
+        : null;
+    this.state.roundResults.push({
+      round,
+      winnerId: this.state.winnerId,
+      winnerName: w?.name || "?",
+      color: w?.color || w?.avatar?.color || null,
+      wallMs,
+    });
   }
 
   async resolveCurrentPreview() {
@@ -748,6 +775,7 @@ export class Room extends Server {
       earnedPts: this.state.earnedPts,
       revealedArtist: this.state.revealedArtist || null,
       artistClaimedBy: this.state.artistClaimedBy || null,
+      roundResults: this.state.roundResults || [],
       track: this.publicTrack(),
       trackId: this.state.tracks[this.state.roundIdx]?.id || null,
     };

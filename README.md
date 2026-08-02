@@ -51,27 +51,35 @@ When the round ends you hear the full preview, see the cover, and move on (solo 
 
 ### Guessing
 - Separate **title** and **artist** fields.
-- Fuzzy matching (normalized punctuation, feat./remaster stripping, short typos allowed).
+- Fuzzy matching: **≥80%** similar counts as correct; **≥50%** (but not correct) flashes **Very close…** in the title or artist field.
+- Slash compounds (`A / B`) accept either half or the full title; leading **the/a/an** are ignored (`Weeknd` = `The Weeknd`).
 - Unlimited wrong guesses; only skip grows the snippet.
 - Correct artist first → field locks and reveals for everyone in a race; title still pays.
 
 ### Skip & hint
-- **Skip** → more audio; red **−40** pops above the button (cuts this round’s title).
-- **Hint** (after 4 skips, at the 16s step) → masked placeholder like `d▢▢s▢e▢`; the hint label swaps to a red **−100** flash and stays gone for the round.
-- Both shake the board when the cut applies.
+- **Skip** → more audio; red **−40** pops above the skip button only (cuts this round’s title).
+- **Hint** (after 4 skips, at the 16s step) → masked placeholder like `d▢▢s▢e▢` (word gaps use ` · `); the hint label swaps to a red **−100** flash and stays gone for the round; title field shakes.
+- Neither digs into points you’ve already banked.
 
 ### Vinyl & audio
 - Scrubbable vinyl: play / pause, drag to scrub (scratch SFX).
 - Master **volume** in the top bar (persisted; right-click mute).
 - Previews resolved at play time: track + artist → iTunes Search → Deezer fallback.
+- Dead previews auto-swap to another track from the same pool without burning the round.
 
 ### Look & feel
 - Monkeytype-inspired **themes** (default Olivia); accent colors can retint the UI.
 - 105 **Open Peeps** bust avatars for races.
 - First-run **howto**; `?` FAB anytime.
 - **Feedback** FAB → Discord (optional screenshots).
-- Share a Wrapped-style score image at the end (or download + copy text).
 - Keyboard click SFX; confetti on wins.
+
+### End of game
+- Stats: **score / accuracy / avg solve / artists / fastest / best streak** (wall-clock from round start → correct title).
+- **Personal bests** per playlist or chart (all-time + today), stored in the browser.
+- **Replay timeline** (solo keeps misses; multiplayer omits songs nobody got).
+- **Solve-times chart** in races — each player’s wins vs wall-clock time.
+- **Share** builds a Wrapped-style score image tinted to your **active theme** (iOS share sheet can Save Image; otherwise download + copy text).
 
 ### Music sources
 | Source | What you get |
@@ -103,15 +111,6 @@ When the round ends you hear the full preview, see the cover, and move on (solo 
 | Artist first, then 4 skips + hint + title | **340** |
 
 Perfect game (5 clean rounds): **3000**. Excellent sits around 2600–2900; casual play often lands 1500–2100.
-
-### End-of-game stats
-After a solo, online, or party game you get:
-- **Score / accuracy / avg solve / artists / fastest / best streak** (solve times are wall-clock from round start → correct title)
-- **Personal bests** per playlist or chart (all-time + today), stored in the browser
-- **Replay timeline** for each round
-- **Share** builds a Wrapped-style score image (when the device supports sharing files)
-
----
 
 ## How it’s made
 

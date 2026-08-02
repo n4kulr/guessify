@@ -83,6 +83,62 @@ export function computeGameStats(log = [], opts = {}) {
     bestStreak,
     distribution,
     timeline,
+    /** Solved rounds only (misses dropped for replay / share). */
+    timelineWins: timeline.filter((row) => row.won),
     steps: STEPS,
   };
+}
+
+/**
+ * Build per-player solve-time series for rounds that were solved.
+ * @param {{ round: number, winnerId: string, wallMs?: number|null, winnerName?: string, color?: string }[]} roundResults
+ * @param {{ id: string, name?: string, color?: string, avatar?: { color?: string } }[]} players
+ */
+export function solveCompareSeries(roundResults = [], players = []) {
+  const seriesById = new Map();
+  for (const p of players || []) {
+    if (!p?.id) continue;
+    seriesById.set(p.id, {
+      id: p.id,
+      name: p.name || "player",
+      color: p.color || p.avatar?.color || null,
+      points: [],
+    });
+  }
+  for (const r of roundResults || []) {
+    if (!r?.winnerId || r.wallMs == null || !Number.isFinite(r.wallMs)) continue;
+    let s = seriesById.get(r.winnerId);
+    if (!s) {
+      s = {
+        id: r.winnerId,
+        name: r.winnerName || "player",
+        color: r.color || null,
+        points: [],
+      };
+      seriesById.set(r.winnerId, s);
+    }
+    s.points.push({ round: r.round, wallMs: r.wallMs });
+  }
+  return [...seriesById.values()]
+    .filter((s) => s.points.length > 0)
+    .map((s) => ({
+      ...s,
+      points: [...s.points].sort((a, b) => a.round - b.round),
+    }));
+}
+
+/** Round results from a personal log (solo / single-player view). */
+export function roundResultsFromLog(log = [], playerId = "you", meta = {}) {
+  return (Array.isArray(log) ? log : []).flatMap((r, i) => {
+    if (!r?.won || r.wallMs == null || !Number.isFinite(r.wallMs)) return [];
+    return [
+      {
+        round: i + 1,
+        winnerId: playerId,
+        winnerName: meta.name || "you",
+        color: meta.color || null,
+        wallMs: r.wallMs,
+      },
+    ];
+  });
 }

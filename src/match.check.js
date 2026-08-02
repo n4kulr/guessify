@@ -1,5 +1,5 @@
 /**
- * Self-check: fuzzy match + almost band.
+ * Self-check: fuzzy match + almost band + slash titles + articles.
  * Run: node src/match.check.js
  */
 import assert from "node:assert/strict";
@@ -9,20 +9,42 @@ import {
   similarity,
   matchesAnyArtist,
   isAlmostAnyArtist,
+  titleParts,
+  CORRECT_SIM,
+  ALMOST_SIM,
+  normalize,
 } from "./match.js";
+
+assert.equal(CORRECT_SIM, 0.8);
+assert.equal(ALMOST_SIM, 0.5);
 
 assert.equal(isCorrect("daisies", "Daisies"), true);
 assert.equal(isAlmost("daisies", "Daisies"), false);
 
-assert.ok(similarity("hause of ballons", "house of balloons") >= 0.7);
 assert.equal(isCorrect("zzzzzzzzzz", "daisies"), false);
 assert.equal(isAlmost("zzzzzzzzzz", "daisies"), false);
 
-// Past typo window, still ~73%+ similar via barely-missed band
 assert.equal(isCorrect("blinding litez", "blinding lights"), false);
 assert.equal(isAlmost("blinding litez", "blinding lights"), true);
 
-assert.equal(matchesAnyArtist("drake", ["Drake", "Future"]), true);
-assert.equal(isAlmostAnyArtist("drake", ["Drake"]), false);
+// Leading article
+assert.equal(normalize("The Weeknd"), "weeknd");
+assert.equal(isCorrect("Weeknd", "The Weeknd"), true);
+assert.equal(isCorrect("the weeknd", "Weeknd"), true);
+
+// Slash compound — either half or full
+const hob = "House of Balloons / Glass Table Dances";
+assert.deepEqual(titleParts(hob), [
+  "House of Balloons",
+  "Glass Table Dances",
+]);
+assert.equal(isCorrect("House of Balloons", hob), true);
+assert.equal(isCorrect("Glass Table Dances", hob), true);
+assert.equal(isCorrect("house of balloons // glass table dances", hob), true);
+assert.equal(isCorrect("house of baloons // glass animasl", hob), false);
+assert.equal(isAlmost("house of baloons // glass animasl", hob), true);
+
+assert.equal(matchesAnyArtist("weeknd", ["The Weeknd", "Future"]), true);
+assert.equal(isAlmostAnyArtist("weeknd", ["The Weeknd"]), false);
 
 console.log("match.check: ok");

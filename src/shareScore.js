@@ -158,8 +158,8 @@ export function renderShareCard(opts = {}) {
     ctx.fillText(chip.v, x + 32, y + 92);
   });
 
-  // Mini replay
-  const rows = Array.isArray(timeline) ? timeline.slice(0, 5) : [];
+  // Mini replay (caller decides wins-only vs full)
+  const rows = (Array.isArray(timeline) ? timeline : []).slice(0, 5);
   if (rows.length) {
     const baseY = chipY + Math.ceil(Math.min(chips.length, 4) / 2) * 140 + 80;
     ctx.fillStyle = c.sub;

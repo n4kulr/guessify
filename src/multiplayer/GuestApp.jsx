@@ -344,7 +344,14 @@ export default function GuestApp({ code }) {
           You finished with <strong>{myScore}</strong> pts.
         </p>
         <PlayerRail players={ranked} />
-        <GameOverStats stats={endStats} bests={playlistBests} />
+        <GameOverStats
+          stats={endStats}
+          bests={playlistBests}
+          roundResults={state.roundResults || []}
+          players={ranked}
+          myId={playerId}
+          hideMisses
+        />
         <div className="gameover-actions">
           <ShareScoreButton
             mode="party"

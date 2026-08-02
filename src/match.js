@@ -1,5 +1,6 @@
 // Normalize a title for forgiving comparison:
-// lowercase, strip "(feat...)", "- remaster", punctuation, extra spaces.
+// lowercase, strip "(feat...)", "- remaster", punctuation, leading
+// the/a/an, extra spaces.
 export function normalize(str = "") {
   return str
     .toLowerCase()
@@ -8,7 +9,8 @@ export function normalize(str = "") {
     .replace(/&/g, "and")
     .replace(/[^a-z0-9\s]/g, " ") // punctuation
     .replace(/\s+/g, " ")
-    .trim();
+    .trim()
+    .replace(/^(the|a|an)\s+/, "");
 }
 
 // Levenshtein distance (small strings, fine to do inline).
@@ -26,6 +28,22 @@ function editDistance(a, b) {
   return dp[m][n];
 }
 
+/** Accept as correct at this similarity (after normalize). */
+export const CORRECT_SIM = 0.8;
+/** "Very close…" band — below correct, at/above this. */
+export const ALMOST_SIM = 0.5;
+
+/**
+ * Slash compounds in the official title ("A / B", "A // B") — each side
+ * is a legitimate answer. Split before normalize eats the slash.
+ */
+export function titleParts(answer = "") {
+  return String(answer)
+    .split(/\s*\/+\s*/)
+    .map((p) => p.trim())
+    .filter(Boolean);
+}
+
 /** 0–1 similarity after normalize (1 = identical). */
 export function similarity(guess, answer) {
   const g = normalize(guess);
@@ -36,36 +54,32 @@ export function similarity(guess, answer) {
   return 1 - d / Math.max(g.length, t.length, 1);
 }
 
-// Is `guess` close enough to the real `answer`?
-// Forgiving: exact match, substring match (helps with long titles / partial
-// artist names), or within a typo tolerance scaled to length.
+function bestSimilarity(guess, answer) {
+  let best = similarity(guess, answer);
+  const parts = titleParts(answer);
+  if (parts.length < 2) return best;
+  for (const part of parts) {
+    best = Math.max(best, similarity(guess, part));
+  }
+  return best;
+}
+
+/** Exact/≥80% on the full title, or on either side of a slash compound. */
 export function isCorrect(guess, answer) {
   const g = normalize(guess);
-  const t = normalize(answer);
-  if (!g || !t) return false;
-  if (g === t) return true;
-  // "close by" answers: allow a substring either way once it's a few chars long
-  if (g.length >= 4 && (t.includes(g) || g.includes(t))) return true;
-  // allow typos, scaled to length (min 2 so short answers still forgive one slip)
-  const tolerance = Math.max(2, Math.floor(t.length * 0.25));
-  return editDistance(g, t) <= tolerance;
+  if (!g || !normalize(answer)) return false;
+  return bestSimilarity(guess, answer) >= CORRECT_SIM;
 }
 
 /**
- * Wrong, but ~85%+ similar (or just outside the accept window).
- * Used for "Very close…" feedback — never true when isCorrect is.
+ * Wrong, but ≥50% on the full title or a slash segment — "Very close…".
+ * Never true when isCorrect is.
  */
 export function isAlmost(guess, answer) {
   if (isCorrect(guess, answer)) return false;
   const g = normalize(guess);
-  const t = normalize(answer);
-  if (!g || !t || g.length < 3) return false;
-  const d = editDistance(g, t);
-  const maxLen = Math.max(g.length, t.length);
-  if (1 - d / maxLen >= 0.85) return true;
-  // Barely missed the accepted typo band
-  const tolerance = Math.max(2, Math.floor(t.length * 0.25));
-  return d > tolerance && d <= tolerance + 2;
+  if (!g || g.length < 3 || !normalize(answer)) return false;
+  return bestSimilarity(guess, answer) >= ALMOST_SIM;
 }
 
 // Does the guess match ANY of the track's artists (fuzzy)?

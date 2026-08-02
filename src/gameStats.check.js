@@ -7,6 +7,8 @@ import {
   wallSecToStepBin,
   computeGameStats,
   formatSolveSec,
+  solveCompareSeries,
+  roundResultsFromLog,
 } from "./gameStats.js";
 
 assert.equal(wallSecToStepBin(0), 2);
@@ -40,5 +42,24 @@ assert.equal(s.distribution[16], 1);
 assert.equal(s.fastestMs, 1800);
 assert.equal(s.timeline.length, 5);
 assert.equal(s.timeline[2].won, false);
+assert.equal(s.timelineWins.length, 4);
+assert.equal(s.timelineWins[0].round, 1);
+
+const series = solveCompareSeries(
+  [
+    { round: 1, winnerId: "a", wallMs: 2000, color: "#e2b714" },
+    { round: 2, winnerId: "b", wallMs: 4000, color: "#7aa2f7" },
+    { round: 3, winnerId: "a", wallMs: 3000, color: "#e2b714" },
+  ],
+  [
+    { id: "a", name: "you", color: "#e2b714" },
+    { id: "b", name: "bot", color: "#7aa2f7" },
+  ]
+);
+assert.equal(series.length, 2);
+assert.equal(series.find((x) => x.id === "a").points.length, 2);
+
+const fromLog = roundResultsFromLog(log, "you", { name: "you" });
+assert.equal(fromLog.length, 4);
 
 console.log("gameStats.check: ok");
