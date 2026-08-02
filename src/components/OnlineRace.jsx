@@ -5,6 +5,7 @@ import { fireConfetti, shakeEl } from "../fx.js";
 import GuessMedia from "./GuessMedia.jsx";
 import GuessTransport from "./GuessTransport.jsx";
 import ShareScoreButton from "./ShareScoreButton.jsx";
+import ScrubbableVinyl from "./ScrubbableVinyl.jsx";
 import PenaltyPop from "./PenaltyPop.jsx";
 import AlmostFlash from "./AlmostFlash.jsx";
 import GameOverStats from "./GameOverStats.jsx";
@@ -982,8 +983,16 @@ export default function OnlineRace({ profile, onExit }) {
     const myScore = mine?.score ?? 0;
     const endStats = computeGameStats(roundLog, { score: myScore });
     return (
-      <div className="mp-over">
+      <div className="mp-over gameover">
+        <div className="turntable">
+          <ScrubbableVinyl spin="slow" title="drag to scrub">
+            <div className="vinyl-label" aria-hidden="true" />
+          </ScrubbableVinyl>
+        </div>
         <h2 className="title">That's a wrap!</h2>
+        <p className="subtitle">
+          You finished <strong>#{place}</strong> with <strong>{myScore}</strong> pts.
+        </p>
         <PlayerRail players={ranked} />
         <GameOverStats
           stats={endStats}

@@ -8,6 +8,7 @@ import { fireConfetti, shakeEl } from "../fx.js";
 import GuessMedia from "../components/GuessMedia.jsx";
 import GuessTransport from "../components/GuessTransport.jsx";
 import ShareScoreButton from "../components/ShareScoreButton.jsx";
+import ScrubbableVinyl from "../components/ScrubbableVinyl.jsx";
 import PenaltyPop from "../components/PenaltyPop.jsx";
 import AlmostFlash from "../components/AlmostFlash.jsx";
 import GameOverStats from "../components/GameOverStats.jsx";
@@ -426,8 +427,16 @@ export default function HostParty({ code, playlist, me, profile, onExit }) {
     const myScore = mine?.score ?? 0;
     const endStats = computeGameStats(fastEnd.roundLog, { score: myScore });
     return (
-      <div className="mp-over">
+      <div className="mp-over gameover">
+        <div className="turntable">
+          <ScrubbableVinyl spin="slow" title="drag to scrub">
+            <div className="vinyl-label" aria-hidden="true" />
+          </ScrubbableVinyl>
+        </div>
         <h2 className="title">That's a wrap!</h2>
+        <p className="subtitle">
+          You finished with <strong>{myScore}</strong> pts.
+        </p>
         <PlayerRail players={ranked} />
         <GameOverStats
           stats={endStats}
@@ -556,8 +565,16 @@ export default function HostParty({ code, playlist, me, profile, onExit }) {
     const myScore = mine?.score ?? 0;
     const endStats = computeGameStats(roundLog, { score: myScore });
     return (
-      <div className="mp-over">
+      <div className="mp-over gameover">
+        <div className="turntable">
+          <ScrubbableVinyl spin="slow" title="drag to scrub">
+            <div className="vinyl-label" aria-hidden="true" />
+          </ScrubbableVinyl>
+        </div>
         <h2 className="title">That's a wrap!</h2>
+        <p className="subtitle">
+          You finished with <strong>{myScore}</strong> pts.
+        </p>
         <PlayerRail players={ranked} />
         <GameOverStats
           stats={endStats}
