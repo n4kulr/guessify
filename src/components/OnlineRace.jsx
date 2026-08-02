@@ -16,6 +16,7 @@ import { nextSpareTrack } from "../deadPreview.js";
 import { titleHintMask, HINT_AFTER_SKIPS } from "../titleHint.js";
 import { computeGameStats } from "../gameStats.js";
 import { recordPlaylistScore } from "../playlistBests.js";
+import { isFastTest, FAST_ROUND_LOG } from "../fastTest.js";
 import {
   STEPS,
   MAX_GUESSES,
@@ -856,10 +857,77 @@ export default function OnlineRace({ profile, onExit }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [phase, voteHave, voteNeed, roundIdx]);
 
+  const fast = isFastTest();
+  function endFast() {
+    clearTimers();
+    stopAudio();
+    let roster = players;
+    if (roster.filter((p) => p.id !== youId).length < 1) {
+      roster = [
+        roster.find((p) => p.id === youId) || {
+          id: youId,
+          name: youName,
+          avatar: youAvatar,
+          color: youAvatar.color,
+          score: 0,
+          wins: 0,
+          connected: true,
+          left: false,
+          isHost: true,
+        },
+        ...makeOpponents(3, [youAvatar.color]),
+      ];
+    }
+    const opScores = [100, 40, 0];
+    let oi = 0;
+    roster = roster.map((p) => {
+      if (p.id === youId) return { ...p, score: 880, wins: 3 };
+      const score = opScores[oi++] ?? 0;
+      return { ...p, score, wins: score > 0 ? 1 : 0 };
+    });
+    setPlayers(roster);
+    setRoundLog(FAST_ROUND_LOG);
+    const ops = roster.filter((p) => p.id !== youId);
+    const results = FAST_ROUND_LOG.flatMap((r, i) => {
+      if (!r.won || r.wallMs == null) return [];
+      // Hand one win to an opponent so the compare chart has 2 series.
+      const toOp = i === 2 && ops[0];
+      const w = toOp ? ops[0] : null;
+      return [
+        {
+          round: i + 1,
+          winnerId: w ? w.id : youId,
+          winnerName: w ? w.name : youName,
+          color: w ? w.color : youAvatar.color,
+          wallMs: r.wallMs,
+          title: r.title,
+          artist: r.artist,
+          label: `${r.title} · ${r.artist}`,
+        },
+      ];
+    });
+    setRoundResults(results);
+    setPlaylistBests(
+      recordPlaylistScore(
+        chartKey || `online:${playlistName || "charts"}`,
+        playlistName || "Online race",
+        880
+      )
+    );
+    setPhase("over");
+  }
+
+  const fastEndBtn = fast && phase !== "over" && (
+    <button type="button" className="btn btn-mini fast-end-btn" onClick={endFast}>
+      end now (race)
+    </button>
+  );
+
   // ---- matching / error ----
   if (loadError) {
     return (
       <div className="mp-lobby online-race">
+        {fastEndBtn}
         <button className="btn btn-mini mp-back" onClick={onExit}>
           ← back
         </button>
@@ -874,6 +942,7 @@ export default function OnlineRace({ profile, onExit }) {
   if (phase === "matching") {
     return (
       <div className="mp-lobby online-race online-race--match">
+        {fastEndBtn}
         <button className="btn btn-mini mp-back" onClick={onExit}>
           ← leave
         </button>
@@ -927,6 +996,7 @@ export default function OnlineRace({ profile, onExit }) {
 
   return (
     <div className="game mp-host mp-board online-race" ref={rootRef}>
+      {fastEndBtn}
       <div className="mp-board-main">
         <div className="game-head">
           <button className="btn btn-mini" onClick={onExit}>

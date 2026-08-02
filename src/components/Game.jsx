@@ -17,6 +17,7 @@ import GameOverStats from "./GameOverStats.jsx";
 import PlayerRail from "../multiplayer/PlayerRail.jsx";
 import { computeGameStats } from "../gameStats.js";
 import { recordPlaylistScore } from "../playlistBests.js";
+import { isFastTest, FAST_ROUND_LOG } from "../fastTest.js";
 import {
   STEPS,
   MAX_GUESSES,
@@ -394,12 +395,32 @@ export default function Game({ playlist, me, onExit, onReplay }) {
 
   const maxScore = rounds.length * ROUND_MAX_POINTS;
   const spinning = (playing || celebrate) && !scrubbing;
+  const fast = isFastTest();
+
+  function endFast() {
+    stopAudio();
+    setRoundLog(FAST_ROUND_LOG);
+    setScore(880);
+    setPlaylistBests(
+      recordPlaylistScore(
+        playlist?.id || playlist?.name || "solo",
+        playlist?.name || "Solo",
+        880
+      )
+    );
+    setPhase("over");
+  }
 
   return (
     <div
       ref={rootRef}
       className={`game mp-board mp-board--solo ${outcome === "win" ? "game--win" : ""} ${outcome === "lose" ? "game--lose" : ""}`}
     >
+      {fast && phase !== "over" && (
+        <button type="button" className="btn btn-mini fast-end-btn" onClick={endFast}>
+          end now (solo)
+        </button>
+      )}
       <div className="mp-board-main">
         <div className="game-head">
           <button className="btn btn-mini" onClick={onExit}>
@@ -618,7 +639,6 @@ export default function Game({ playlist, me, onExit, onReplay }) {
               You scored <strong>{score}</strong> of {maxScore} possible points across{" "}
               {rounds.length} records.
             </p>
-            <PlayerRail players={players} />
             {endStats && (
               <GameOverStats
                 stats={endStats}

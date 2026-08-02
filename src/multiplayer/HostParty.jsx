@@ -20,6 +20,7 @@ import { isNoPreviewError } from "../shareScore.js";
 import { HINT_AFTER_SKIPS } from "../titleHint.js";
 import { computeGameStats } from "../gameStats.js";
 import { recordPlaylistScore } from "../playlistBests.js";
+import { isFastTest, buildFastPartyEnd } from "../fastTest.js";
 
 /**
  * Host multiplayer session — picks playlist / starts game; audio plays locally
@@ -44,6 +45,8 @@ export default function HostParty({ code, playlist, me, profile, onExit }) {
   const [almostArtist, setAlmostArtist] = useState(null);
   const [roundLog, setRoundLog] = useState([]);
   const [playlistBests, setPlaylistBests] = useState(null);
+  /** Dev-only fake wrap: bypasses the Worker and paints end screen locally. */
+  const [fastEnd, setFastEnd] = useState(null);
   const [hostName, setHostName] = useState(() => {
     const fromProfile = profile?.name?.trim();
     if (fromProfile) return fromProfile.slice(0, 16);
@@ -364,12 +367,82 @@ export default function HostParty({ code, playlist, me, profile, onExit }) {
     }
   }
 
+  const fast = isFastTest();
+  function endFast(alone) {
+    stopAudio();
+    const hostId = playerId || "host";
+    const payload = buildFastPartyEnd({
+      alone,
+      host: {
+        id: hostId,
+        name: hostName,
+        avatar: hostAvatar,
+        color: hostAvatar?.color,
+      },
+    });
+    setRoundLog(payload.roundLog);
+    setPlaylistBests(
+      recordPlaylistScore(
+        playlist?.id || playlist?.name || `party:${code}`,
+        playlist?.name || state?.playlistName || "Party",
+        payload.myScore
+      )
+    );
+    setFastEnd(payload);
+  }
+
+  const fastEndBtns = fast && !fastEnd && (
+    <div className="fast-end-btn-stack">
+      <button type="button" className="btn btn-mini fast-end-btn" onClick={() => endFast(true)}>
+        end alone
+      </button>
+      <button type="button" className="btn btn-mini fast-end-btn" onClick={() => endFast(false)}>
+        end w/ 4
+      </button>
+    </div>
+  );
+
+  // ---- fake wrap (dev) ----
+  if (fastEnd) {
+    const ranked = [...fastEnd.players].sort((a, b) => b.score - a.score);
+    const mine = ranked.find((p) => p.isHost) || ranked[0];
+    const myScore = mine?.score ?? 0;
+    const endStats = computeGameStats(fastEnd.roundLog, { score: myScore });
+    return (
+      <div className="mp-over">
+        <h2 className="title">That's a wrap!</h2>
+        <PlayerRail players={ranked} />
+        <GameOverStats
+          stats={endStats}
+          bests={playlistBests}
+          roundResults={fastEnd.roundResults}
+          players={ranked}
+          myId={mine?.id}
+          hideMisses
+        />
+        <div className="gameover-actions">
+          <ShareScoreButton
+            mode="party"
+            score={myScore}
+            name={mine?.name || hostName}
+            stats={endStats}
+            playlistName={playlist?.name || state?.playlistName || ""}
+          />
+          <button className="btn btn-big btn-play" onClick={onExit}>
+            back home
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   // ---- lobby ----
   if (!state || phase === "lobby" || phase === "empty") {
     const players = state?.players || [];
     const canStart = players.some((p) => p.connected);
     return (
       <div className="mp-lobby">
+        {fastEndBtns}
         <button className="btn btn-mini mp-back" onClick={onExit}>
           ← cancel
         </button>
@@ -501,6 +574,7 @@ export default function HostParty({ code, playlist, me, profile, onExit }) {
 
   return (
     <div className="game mp-host mp-board" ref={rootRef}>
+      {fastEndBtns}
       <div className="mp-board-main">
       <div className="game-head">
         <button className="btn btn-mini" onClick={onExit}>
