@@ -18,17 +18,17 @@ function syncThemeFromAccent(color) {
   window.dispatchEvent(new CustomEvent("guessify:theme-picked"));
 }
 
-/** Balances the accent color dot — a plain circle with a small smiley face. */
+/** Balances the accent color dot — solid face with cut-out smile (inverted). */
 function SmileyDot() {
   return (
     <svg className="profile-icon-dot" viewBox="0 0 10 10" width="10" height="10" aria-hidden="true">
-      <circle cx="5" cy="5" r="5" fill="currentColor" opacity="0.16" />
-      <circle cx="3.4" cy="4.1" r="0.8" fill="currentColor" />
-      <circle cx="6.6" cy="4.1" r="0.8" fill="currentColor" />
+      <circle cx="5" cy="5" r="5" fill="currentColor" />
+      <circle className="profile-icon-cut" cx="3.4" cy="4.1" r="0.85" />
+      <circle className="profile-icon-cut" cx="6.6" cy="4.1" r="0.85" />
       <path
+        className="profile-icon-cut-stroke"
         d="M3 6.2c0.6 0.9 2.4 0.9 4 0"
         fill="none"
-        stroke="currentColor"
         strokeWidth="0.9"
         strokeLinecap="round"
       />

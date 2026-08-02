@@ -3611,6 +3611,16 @@ button { font-family: var(--font); }
 }
 .profile-icon-dot {
   flex: none;
+  --smiley-cut: var(--sub-alt-color);
+}
+.profile-icon-btn:hover .profile-icon-dot {
+  --smiley-cut: var(--main-color);
+}
+.profile-icon-cut {
+  fill: var(--smiley-cut);
+}
+.profile-icon-cut-stroke {
+  stroke: var(--smiley-cut);
 }
 .profile-dd-chevron {
   flex: none;
