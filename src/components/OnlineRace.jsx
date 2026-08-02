@@ -1,11 +1,12 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { isCorrect, matchesAnyArtist } from "../match.js";
+import { isCorrect, matchesAnyArtist, isAlmost, isAlmostAnyArtist } from "../match.js";
 import { usePreviewPlayer } from "../usePreviewPlayer.js";
 import { fireConfetti, shakeEl } from "../fx.js";
 import GuessMedia from "./GuessMedia.jsx";
 import GuessTransport from "./GuessTransport.jsx";
 import ShareScoreButton from "./ShareScoreButton.jsx";
 import PenaltyPop from "./PenaltyPop.jsx";
+import AlmostFlash from "./AlmostFlash.jsx";
 import GameOverStats from "./GameOverStats.jsx";
 import PlayerRail from "../multiplayer/PlayerRail.jsx";
 import GuessPopups from "../multiplayer/GuessPopups.jsx";
@@ -250,6 +251,8 @@ export default function OnlineRace({ profile, onExit }) {
   const [titleHintText, setTitleHintText] = useState("");
   const [skipPop, setSkipPop] = useState(null);
   const [hintPop, setHintPop] = useState(null);
+  const [almostTitle, setAlmostTitle] = useState(null);
+  const [almostArtist, setAlmostArtist] = useState(null);
   const [roundLog, setRoundLog] = useState([]);
   const [playlistBests, setPlaylistBests] = useState(null);
   const [chartKey, setChartKey] = useState(null);
@@ -317,6 +320,8 @@ export default function OnlineRace({ profile, onExit }) {
     setTitleHintText("");
     setSkipPop(null);
     setHintPop(null);
+    setAlmostTitle(null);
+    setAlmostArtist(null);
     setPhase("play");
     roundStartedAt.current = Date.now();
     loggedRoundRef.current = -1;
@@ -655,6 +660,9 @@ export default function OnlineRace({ profile, onExit }) {
       !artistWasClaimed && artist
         ? matchesAnyArtist(artist, track.artists)
         : false;
+    const titleAlmost = title && !titleOk && isAlmost(title, track.name);
+    const artistAlmost =
+      artist && !artistOk && !artistWasClaimed && isAlmostAnyArtist(artist, track.artists);
     const you = players.find((p) => p.id === youId);
     if (!you) return;
 
@@ -692,7 +700,9 @@ export default function OnlineRace({ profile, onExit }) {
       return;
     }
 
-    if (!artistOk) shakeEl(rootRef.current);
+    if (titleAlmost) setAlmostTitle(Date.now());
+    if (artistAlmost) setAlmostArtist(Date.now());
+    if (!artistOk && !titleAlmost && !artistAlmost) shakeEl(rootRef.current);
   }
 
   function skip() {
@@ -754,6 +764,8 @@ export default function OnlineRace({ profile, onExit }) {
     setTitleHintText("");
     setSkipPop(null);
     setHintPop(null);
+    setAlmostTitle(null);
+    setAlmostArtist(null);
     setPhase("play");
     roundStartedAt.current = Date.now();
     loggedRoundRef.current = -1;
@@ -960,8 +972,15 @@ export default function OnlineRace({ profile, onExit }) {
                     className={`guess-input${titleHintText ? " guess-input--hint" : ""}`}
                     placeholder={titleHintText || "song title…"}
                     value={titleGuess}
-                    onChange={(e) => setTitleGuess(e.target.value)}
+                    onChange={(e) => {
+                      setAlmostTitle(null);
+                      setTitleGuess(e.target.value);
+                    }}
                     onKeyDown={(e) => e.key === "Enter" && submitGuess()}
+                  />
+                  <AlmostFlash
+                    token={almostTitle}
+                    onDone={() => setAlmostTitle(null)}
                   />
                   {myStep >= HINT_AFTER_SKIPS && (!hintUsed || hintPop) && (
                     <div className="guess-hint-slot">
@@ -987,14 +1006,23 @@ export default function OnlineRace({ profile, onExit }) {
                 </div>
               </div>
               <div className="guess-artist-row">
-                <input
-                  className="guess-input"
-                  placeholder="artist…"
-                  value={revealedArtist || artistGuess}
-                  disabled={!!revealedArtist}
-                  onChange={(e) => setArtistGuess(e.target.value)}
-                  onKeyDown={(e) => e.key === "Enter" && submitGuess()}
-                />
+                <div className="guess-artist-field">
+                  <input
+                    className="guess-input"
+                    placeholder="artist…"
+                    value={revealedArtist || artistGuess}
+                    disabled={!!revealedArtist}
+                    onChange={(e) => {
+                      setAlmostArtist(null);
+                      setArtistGuess(e.target.value);
+                    }}
+                    onKeyDown={(e) => e.key === "Enter" && submitGuess()}
+                  />
+                  <AlmostFlash
+                    token={almostArtist}
+                    onDone={() => setAlmostArtist(null)}
+                  />
+                </div>
                 <GuessTransport
                   playing={localPlaying}
                   busy={playBusy}

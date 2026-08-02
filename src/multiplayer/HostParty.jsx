@@ -9,6 +9,7 @@ import GuessMedia from "../components/GuessMedia.jsx";
 import GuessTransport from "../components/GuessTransport.jsx";
 import ShareScoreButton from "../components/ShareScoreButton.jsx";
 import PenaltyPop from "../components/PenaltyPop.jsx";
+import AlmostFlash from "../components/AlmostFlash.jsx";
 import GameOverStats from "../components/GameOverStats.jsx";
 import PlayerRail from "./PlayerRail.jsx";
 import ProfileEditor from "./ProfileEditor.jsx";
@@ -39,6 +40,8 @@ export default function HostParty({ code, playlist, me, profile, onExit }) {
   const [hintUsed, setHintUsed] = useState(false);
   const [skipPop, setSkipPop] = useState(null);
   const [hintPop, setHintPop] = useState(null);
+  const [almostTitle, setAlmostTitle] = useState(null);
+  const [almostArtist, setAlmostArtist] = useState(null);
   const [roundLog, setRoundLog] = useState([]);
   const [playlistBests, setPlaylistBests] = useState(null);
   const [hostName, setHostName] = useState(() => {
@@ -185,6 +188,8 @@ export default function HostParty({ code, playlist, me, profile, onExit }) {
     setHintUsed(false);
     setSkipPop(null);
     setHintPop(null);
+    setAlmostTitle(null);
+    setAlmostArtist(null);
   }, [state?.roundIdx]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Wall-clock for this device: start when a play round's track is set.
@@ -270,7 +275,11 @@ export default function HostParty({ code, playlist, me, profile, onExit }) {
     if (!g || g.playerId !== playerId || g.skip) return;
     lastFxGuess.current = i;
     if (g.win) fireConfetti("title");
-    else if (!g.artistOk) shakeEl(rootRef.current);
+    else {
+      if (g.almostTitle) setAlmostTitle(Date.now());
+      if (g.almostArtist) setAlmostArtist(Date.now());
+      if (!g.artistOk && !g.almostTitle && !g.almostArtist) shakeEl(rootRef.current);
+    }
   }, [state?.guesses, playerId]);
 
   useEffect(() => {
@@ -556,8 +565,15 @@ export default function HostParty({ code, playlist, me, profile, onExit }) {
                   className={`guess-input${titleHintText ? " guess-input--hint" : ""}`}
                   placeholder={titleHintText || "song title…"}
                   value={titleGuess}
-                  onChange={(e) => setTitleGuess(e.target.value)}
+                  onChange={(e) => {
+                    setAlmostTitle(null);
+                    setTitleGuess(e.target.value);
+                  }}
                   onKeyDown={(e) => e.key === "Enter" && submitGuess()}
+                />
+                <AlmostFlash
+                  token={almostTitle}
+                  onDone={() => setAlmostTitle(null)}
                 />
                 {myStep >= HINT_AFTER_SKIPS && (!hintUsed || hintPop) && (
                   <div className="guess-hint-slot">
@@ -583,14 +599,23 @@ export default function HostParty({ code, playlist, me, profile, onExit }) {
               </div>
             </div>
             <div className="guess-artist-row">
-              <input
-                className="guess-input"
-                placeholder="artist…"
-                value={state.revealedArtist || artistGuess}
-                disabled={!!state.revealedArtist}
-                onChange={(e) => setArtistGuess(e.target.value)}
-                onKeyDown={(e) => e.key === "Enter" && submitGuess()}
-              />
+              <div className="guess-artist-field">
+                <input
+                  className="guess-input"
+                  placeholder="artist…"
+                  value={state.revealedArtist || artistGuess}
+                  disabled={!!state.revealedArtist}
+                  onChange={(e) => {
+                    setAlmostArtist(null);
+                    setArtistGuess(e.target.value);
+                  }}
+                  onKeyDown={(e) => e.key === "Enter" && submitGuess()}
+                />
+                <AlmostFlash
+                  token={almostArtist}
+                  onDone={() => setAlmostArtist(null)}
+                />
+              </div>
               <GuessTransport
                 playing={localPlaying}
                 busy={playBusy}

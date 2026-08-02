@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { isCorrect, matchesAnyArtist } from "../match.js";
+import { isCorrect, matchesAnyArtist, isAlmost, isAlmostAnyArtist } from "../match.js";
 import { usePreviewPlayer } from "../usePreviewPlayer.js";
 import { resolvePreview } from "../itunes.js";
 import { fireConfetti, shakeEl } from "../fx.js";
@@ -12,6 +12,8 @@ import GuessTransport from "./GuessTransport.jsx";
 import ShareScoreButton from "./ShareScoreButton.jsx";
 import ScrubbableVinyl from "./ScrubbableVinyl.jsx";
 import PenaltyPop from "./PenaltyPop.jsx";
+import AlmostFlash from "./AlmostFlash.jsx";
+import ShopReveal from "./ShopReveal.jsx";
 import GameOverStats from "./GameOverStats.jsx";
 import PlayerRail from "../multiplayer/PlayerRail.jsx";
 import { computeGameStats } from "../gameStats.js";
@@ -84,6 +86,8 @@ export default function Game({ playlist, me, onExit, onReplay }) {
   const [titleHintText, setTitleHintText] = useState("");
   const [skipPop, setSkipPop] = useState(null);
   const [hintPop, setHintPop] = useState(null);
+  const [almostTitle, setAlmostTitle] = useState(null);
+  const [almostArtist, setAlmostArtist] = useState(null);
   const [roundLog, setRoundLog] = useState([]);
   const [playlistBests, setPlaylistBests] = useState(null);
 
@@ -125,6 +129,8 @@ export default function Game({ playlist, me, onExit, onReplay }) {
     setTitleHintText("");
     setSkipPop(null);
     setHintPop(null);
+    setAlmostTitle(null);
+    setAlmostArtist(null);
     setPhase("play");
     roundStartedAt.current = Date.now();
   }
@@ -283,6 +289,9 @@ export default function Game({ playlist, me, onExit, onReplay }) {
 
     const titleOk = title ? isCorrect(title, track.name) : false;
     const artistOk = artist ? matchesAnyArtist(artist, track.artists) : false;
+    const titleAlmost = title && !titleOk && isAlmost(title, track.name);
+    const artistAlmost =
+      artist && !artistOk && !artistBonusTaken && isAlmostAnyArtist(artist, track.artists);
     const win = titleOk;
 
     setTitleGuess("");
@@ -312,11 +321,12 @@ export default function Game({ playlist, me, onExit, onReplay }) {
       });
       setOutcome("win");
       setCelebrate(true);
-      fireConfetti("title");
       playSnippet(null); // full preview until next song
     } else {
       // Unlimited guesses — only Skip unlocks more audio / ends the round.
-      if (!artistOk) shakeEl(rootRef.current);
+      if (titleAlmost) setAlmostTitle(Date.now());
+      if (artistAlmost) setAlmostArtist(Date.now());
+      if (!artistOk && !titleAlmost && !artistAlmost) shakeEl(rootRef.current);
       if (artistPts) setEarnedPts(artistPts);
     }
   }
@@ -414,27 +424,37 @@ export default function Game({ playlist, me, onExit, onReplay }) {
               unlockByPlayer={{ [YOU_ID]: guessNum }}
             />
 
-            <GuessMedia
-              mode="vinyl"
-              revealed={resolved}
-              spinning={spinning}
-              celebrate={celebrate}
-              cover={track.cover}
-              title={track.name}
-              artist={(track.artists || []).join(", ")}
-              canControl={canControl}
-              interactive={canControl}
-              vinylTitle={
-                canControl
-                  ? playing
-                    ? "click to pause · drag to scrub"
-                    : "click to play · drag to scrub"
-                  : undefined
-              }
-              onTogglePlay={togglePlay}
-              onScrubStart={onVinylScrubStart}
-              onScrubEnd={onVinylScrubEnd}
-            />
+            {!resolved ? (
+              <GuessMedia
+                mode="vinyl"
+                revealed={false}
+                spinning={spinning}
+                celebrate={false}
+                cover={track.cover}
+                title={track.name}
+                artist={(track.artists || []).join(", ")}
+                canControl={canControl}
+                interactive={canControl}
+                vinylTitle={
+                  canControl
+                    ? playing
+                      ? "click to pause · drag to scrub"
+                      : "click to play · drag to scrub"
+                    : undefined
+                }
+                onTogglePlay={togglePlay}
+                onScrubStart={onVinylScrubStart}
+                onScrubEnd={onVinylScrubEnd}
+              />
+            ) : (
+              <ShopReveal
+                playKey={`${roundIdx}-${outcome}`}
+                cover={track.cover}
+                title={track.name}
+                artist={(track.artists || []).join(", ")}
+                points={outcome === "win" ? earnedPts : null}
+              />
+            )}
 
             {outcome === "win" && (
               <div key={`badge-${roundIdx}`} className="inline-badge inline-badge--win">
@@ -477,21 +497,6 @@ export default function Game({ playlist, me, onExit, onReplay }) {
 
             {resolved ? (
               <div className={`inline-reveal ${outcome}`}>
-                <div className="reveal">
-                  <div className="reveal-art">
-                    {track.cover && <img src={track.cover} alt="" className="reveal-cover" />}
-                  </div>
-                  <div className="reveal-text">
-                    <span className="reveal-title">{track.name}</span>
-                    <span className="reveal-artist">{track.artists.join(", ")}</span>
-                    {outcome === "win" && (
-                      <span className="reveal-points">
-                        +{earnedPts} pts
-                        {bonus ? " · artist bonus!" : ""}
-                      </span>
-                    )}
-                  </div>
-                </div>
                 <button className="btn btn-big btn-play" onClick={nextRound}>
                   <span className="btn-play-icon" aria-hidden="true" />
                   {roundIdx + 1 >= rounds.length ? "see results →" : "next song →"}
@@ -506,8 +511,15 @@ export default function Game({ playlist, me, onExit, onReplay }) {
                         className={`guess-input${titleHintText ? " guess-input--hint" : ""}`}
                         placeholder={titleHintText || "song title…"}
                         value={titleGuess}
-                        onChange={(e) => setTitleGuess(e.target.value)}
+                        onChange={(e) => {
+                          setAlmostTitle(null);
+                          setTitleGuess(e.target.value);
+                        }}
                         onKeyDown={(e) => e.key === "Enter" && submitGuess()}
+                      />
+                      <AlmostFlash
+                        token={almostTitle}
+                        onDone={() => setAlmostTitle(null)}
                       />
                       {guessNum >= HINT_AFTER_SKIPS && (!hintUsed || hintPop) && (
                         <div className="guess-hint-slot">
@@ -533,14 +545,23 @@ export default function Game({ playlist, me, onExit, onReplay }) {
                     </div>
                   </div>
                   <div className="guess-artist-row">
-                    <input
-                      className="guess-input"
-                      placeholder="artist…"
-                      value={revealedArtist || artistGuess}
-                      disabled={!!revealedArtist}
-                      onChange={(e) => setArtistGuess(e.target.value)}
-                      onKeyDown={(e) => e.key === "Enter" && submitGuess()}
-                    />
+                    <div className="guess-artist-field">
+                      <input
+                        className="guess-input"
+                        placeholder="artist…"
+                        value={revealedArtist || artistGuess}
+                        disabled={!!revealedArtist}
+                        onChange={(e) => {
+                          setAlmostArtist(null);
+                          setArtistGuess(e.target.value);
+                        }}
+                        onKeyDown={(e) => e.key === "Enter" && submitGuess()}
+                      />
+                      <AlmostFlash
+                        token={almostArtist}
+                        onDone={() => setAlmostArtist(null)}
+                      />
+                    </div>
                     <GuessTransport
                       playing={playing}
                       busy={playBusy}
@@ -581,10 +602,7 @@ export default function Game({ playlist, me, onExit, onReplay }) {
           <div className="gameover">
             <div className="turntable">
               <ScrubbableVinyl spin="slow" title="drag to scrub">
-                <div className="vinyl-label">
-                  <span>{score}</span>
-                  <span>pts</span>
-                </div>
+                <div className="vinyl-label" aria-hidden="true" />
               </ScrubbableVinyl>
             </div>
             <h2 className="title">That's a wrap!</h2>
@@ -607,7 +625,7 @@ export default function Game({ playlist, me, onExit, onReplay }) {
               <button className="btn btn-big btn-play" onClick={playAgain}>
                 play again
               </button>
-              <button className="btn btn-ghost" onClick={restart}>
+              <button className="btn btn-big btn-multi" onClick={restart}>
                 pick another playlist
               </button>
             </div>

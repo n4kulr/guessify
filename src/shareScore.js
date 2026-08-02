@@ -239,12 +239,8 @@ export async function shareScore(opts) {
     navigator.canShare({ files: [file] })
   ) {
     try {
-      await navigator.share({
-        files: [file],
-        title,
-        text,
-        url: SHARE_URL,
-      });
+      // Files only — iOS hides "Save Image" when text/url ride along.
+      await navigator.share({ files: [file] });
       return "shared";
     } catch (e) {
       if (e?.name === "AbortError") return "cancelled";

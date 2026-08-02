@@ -26,6 +26,16 @@ function editDistance(a, b) {
   return dp[m][n];
 }
 
+/** 0–1 similarity after normalize (1 = identical). */
+export function similarity(guess, answer) {
+  const g = normalize(guess);
+  const t = normalize(answer);
+  if (!g || !t) return 0;
+  if (g === t) return 1;
+  const d = editDistance(g, t);
+  return 1 - d / Math.max(g.length, t.length, 1);
+}
+
 // Is `guess` close enough to the real `answer`?
 // Forgiving: exact match, substring match (helps with long titles / partial
 // artist names), or within a typo tolerance scaled to length.
@@ -41,7 +51,29 @@ export function isCorrect(guess, answer) {
   return editDistance(g, t) <= tolerance;
 }
 
+/**
+ * Wrong, but ~85%+ similar (or just outside the accept window).
+ * Used for "Very close…" feedback — never true when isCorrect is.
+ */
+export function isAlmost(guess, answer) {
+  if (isCorrect(guess, answer)) return false;
+  const g = normalize(guess);
+  const t = normalize(answer);
+  if (!g || !t || g.length < 3) return false;
+  const d = editDistance(g, t);
+  const maxLen = Math.max(g.length, t.length);
+  if (1 - d / maxLen >= 0.85) return true;
+  // Barely missed the accepted typo band
+  const tolerance = Math.max(2, Math.floor(t.length * 0.25));
+  return d > tolerance && d <= tolerance + 2;
+}
+
 // Does the guess match ANY of the track's artists (fuzzy)?
 export function matchesAnyArtist(guess, artists = []) {
   return artists.some((a) => isCorrect(guess, a));
+}
+
+export function isAlmostAnyArtist(guess, artists = []) {
+  if (matchesAnyArtist(guess, artists)) return false;
+  return artists.some((a) => isAlmost(guess, a));
 }

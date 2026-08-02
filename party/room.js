@@ -1,5 +1,10 @@
 import { Server } from "partyserver";
-import { isCorrect, matchesAnyArtist } from "../src/match.js";
+import {
+  isCorrect,
+  matchesAnyArtist,
+  isAlmost,
+  isAlmostAnyArtist,
+} from "../src/match.js";
 import {
   MAX_GUESSES,
   ROUND_COUNT,
@@ -472,6 +477,9 @@ export class Room extends Server {
 
     const titleOk = title ? isCorrect(title, track.name) : false;
     const artistOk = !artistLocked && artist ? matchesAnyArtist(artist, track.artists) : false;
+    const almostTitle = title && !titleOk && isAlmost(title, track.name);
+    const almostArtist =
+      artist && !artistOk && isAlmostAnyArtist(artist, track.artists);
     const win = titleOk;
 
     // First correct artist reveals it room-wide + small bonus (title stays full).
@@ -493,6 +501,8 @@ export class Room extends Server {
       artist: artistOk ? this.state.revealedArtist : artist || null,
       titleOk,
       artistOk,
+      almostTitle: !!almostTitle,
+      almostArtist: !!almostArtist,
       win,
       artistPts,
     });

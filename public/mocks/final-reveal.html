@@ -1,0 +1,605 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Guessify — final reveal mockup</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Lexend+Deca:wght@400;600;700;800&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg: #323437;
+      --main: #e2b714;
+      --text: #d1d0c5;
+      --sub: #646669;
+      --sub-alt: #2c2e31;
+      --error: #ca4754;
+      --font: "Lexend Deca", system-ui, sans-serif;
+      --radius: 8px;
+    }
+
+    * { box-sizing: border-box; }
+    html, body {
+      margin: 0;
+      min-height: 100%;
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--font);
+    }
+
+    body {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 28px 16px 48px;
+      gap: 22px;
+      overflow-x: hidden;
+    }
+
+    .chrome {
+      width: min(420px, 100%);
+      display: flex;
+      flex-direction: column;
+      gap: 18px;
+    }
+
+    .eyebrow {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      font-size: 12px;
+      color: var(--sub);
+      letter-spacing: 0.04em;
+      text-transform: lowercase;
+    }
+    .eyebrow strong { color: var(--main); font-weight: 700; }
+
+    .stage-label {
+      margin: 0;
+      font-size: 13px;
+      color: var(--sub);
+      text-align: center;
+      min-height: 1.3em;
+    }
+    .stage-label b { color: var(--text); font-weight: 600; }
+
+    /* —— shop stage —— */
+    .shop {
+      position: relative;
+      width: 100%;
+      height: 280px;
+      display: grid;
+      place-items: center;
+      perspective: 1200px;
+      background:
+        radial-gradient(ellipse 70% 55% at 50% 58%, color-mix(in srgb, var(--main) 8%, transparent), transparent 70%),
+        var(--sub-alt);
+      border-radius: 16px;
+      overflow: hidden;
+    }
+
+    .bin {
+      position: absolute;
+      inset: auto 0 0;
+      height: 54px;
+      background: linear-gradient(180deg, #3a3c40 0%, #25262a 100%);
+      border-top: 2px solid #1a1b1e;
+      box-shadow: inset 0 8px 16px rgba(0,0,0,0.35);
+      z-index: 1;
+    }
+    .bin::before {
+      content: "new arrivals";
+      position: absolute;
+      left: 16px;
+      top: 12px;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: color-mix(in srgb, var(--sub) 70%, transparent);
+    }
+
+    .pack {
+      position: relative;
+      width: 168px;
+      height: 168px;
+      z-index: 2;
+      transform-style: preserve-3d;
+    }
+
+    /* sleeve (flippable cover) */
+    .sleeve {
+      position: absolute;
+      inset: 0;
+      transform-style: preserve-3d;
+      transform-origin: center center;
+      z-index: 3;
+      filter: drop-shadow(0 14px 22px rgba(0,0,0,0.45));
+    }
+
+    .sleeve-face {
+      position: absolute;
+      inset: 0;
+      backface-visibility: hidden;
+      border-radius: 4px;
+      overflow: hidden;
+      border: 1px solid rgba(255,255,255,0.06);
+    }
+
+    .sleeve-front {
+      background:
+        linear-gradient(145deg, #3f4146 0%, #2a2c30 55%, #232528 100%);
+      display: grid;
+      place-items: center;
+    }
+    .sleeve-front::before {
+      content: "";
+      width: 42%;
+      height: 42%;
+      border-radius: 50%;
+      border: 2px dashed color-mix(in srgb, var(--sub) 55%, transparent);
+      opacity: 0.7;
+    }
+    .sleeve-front::after {
+      content: "?";
+      position: absolute;
+      font-size: 42px;
+      font-weight: 800;
+      color: color-mix(in srgb, var(--sub) 80%, transparent);
+    }
+
+    .sleeve-back {
+      transform: rotateY(180deg);
+      background:
+        radial-gradient(circle at 30% 25%, #ff4d6d 0%, transparent 42%),
+        radial-gradient(circle at 78% 70%, #1a0a2e 0%, #0a0614 55%),
+        linear-gradient(160deg, #2b0b24, #12081f 60%, #050308);
+      display: grid;
+      place-items: end start;
+      padding: 14px;
+    }
+    .sleeve-back .art-mark {
+      font-size: 11px;
+      font-weight: 800;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: rgba(255, 220, 230, 0.85);
+    }
+    .sleeve-spine {
+      position: absolute;
+      left: 0;
+      top: 0;
+      bottom: 0;
+      width: 10px;
+      background: linear-gradient(90deg, rgba(0,0,0,0.35), transparent);
+      z-index: 2;
+      pointer-events: none;
+    }
+
+    /* vinyl — starts tucked behind / in sleeve, slides out */
+    .disc {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      width: 156px;
+      height: 156px;
+      margin: -78px 0 0 -78px;
+      border-radius: 50%;
+      z-index: 2;
+      transform: translateX(10px);
+      background: repeating-radial-gradient(circle, #0d0d0d 0 2px, #1e1e1e 2px 5px);
+      border: 3px solid var(--sub);
+      box-shadow: inset 0 0 40px rgba(0,0,0,0.65), 0 8px 18px rgba(0,0,0,0.35);
+    }
+    .disc::before {
+      content: "";
+      position: absolute;
+      inset: 7px;
+      border-radius: 50%;
+      background: linear-gradient(120deg, transparent 42%, rgba(255,255,255,0.12) 50%, transparent 58%);
+    }
+    .disc-label {
+      position: absolute;
+      inset: 32%;
+      border-radius: 50%;
+      background: var(--main);
+      z-index: 1;
+    }
+    .disc-label::after {
+      content: "";
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      transform: translate(-50%, -50%);
+      background: var(--bg);
+      border: 1px solid var(--sub);
+    }
+
+    /* reveal card under the flip */
+    .meta {
+      position: absolute;
+      left: 50%;
+      bottom: 62px;
+      transform: translateX(-50%) translateY(12px);
+      width: min(280px, calc(100% - 32px));
+      text-align: center;
+      opacity: 0;
+      z-index: 4;
+      pointer-events: none;
+    }
+    .meta-title {
+      font-size: 18px;
+      font-weight: 700;
+      margin: 0 0 4px;
+    }
+    .meta-artist {
+      margin: 0;
+      font-size: 13px;
+      color: var(--sub);
+    }
+
+    .points {
+      position: absolute;
+      top: 28px;
+      left: 50%;
+      transform: translateX(-50%) scale(0.6);
+      font-size: 42px;
+      font-weight: 800;
+      color: var(--main);
+      letter-spacing: -0.02em;
+      opacity: 0;
+      z-index: 6;
+      text-shadow: 0 6px 24px color-mix(in srgb, var(--main) 35%, transparent);
+      pointer-events: none;
+    }
+
+    /* confetti stage */
+    .confetti {
+      position: absolute;
+      inset: 0;
+      overflow: hidden;
+      pointer-events: none;
+      z-index: 5;
+    }
+    .fx-piece {
+      position: absolute;
+      top: -12px;
+      left: var(--x);
+      opacity: 0;
+    }
+    .fx-face {
+      width: var(--w);
+      height: var(--h);
+      border-radius: var(--r);
+      background: var(--c);
+    }
+
+    /* —— animation states —— */
+    .shop.is-idle .disc { transform: translateX(14px); }
+
+    .shop.is-slide .disc {
+      animation: slide-out 0.85s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+    }
+    .shop.is-slide .sleeve {
+      animation: sleeve-nudge 0.85s ease forwards;
+    }
+
+    .shop.is-flip .disc {
+      transform: translateX(118px) rotate(28deg);
+    }
+    .shop.is-flip .sleeve {
+      animation: cover-flip 0.9s cubic-bezier(0.4, 0.05, 0.2, 1) forwards;
+    }
+
+    .shop.is-boom .disc {
+      transform: translateX(118px) rotate(28deg);
+    }
+    .shop.is-boom .sleeve {
+      transform: rotateY(180deg);
+    }
+    .shop.is-boom .meta {
+      animation: meta-in 0.5s ease 0.05s forwards;
+    }
+    .shop.is-boom .points {
+      animation: points-pop 0.7s cubic-bezier(0.34, 1.45, 0.64, 1) 0.15s forwards;
+    }
+    .shop.is-boom .fx-piece {
+      animation: confetti-fall var(--dur) ease-out var(--delay) forwards;
+    }
+    .shop.is-boom .fx-face {
+      animation: confetti-spin var(--spin) linear infinite;
+    }
+
+    @keyframes slide-out {
+      0%   { transform: translateX(14px) rotate(0deg); }
+      60%  { transform: translateX(128px) rotate(22deg); }
+      100% { transform: translateX(118px) rotate(28deg); }
+    }
+    @keyframes sleeve-nudge {
+      0%   { transform: translateX(0) rotate(0deg); }
+      40%  { transform: translateX(-6px) rotate(-2deg); }
+      100% { transform: translateX(0) rotate(0deg); }
+    }
+    @keyframes cover-flip {
+      0%   { transform: rotateY(0deg) scale(1); }
+      45%  { transform: rotateY(95deg) scale(1.04); }
+      100% { transform: rotateY(180deg) scale(1); }
+    }
+    @keyframes meta-in {
+      to { opacity: 1; transform: translateX(-50%) translateY(0); }
+    }
+    @keyframes points-pop {
+      0%   { opacity: 0; transform: translateX(-50%) scale(0.5) translateY(10px); }
+      60%  { opacity: 1; transform: translateX(-50%) scale(1.12) translateY(0); }
+      100% { opacity: 1; transform: translateX(-50%) scale(1) translateY(0); }
+    }
+    @keyframes confetti-fall {
+      0%   { opacity: 0; transform: translate3d(0, 0, 0) rotate(0deg); }
+      8%   { opacity: 1; }
+      100% { opacity: 0; transform: translate3d(var(--dx), 260px, 0) rotate(var(--rot)); }
+    }
+    @keyframes confetti-spin {
+      to { transform: rotateX(360deg) rotateY(360deg); }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .shop.is-slide .disc,
+      .shop.is-slide .sleeve,
+      .shop.is-flip .sleeve,
+      .shop.is-boom .meta,
+      .shop.is-boom .points,
+      .shop.is-boom .fx-piece,
+      .shop.is-boom .fx-face {
+        animation: none !important;
+      }
+      .shop.is-slide .disc,
+      .shop.is-flip .disc,
+      .shop.is-boom .disc { transform: translateX(118px) rotate(28deg); }
+      .shop.is-flip .sleeve,
+      .shop.is-boom .sleeve { transform: rotateY(180deg); }
+      .shop.is-boom .meta { opacity: 1; transform: translateX(-50%) translateY(0); }
+      .shop.is-boom .points { opacity: 1; transform: translateX(-50%) scale(1); }
+    }
+
+    /* controls */
+    .controls {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+    button {
+      font-family: var(--font);
+      font-size: 14px;
+      font-weight: 600;
+      border: none;
+      border-radius: var(--radius);
+      padding: 12px 18px;
+      cursor: pointer;
+      background: var(--main);
+      color: var(--bg);
+    }
+    button.ghost {
+      background: var(--sub-alt);
+      color: var(--text);
+    }
+    button:disabled { opacity: 0.5; cursor: default; }
+
+    .beats {
+      width: min(420px, 100%);
+      display: grid;
+      gap: 8px;
+      margin: 0;
+      padding: 0;
+      list-style: none;
+    }
+    .beats li {
+      display: grid;
+      grid-template-columns: 28px 1fr;
+      gap: 10px;
+      align-items: start;
+      padding: 10px 12px;
+      border-radius: 10px;
+      background: var(--sub-alt);
+      font-size: 13px;
+      color: var(--sub);
+    }
+    .beats li.is-on {
+      color: var(--text);
+      outline: 1px solid color-mix(in srgb, var(--main) 45%, transparent);
+    }
+    .beats .n {
+      color: var(--main);
+      font-weight: 800;
+      font-size: 12px;
+      padding-top: 1px;
+    }
+    .note {
+      width: min(420px, 100%);
+      font-size: 12px;
+      color: var(--sub);
+      line-height: 1.5;
+      margin: 0;
+    }
+  </style>
+</head>
+<body>
+  <div class="chrome">
+    <div class="eyebrow">
+      <span>guessify mockup</span>
+      <strong>final song reveal</strong>
+    </div>
+
+    <p class="stage-label" id="caption">Idle — sealed sleeve in the bin</p>
+
+    <div class="shop is-idle" id="shop" aria-live="polite">
+      <div class="confetti" id="confetti" aria-hidden="true"></div>
+      <div class="points" id="points">+560</div>
+
+      <div class="pack">
+        <div class="disc" aria-hidden="true">
+          <div class="disc-label"></div>
+        </div>
+        <div class="sleeve" id="sleeve">
+          <div class="sleeve-face sleeve-front">
+            <span class="sleeve-spine"></span>
+          </div>
+          <div class="sleeve-face sleeve-back">
+            <span class="sleeve-spine"></span>
+            <span class="art-mark">after<br />hours</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="meta">
+        <p class="meta-title">Blinding Lights</p>
+        <p class="meta-artist">The Weeknd</p>
+      </div>
+
+      <div class="bin" aria-hidden="true"></div>
+    </div>
+  </div>
+
+  <div class="controls">
+    <button type="button" id="play">Play sequence</button>
+    <button type="button" class="ghost" id="reset">Reset</button>
+  </div>
+
+  <ol class="beats" id="beats">
+    <li data-beat="0"><span class="n">0</span><span>Sealed mystery sleeve (vinyl barely peeking)</span></li>
+    <li data-beat="1"><span class="n">1</span><span>Record slides out of the sleeve</span></li>
+    <li data-beat="2"><span class="n">2</span><span>Cover flips over → artwork</span></li>
+    <li data-beat="3"><span class="n">3</span><span>Confetti + <b style="color:var(--main)">+560</b></span></li>
+  </ol>
+
+  <p class="note">
+    Prototype only — open via Vite at <code>/mocks/final-reveal.html</code>.
+    Timing is deliberate (~2.4s total) so the shop beat can land before results UI.
+  </p>
+
+  <script>
+    const shop = document.getElementById("shop");
+    const caption = document.getElementById("caption");
+    const playBtn = document.getElementById("play");
+    const resetBtn = document.getElementById("reset");
+    const confetti = document.getElementById("confetti");
+    const beatEls = [...document.querySelectorAll("#beats li")];
+
+    const captions = [
+      "Idle — sealed sleeve in the bin",
+      "① Record slides out…",
+      "② Cover flips over",
+      "③ Confetti · +560",
+    ];
+
+    let timers = [];
+    let playing = false;
+
+    function clearTimers() {
+      timers.forEach(clearTimeout);
+      timers = [];
+    }
+
+    function setBeat(n) {
+      beatEls.forEach((el) => el.classList.toggle("is-on", Number(el.dataset.beat) === n));
+      caption.innerHTML = captions[n] || "";
+    }
+
+    function setPhase(name) {
+      shop.className = `shop ${name}`;
+    }
+
+    function reducedMotion() {
+      return window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    }
+
+    function spawnConfetti() {
+      confetti.innerHTML = "";
+      if (reducedMotion()) return;
+      const colors = ["#e2b714", "#d1d0c5", "#ca4754", "#646669", "#e2b714", "#2c2e31"];
+      for (let i = 0; i < 42; i++) {
+        const shell = document.createElement("div");
+        shell.className = "fx-piece";
+        const face = document.createElement("div");
+        face.className = "fx-face";
+        const kind = Math.random();
+        let w, h, r;
+        if (kind < 0.25) {
+          w = h = 7 + Math.random() * 5;
+          r = "50%";
+        } else if (kind < 0.5) {
+          w = 12 + Math.random() * 8;
+          h = 3;
+          r = "2px";
+        } else {
+          w = 6 + Math.random() * 5;
+          h = 9 + Math.random() * 6;
+          r = "1px";
+        }
+        shell.style.setProperty("--x", `${8 + Math.random() * 84}%`);
+        shell.style.setProperty("--dx", `${(Math.random() - 0.5) * 120}px`);
+        shell.style.setProperty("--rot", `${(Math.random() - 0.5) * 720}deg`);
+        shell.style.setProperty("--dur", `${1.1 + Math.random() * 0.9}s`);
+        shell.style.setProperty("--delay", `${Math.random() * 0.25}s`);
+        face.style.setProperty("--w", `${w}px`);
+        face.style.setProperty("--h", `${h}px`);
+        face.style.setProperty("--r", r);
+        face.style.setProperty("--c", colors[(Math.random() * colors.length) | 0]);
+        face.style.setProperty("--spin", `${0.4 + Math.random() * 0.8}s`);
+        shell.appendChild(face);
+        confetti.appendChild(shell);
+      }
+    }
+
+    function reset() {
+      clearTimers();
+      playing = false;
+      playBtn.disabled = false;
+      confetti.innerHTML = "";
+      setPhase("is-idle");
+      setBeat(0);
+    }
+
+    function play() {
+      if (playing) return;
+      playing = true;
+      playBtn.disabled = true;
+      clearTimers();
+      confetti.innerHTML = "";
+      setPhase("is-idle");
+      setBeat(0);
+
+      const fast = reducedMotion();
+      const t1 = fast ? 50 : 350;
+      const t2 = fast ? 120 : 1200;
+      const t3 = fast ? 200 : 2100;
+
+      timers.push(setTimeout(() => {
+        setPhase("is-slide");
+        setBeat(1);
+      }, t1));
+
+      timers.push(setTimeout(() => {
+        setPhase("is-flip");
+        setBeat(2);
+      }, t2));
+
+      timers.push(setTimeout(() => {
+        spawnConfetti();
+        setPhase("is-boom");
+        setBeat(3);
+        playing = false;
+        playBtn.disabled = false;
+      }, t3));
+    }
+
+    playBtn.addEventListener("click", play);
+    resetBtn.addEventListener("click", reset);
+    setBeat(0);
+  </script>
+</body>
+</html>
