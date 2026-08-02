@@ -61,14 +61,16 @@ Avatars: 105 Open Peeps busts in `public/peeps/` (from Flat Assets); lobby is ni
 
 ## Scoring
 
-Skip unlocks more of the snippet (solo / your device in party): **2 → 4 → 7 → 11 → 16 → 20** seconds.
+Skip unlocks more of the snippet (solo / your device in party): **2 → 4 → 7 → 11 → 16 → 20** seconds. Each skip costs **−50**. Title hint (after 4 skips) costs **−100** once per round.
 
 | What you get right | Points |
 | --- | --- |
 | Title | **500** |
 | Artist (first claim) | **100** |
+| Skip (more audio) | **−50** |
+| Title hint | **−100** (once / round) |
 
-Title stays **500** even if artist was already claimed. Max per round → **600**.
+Title stays **500** even if artist was already claimed. Max per round before penalties → **600**.
 
 ---
 

@@ -3,7 +3,7 @@ import QRCode from "qrcode";
 import { usePartyRoom } from "./usePartyRoom.js";
 import { usePreviewPlayer } from "../usePreviewPlayer.js";
 import { resolvePreview } from "../itunes.js";
-import { STEPS, TOTAL, randomAvatar, normalizeAvatar, unlockSecondsFor, PLAYER_COLORS, nextVotesNeeded, activePlayerCount } from "./constants.js";
+import { STEPS, TOTAL, randomAvatar, normalizeAvatar, unlockSecondsFor, PLAYER_COLORS, nextVotesNeeded, activePlayerCount, SKIP_PENALTY } from "./constants.js";
 import { fireConfetti, shakeEl } from "../fx.js";
 import GuessMedia from "../components/GuessMedia.jsx";
 import GuessTransport from "../components/GuessTransport.jsx";
@@ -14,14 +14,15 @@ import GuessPopups from "./GuessPopups.jsx";
 import { loadLocalProfile, saveLocalProfile } from "../localProfile.js";
 import { applyThemeForAccent, accentMatchingTheme } from "../themes.js";
 import { isNoPreviewError } from "../shareScore.js";
-import { titleHintMask, HINT_AFTER_SKIPS } from "../titleHint.js";
+import { HINT_AFTER_SKIPS } from "../titleHint.js";
 
 /**
  * Host multiplayer session — picks playlist / starts game; audio plays locally
  * on each device (no shared DJ).
  */
 export default function HostParty({ code, playlist, me, profile, onExit }) {
-  const { state, status, error, send, playerId: socketPlayerId } = usePartyRoom(code);
+  const { state, status, error, send, playerId: socketPlayerId, titleHint, consumeTitleHint } =
+    usePartyRoom(code);
   // Prefer roster host id — handshake/sessionStorage can lag or go stale, which
   // leaves unlockByPlayer lookups stuck at 2s while skip popups still show.
   const playerId =
@@ -233,8 +234,7 @@ export default function HostParty({ code, playlist, me, profile, onExit }) {
     } catch (e) {
       setLocalPlaying(false);
       if (isNoPreviewError(e) && phase === "play") {
-        // Don't burn a skip unlock — host/guest can't swap the room track here.
-        setErrorMsg("No preview for this one.");
+        // Silent — room track can't be swapped here.
       }
     } finally {
       setPlayBusy(false);
@@ -365,10 +365,14 @@ export default function HostParty({ code, playlist, me, profile, onExit }) {
   function applyTitleHint() {
     if (phase !== "play") return;
     if (myStep < HINT_AFTER_SKIPS) return;
-    const name = hostMeta?.name || track?.name;
-    if (!name) return;
-    setTitleGuess(titleHintMask(name));
+    send({ type: "hint" });
   }
+
+  useEffect(() => {
+    if (!titleHint) return;
+    setTitleGuess(titleHint);
+    consumeTitleHint();
+  }, [titleHint, consumeTitleHint]);
 
   // ---- game over ----
   if (phase === "over") {
@@ -471,23 +475,25 @@ export default function HostParty({ code, playlist, me, profile, onExit }) {
         <div className="guess-input-wrap">
           <div className="guess-fields">
             <div className="guess-title-row">
-              <input
-                className="guess-input"
-                placeholder="song title…"
-                value={titleGuess}
-                onChange={(e) => setTitleGuess(e.target.value)}
-                onKeyDown={(e) => e.key === "Enter" && submitGuess()}
-              />
-              {myStep >= HINT_AFTER_SKIPS && (hostMeta?.name || track?.name) && (
-                <button
-                  type="button"
-                  className="btn btn-mini guess-hint-btn"
-                  onClick={applyTitleHint}
-                  aria-label="Reveal title hint"
-                >
-                  hint
-                </button>
-              )}
+              <div className="guess-title-field">
+                <input
+                  className="guess-input"
+                  placeholder="song title…"
+                  value={titleGuess}
+                  onChange={(e) => setTitleGuess(e.target.value)}
+                  onKeyDown={(e) => e.key === "Enter" && submitGuess()}
+                />
+                {myStep >= HINT_AFTER_SKIPS && (
+                  <button
+                    type="button"
+                    className="guess-hint-link"
+                    onClick={applyTitleHint}
+                    aria-label="Reveal title hint"
+                  >
+                    hint
+                  </button>
+                )}
+              </div>
             </div>
             <div className="guess-artist-row">
               <input
@@ -511,7 +517,7 @@ export default function HostParty({ code, playlist, me, profile, onExit }) {
           <div className="guess-actions">
             <button className="btn btn-skip" onClick={skipGuess}>
               <span className="btn-label">skip</span>
-              <span className="btn-hint">+audio</span>
+              <span className="btn-hint">+audio · −{SKIP_PENALTY}</span>
             </button>
             <button
               className="btn btn-guess"

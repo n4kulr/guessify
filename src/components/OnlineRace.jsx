@@ -18,6 +18,8 @@ import {
   ROUND_COUNT,
   titlePointsForGuess,
   ARTIST_BONUS,
+  SKIP_PENALTY,
+  HINT_PENALTY,
   randomAvatar,
   normalizeAvatar,
   PLAYER_COLORS,
@@ -240,6 +242,7 @@ export default function OnlineRace({ profile, onExit }) {
   const [artistGuess, setArtistGuess] = useState("");
   const [localPlaying, setLocalPlaying] = useState(false);
   const [playBusy, setPlayBusy] = useState(false);
+  const [hintUsed, setHintUsed] = useState(false);
 
   const { errorMsg, setErrorMsg, play, pause } = usePreviewPlayer();
   const rootRef = useRef(null);
@@ -267,6 +270,8 @@ export default function OnlineRace({ profile, onExit }) {
       if (step >= MAX_GUESSES - 1) return prev;
       return { ...prev, [playerId]: step + 1 };
     });
+    const step = unlockByPlayer[playerId] ?? 0;
+    if (step < MAX_GUESSES - 1) bumpScore(playerId, -SKIP_PENALTY);
   }
 
   function clearTimers() {
@@ -296,6 +301,7 @@ export default function OnlineRace({ profile, onExit }) {
     setArtistClaimedBy(null);
     setTitleGuess("");
     setArtistGuess("");
+    setHintUsed(false);
     setPhase("play");
   }
 
@@ -308,7 +314,6 @@ export default function OnlineRace({ profile, onExit }) {
       for (;;) {
         const spare = nextSpareTrack(poolRef.current, used, deadTrack?.id);
         if (!spare) {
-          setErrorMsg("No preview left — skipping round.");
           return false;
         }
         used.add(spare.id);
@@ -322,8 +327,6 @@ export default function OnlineRace({ profile, onExit }) {
         });
         stopAudio();
         resetInRound();
-        setErrorMsg("No preview — swapped for another song.");
-        window.setTimeout(() => setErrorMsg(null), 1600);
         return true;
       }
     } finally {
@@ -446,7 +449,9 @@ export default function OnlineRace({ profile, onExit }) {
   function bumpScore(playerId, pts) {
     if (!pts) return;
     setPlayers((prev) =>
-      prev.map((p) => (p.id === playerId ? { ...p, score: p.score + pts } : p))
+      prev.map((p) =>
+        p.id === playerId ? { ...p, score: Math.max(0, p.score + pts) } : p
+      )
     );
   }
 
@@ -649,6 +654,10 @@ export default function OnlineRace({ profile, onExit }) {
   function applyTitleHint() {
     if (phase !== "play" || !track?.name) return;
     if (myStep < HINT_AFTER_SKIPS) return;
+    if (!hintUsed) {
+      setHintUsed(true);
+      bumpScore(youId, -HINT_PENALTY);
+    }
     setTitleGuess(titleHintMask(track.name));
   }
 
@@ -682,6 +691,7 @@ export default function OnlineRace({ profile, onExit }) {
     artistClaimedRef.current = null;
     setTitleGuess("");
     setArtistGuess("");
+    setHintUsed(false);
     setPhase("play");
   }
 
@@ -876,23 +886,25 @@ export default function OnlineRace({ profile, onExit }) {
           <div className="guess-input-wrap">
             <div className="guess-fields">
               <div className="guess-title-row">
-                <input
-                  className="guess-input"
-                  placeholder="song title…"
-                  value={titleGuess}
-                  onChange={(e) => setTitleGuess(e.target.value)}
-                  onKeyDown={(e) => e.key === "Enter" && submitGuess()}
-                />
-                {myStep >= HINT_AFTER_SKIPS && (
-                  <button
-                    type="button"
-                    className="btn btn-mini guess-hint-btn"
-                    onClick={applyTitleHint}
-                    aria-label="Reveal title hint"
-                  >
-                    hint
-                  </button>
-                )}
+                <div className="guess-title-field">
+                  <input
+                    className="guess-input"
+                    placeholder="song title…"
+                    value={titleGuess}
+                    onChange={(e) => setTitleGuess(e.target.value)}
+                    onKeyDown={(e) => e.key === "Enter" && submitGuess()}
+                  />
+                  {myStep >= HINT_AFTER_SKIPS && (
+                    <button
+                      type="button"
+                      className="guess-hint-link"
+                      onClick={applyTitleHint}
+                      aria-label="Reveal title hint"
+                    >
+                      hint
+                    </button>
+                  )}
+                </div>
               </div>
               <div className="guess-artist-row">
                 <input
@@ -916,7 +928,7 @@ export default function OnlineRace({ profile, onExit }) {
             <div className="guess-actions">
               <button className="btn btn-skip" onClick={skip}>
                 <span className="btn-label">skip</span>
-                <span className="btn-hint">+audio</span>
+                <span className="btn-hint">+audio · −{SKIP_PENALTY}</span>
               </button>
               <button
                 className="btn btn-guess"

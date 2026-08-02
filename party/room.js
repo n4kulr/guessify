@@ -9,6 +9,8 @@ import {
   randomAvatar,
   titlePointsForGuess,
   ARTIST_BONUS,
+  SKIP_PENALTY,
+  HINT_PENALTY,
   nextVotesNeeded,
   activePlayerCount,
   allPlayersMaxUnlocked,
@@ -248,6 +250,7 @@ export class Room extends Server {
         phase: "lobby", // lobby | play | reveal | over
         roundIdx: 0,
         unlockByPlayer: {},
+        hintByPlayer: {},
         guesses: [],
         nextVotes: {},
         outcome: null,
@@ -433,6 +436,7 @@ export class Room extends Server {
     this.state.phase = "play";
     this.state.roundIdx = 0;
     this.state.unlockByPlayer = {};
+    this.state.hintByPlayer = {};
     this.state.guesses = [];
     this.state.nextVotes = {};
     this.state.outcome = null;
@@ -539,6 +543,7 @@ export class Room extends Server {
 
     // Only this player's snippet grows.
     this.state.unlockByPlayer[player.id] = step + 1;
+    player.score = Math.max(0, (player.score || 0) - SKIP_PENALTY);
 
     // Round only ends once every active player has fully unlocked.
     if (allPlayersMaxUnlocked(this.state.players, this.state.unlockByPlayer)) {
@@ -572,6 +577,15 @@ export class Room extends Server {
     const t = this.state.tracks?.[this.state.roundIdx];
     const hint = titleHintMask(t?.name || "");
     if (!hint) return;
+
+    if (!this.state.hintByPlayer) this.state.hintByPlayer = {};
+    if (!this.state.hintByPlayer[player.id]) {
+      this.state.hintByPlayer[player.id] = true;
+      player.score = Math.max(0, (player.score || 0) - HINT_PENALTY);
+      this.broadcastState();
+      void this.persist();
+    }
+
     sender.send(JSON.stringify({ type: "titleHint", hint }));
   }
 
@@ -618,6 +632,7 @@ export class Room extends Server {
 
     this.state.roundIdx += 1;
     this.state.unlockByPlayer = {};
+    this.state.hintByPlayer = {};
     this.state.guesses = [];
     this.state.nextVotes = {};
     this.state.outcome = null;

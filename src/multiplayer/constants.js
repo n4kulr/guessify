@@ -8,6 +8,10 @@ export const ROUND_COUNT = 5;
 export const TITLE_POINTS = 500;
 /** Small bonus for revealing the artist first (hint + a little score). */
 export const ARTIST_BONUS = 100;
+/** Lost each time you skip for more audio. */
+export const SKIP_PENALTY = 50;
+/** Lost the first time you use the title hint in a round. */
+export const HINT_PENALTY = 100;
 /** @deprecated use TITLE_POINTS */
 export const TITLE_POINTS_SONG_FIRST = TITLE_POINTS;
 /** @deprecated title is never reduced after artist */

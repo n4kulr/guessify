@@ -74,7 +74,6 @@ export function usePreviewPlayer() {
     setErrorMsg(null);
     const url = await resolvePreview(track);
     if (!url) {
-      setErrorMsg("No preview — trying another song…");
       throw new Error("no preview");
     }
 

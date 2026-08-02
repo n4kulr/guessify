@@ -19,6 +19,8 @@ import {
   ROUND_COUNT,
   titlePointsForGuess,
   ARTIST_BONUS,
+  SKIP_PENALTY,
+  HINT_PENALTY,
   ROUND_MAX_POINTS,
   normalizeAvatar,
   randomAvatar,
@@ -72,6 +74,7 @@ export default function Game({ playlist, me, onExit, onReplay }) {
   const [playBusy, setPlayBusy] = useState(false);
   const [celebrate, setCelebrate] = useState(false);
   const [scrubbing, setScrubbing] = useState(false);
+  const [hintUsed, setHintUsed] = useState(false);
 
   const { errorMsg, setErrorMsg, play, pause } = usePreviewPlayer();
 
@@ -106,6 +109,7 @@ export default function Game({ playlist, me, onExit, onReplay }) {
     setCelebrate(false);
     setTitleGuess("");
     setArtistGuess("");
+    setHintUsed(false);
     setPhase("play");
   }
 
@@ -121,7 +125,6 @@ export default function Game({ playlist, me, onExit, onReplay }) {
       for (;;) {
         const spare = nextSpareTrack(pool, used, deadTrack?.id);
         if (!spare) {
-          setErrorMsg("No preview left in this playlist — skipping round.");
           return false;
         }
         used.add(spare.id);
@@ -135,8 +138,6 @@ export default function Game({ playlist, me, onExit, onReplay }) {
         });
         stopAudio();
         resetInRound();
-        setErrorMsg("No preview — swapped for another song.");
-        window.setTimeout(() => setErrorMsg(null), 1600);
         return true;
       }
     } finally {
@@ -232,6 +233,7 @@ export default function Game({ playlist, me, onExit, onReplay }) {
 
   // Skip only: unlock more audio, or lose the round when steps are exhausted.
   function consumeGuess() {
+    setScore((s) => Math.max(0, s - SKIP_PENALTY));
     const nextNum = guessNum + 1;
     if (nextNum >= MAX_GUESSES) {
       setOutcome("lose");
@@ -294,6 +296,10 @@ export default function Game({ playlist, me, onExit, onReplay }) {
   function applyTitleHint() {
     if (phase !== "play" || resolved || !track?.name) return;
     if (guessNum < HINT_AFTER_SKIPS) return;
+    if (!hintUsed) {
+      setHintUsed(true);
+      setScore((s) => Math.max(0, s - HINT_PENALTY));
+    }
     setTitleGuess(titleHintMask(track.name));
   }
 
@@ -443,23 +449,25 @@ export default function Game({ playlist, me, onExit, onReplay }) {
               <div className="guess-input-wrap">
                 <div className="guess-fields">
                   <div className="guess-title-row">
-                    <input
-                      className="guess-input"
-                      placeholder="song title…"
-                      value={titleGuess}
-                      onChange={(e) => setTitleGuess(e.target.value)}
-                      onKeyDown={(e) => e.key === "Enter" && submitGuess()}
-                    />
-                    {guessNum >= HINT_AFTER_SKIPS && (
-                      <button
-                        type="button"
-                        className="btn btn-mini guess-hint-btn"
-                        onClick={applyTitleHint}
-                        aria-label="Reveal title hint"
-                      >
-                        hint
-                      </button>
-                    )}
+                    <div className="guess-title-field">
+                      <input
+                        className="guess-input"
+                        placeholder="song title…"
+                        value={titleGuess}
+                        onChange={(e) => setTitleGuess(e.target.value)}
+                        onKeyDown={(e) => e.key === "Enter" && submitGuess()}
+                      />
+                      {guessNum >= HINT_AFTER_SKIPS && (
+                        <button
+                          type="button"
+                          className="guess-hint-link"
+                          onClick={applyTitleHint}
+                          aria-label="Reveal title hint"
+                        >
+                          hint
+                        </button>
+                      )}
+                    </div>
                   </div>
                   <div className="guess-artist-row">
                     <input
@@ -483,7 +491,7 @@ export default function Game({ playlist, me, onExit, onReplay }) {
                 <div className="guess-actions">
                   <button className="btn btn-skip" onClick={skip}>
                     <span className="btn-label">skip</span>
-                    <span className="btn-hint">+audio</span>
+                    <span className="btn-hint">+audio · −{SKIP_PENALTY}</span>
                   </button>
                   <button
                     className="btn btn-guess"

@@ -1,8 +1,10 @@
 /**
  * Mask a song title for the late-game hint.
+ * Only the first HINT_MAX_LETTERS letters are shown (rest omitted).
  * Example: "daisies" → "d _ _ s _ e _"
- * (first letter, every 3rd letter except the last, and second-to-last)
  */
+
+export const HINT_MAX_LETTERS = 10;
 
 function revealAt(i, len) {
   if (len <= 1) return true;
@@ -12,9 +14,25 @@ function revealAt(i, len) {
   return false;
 }
 
+/** First N letters of the title (spaces kept between words; punct dropped). */
+function clipTitleLetters(title, maxLetters) {
+  let letters = 0;
+  let out = "";
+  for (const ch of String(title || "").trim()) {
+    if (/[a-zA-Z0-9]/.test(ch)) {
+      if (letters >= maxLetters) break;
+      letters += 1;
+      out += ch;
+    } else if (letters > 0 && /\s/.test(ch)) {
+      out += " ";
+    }
+  }
+  return out.replace(/\s+/g, " ").trim();
+}
+
 /** @param {string} title */
 export function titleHintMask(title) {
-  const s = String(title || "").trim();
+  const s = clipTitleLetters(title, HINT_MAX_LETTERS);
   if (!s) return "";
 
   const out = [];
@@ -35,5 +53,5 @@ export function titleHintMask(title) {
   return out.join("").replace(/\s+/g, " ").trim();
 }
 
-/** Skips before the hint button appears (0-based step index). */
+/** Skips before the hint control appears (0-based step index). */
 export const HINT_AFTER_SKIPS = 4;

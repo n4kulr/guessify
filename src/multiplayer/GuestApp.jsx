@@ -4,7 +4,7 @@ import { usePreviewPlayer } from "../usePreviewPlayer.js";
 import PlayerRail from "./PlayerRail.jsx";
 import ProfileEditor from "./ProfileEditor.jsx";
 import GuessPopups from "./GuessPopups.jsx";
-import { STEPS, TOTAL, randomAvatar, normalizeAvatar, unlockSecondsFor, PLAYER_COLORS, nextVotesNeeded, activePlayerCount } from "./constants.js";
+import { STEPS, TOTAL, randomAvatar, normalizeAvatar, unlockSecondsFor, PLAYER_COLORS, nextVotesNeeded, activePlayerCount, SKIP_PENALTY } from "./constants.js";
 import { accentMatchingTheme } from "../themes.js";
 import { fireConfetti, shakeEl } from "../fx.js";
 import GuessMedia from "../components/GuessMedia.jsx";
@@ -155,7 +155,7 @@ export default function GuestApp({ code }) {
     } catch (e) {
       setLocalPlaying(false);
       if (isNoPreviewError(e) && state?.phase === "play") {
-        setErrorMsg("No preview for this one.");
+        // Silent — room track can't be swapped here.
       }
     } finally {
       setPlayBusy(false);
@@ -344,23 +344,25 @@ export default function GuestApp({ code }) {
           <div className="guess-input-wrap">
             <div className="guess-fields">
               <div className="guess-title-row">
-                <input
-                  className="guess-input"
-                  placeholder="song title…"
-                  value={titleGuess}
-                  onChange={(e) => setTitleGuess(e.target.value)}
-                  onKeyDown={(e) => e.key === "Enter" && submitGuess()}
-                />
-                {myStep >= HINT_AFTER_SKIPS && (
-                  <button
-                    type="button"
-                    className="btn btn-mini guess-hint-btn"
-                    onClick={applyTitleHint}
-                    aria-label="Reveal title hint"
-                  >
-                    hint
-                  </button>
-                )}
+                <div className="guess-title-field">
+                  <input
+                    className="guess-input"
+                    placeholder="song title…"
+                    value={titleGuess}
+                    onChange={(e) => setTitleGuess(e.target.value)}
+                    onKeyDown={(e) => e.key === "Enter" && submitGuess()}
+                  />
+                  {myStep >= HINT_AFTER_SKIPS && (
+                    <button
+                      type="button"
+                      className="guess-hint-link"
+                      onClick={applyTitleHint}
+                      aria-label="Reveal title hint"
+                    >
+                      hint
+                    </button>
+                  )}
+                </div>
               </div>
               <div className="guess-artist-row">
                 <input
@@ -384,7 +386,7 @@ export default function GuestApp({ code }) {
             <div className="guess-actions">
               <button className="btn btn-skip" onClick={skipGuess}>
                 <span className="btn-label">skip</span>
-                <span className="btn-hint">+audio</span>
+                <span className="btn-hint">+audio · −{SKIP_PENALTY}</span>
               </button>
               <button
                 className="btn btn-guess"
