@@ -1,4 +1,4 @@
-import { useEffect, useId, useMemo, useState } from "react";
+import { useEffect, useId, useMemo, useRef, useState } from "react";
 import ChartCdSpindle from "./ChartCdSpindle.jsx";
 import PlaylistCdShelf from "./PlaylistCdShelf.jsx";
 
@@ -63,6 +63,10 @@ export default function PlaylistPicker({ onPick, needsLogin = false }) {
   const [note, setNote] = useState(null);
   const [showAllYours, setShowAllYours] = useState(false);
   const [chartQuery, setChartQuery] = useState("");
+  const [chartSuggestions, setChartSuggestions] = useState([]);
+  const [suggestOpen, setSuggestOpen] = useState(false);
+  const [suggestHi, setSuggestHi] = useState(-1);
+  const suggestBoxRef = useRef(null);
   const [yoursView, setYoursView] = useState("cds"); // cds | list
   const [showLoginModal, setShowLoginModal] = useState(false);
   const loginModalTitleId = useId();
@@ -75,6 +79,75 @@ export default function PlaylistPicker({ onPick, needsLogin = false }) {
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, [showLoginModal]);
+
+  // Local pack hits instantly; Last.fm tag.search fills the rest (malayalam etc.).
+  useEffect(() => {
+    const q = chartQuery.trim().toLowerCase();
+    if (q.length < 1) {
+      setChartSuggestions([]);
+      setSuggestOpen(false);
+      setSuggestHi(-1);
+      return;
+    }
+
+    const local = CHART_PACKS.filter(
+      (p) =>
+        p.tag.includes(q) ||
+        p.label.toLowerCase().includes(q) ||
+        p.blurb.toLowerCase().includes(q)
+    ).map((p) => ({ name: p.tag, label: p.label, local: true }));
+
+    setChartSuggestions(local.slice(0, 8));
+    setSuggestOpen(local.length > 0);
+    setSuggestHi(-1);
+
+    const ac = new AbortController();
+    const t = window.setTimeout(async () => {
+      try {
+        const r = await fetch(
+          `/api/charts?suggest=${encodeURIComponent(q)}`,
+          { signal: ac.signal, credentials: "include" }
+        );
+        if (!r.ok) return;
+        const d = await r.json();
+        const remote = (d.tags || []).map((tag) => ({
+          name: tag.name,
+          label: tag.name,
+          local: false,
+        }));
+        const seen = new Set(local.map((x) => x.name));
+        const merged = [...local];
+        for (const hit of remote) {
+          if (seen.has(hit.name)) continue;
+          seen.add(hit.name);
+          merged.push(hit);
+          if (merged.length >= 8) break;
+        }
+        if (!ac.signal.aborted) {
+          setChartSuggestions(merged);
+          setSuggestOpen(merged.length > 0);
+        }
+      } catch (e) {
+        if (e?.name === "AbortError") return;
+      }
+    }, 220);
+
+    return () => {
+      clearTimeout(t);
+      ac.abort();
+    };
+  }, [chartQuery]);
+
+  useEffect(() => {
+    if (!suggestOpen) return;
+    function onDoc(e) {
+      if (suggestBoxRef.current?.contains(e.target)) return;
+      setSuggestOpen(false);
+      setSuggestHi(-1);
+    }
+    document.addEventListener("pointerdown", onDoc);
+    return () => document.removeEventListener("pointerdown", onDoc);
+  }, [suggestOpen]);
 
   useEffect(() => {
     // Logged out: the API falls back to the site owner's shared library.
@@ -169,7 +242,36 @@ export default function PlaylistPicker({ onPick, needsLogin = false }) {
 
   function submitChartSearch(e) {
     e.preventDefault();
+    setSuggestOpen(false);
+    if (suggestHi >= 0 && chartSuggestions[suggestHi]) {
+      pickSuggestion(chartSuggestions[suggestHi].name);
+      return;
+    }
     chooseChart(chartQuery);
+  }
+
+  function pickSuggestion(tag) {
+    setChartQuery(tag);
+    setSuggestOpen(false);
+    setSuggestHi(-1);
+    chooseChart(tag);
+  }
+
+  function onChartKeyDown(e) {
+    if (!suggestOpen || chartSuggestions.length === 0) {
+      if (e.key === "Escape") setSuggestOpen(false);
+      return;
+    }
+    if (e.key === "ArrowDown") {
+      e.preventDefault();
+      setSuggestHi((i) => (i + 1) % chartSuggestions.length);
+    } else if (e.key === "ArrowUp") {
+      e.preventDefault();
+      setSuggestHi((i) => (i <= 0 ? chartSuggestions.length - 1 : i - 1));
+    } else if (e.key === "Escape") {
+      setSuggestOpen(false);
+      setSuggestHi(-1);
+    }
   }
 
   function toggleYoursView() {
@@ -285,23 +387,62 @@ export default function PlaylistPicker({ onPick, needsLogin = false }) {
         <p className="section-sub chart-search-sub">(artist/era/album)</p>
         <form className="chart-search" onSubmit={submitChartSearch}>
           <div className="join-code-row">
-            <label className="chart-search-field">
-              {!chartQuery && (
-                <span className="chart-search-ph" aria-hidden="true">
-                  <span className="chart-search-ph-main">type your pick…</span>
-                </span>
+            <div className="chart-search-field" ref={suggestBoxRef}>
+              <label className="chart-search-label">
+                {!chartQuery && (
+                  <span className="chart-search-ph" aria-hidden="true">
+                    <span className="chart-search-ph-main">type your pick…</span>
+                  </span>
+                )}
+                <input
+                  className="guess-input join-code-input chart-search-input"
+                  placeholder=""
+                  value={chartQuery}
+                  onChange={(e) => setChartQuery(e.target.value)}
+                  onFocus={() => {
+                    if (chartSuggestions.length) setSuggestOpen(true);
+                  }}
+                  onKeyDown={onChartKeyDown}
+                  disabled={loadingId !== null}
+                  autoCorrect="off"
+                  spellCheck={false}
+                  role="combobox"
+                  aria-expanded={suggestOpen}
+                  aria-autocomplete="list"
+                  aria-controls="chart-suggest-list"
+                  aria-activedescendant={
+                    suggestHi >= 0 ? `chart-suggest-${suggestHi}` : undefined
+                  }
+                  aria-label="type your pick, artist, era, or album"
+                />
+              </label>
+              {suggestOpen && chartSuggestions.length > 0 && (
+                <ul
+                  id="chart-suggest-list"
+                  className="chart-suggest"
+                  role="listbox"
+                >
+                  {chartSuggestions.map((s, i) => (
+                    <li key={s.name} role="presentation">
+                      <button
+                        type="button"
+                        id={`chart-suggest-${i}`}
+                        role="option"
+                        aria-selected={suggestHi === i}
+                        className={`chart-suggest-item${suggestHi === i ? " is-active" : ""}`}
+                        onMouseEnter={() => setSuggestHi(i)}
+                        onClick={() => pickSuggestion(s.name)}
+                      >
+                        <span className="chart-suggest-name">{s.name}</span>
+                        {s.local && (
+                          <span className="chart-suggest-badge">pack</span>
+                        )}
+                      </button>
+                    </li>
+                  ))}
+                </ul>
               )}
-              <input
-                className="guess-input join-code-input chart-search-input"
-                placeholder=""
-                value={chartQuery}
-                onChange={(e) => setChartQuery(e.target.value)}
-                disabled={loadingId !== null}
-                autoCorrect="off"
-                spellCheck={false}
-                aria-label="type your pick, artist, era, or album"
-              />
-            </label>
+            </div>
             <button
               type="submit"
               className="btn btn-play"

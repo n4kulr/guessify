@@ -2,12 +2,34 @@ const LASTFM = "https://ws.audioscrobbler.com/2.0/";
 
 // Tag → top tracks via Last.fm (metadata only). Audio still comes from iTunes.
 // No Spotify session — charts are the open path for logged-out play.
+//
+// ?suggest=malay → tag name autocomplete (what Last.fm actually knows)
+// ?tag=pop → load top tracks for that tag
 export default async function handler(req, res) {
   const key = process.env.LASTFM_API_KEY;
   if (!key) {
     res.status(503).json({
       error: "Charts aren’t configured yet — add LASTFM_API_KEY on the server.",
     });
+    return;
+  }
+
+  const suggest = String(req.query.suggest ?? "")
+    .trim()
+    .toLowerCase()
+    .slice(0, 64);
+  if ("suggest" in req.query) {
+    if (suggest.length < 1) {
+      res.status(200).json({ tags: [] });
+      return;
+    }
+    try {
+      const tags = await searchTags(key, suggest);
+      res.status(200).json({ tags });
+    } catch (e) {
+      console.error("lastfm tag.search", e);
+      res.status(500).json({ error: "Failed to suggest tags." });
+    }
     return;
   }
 
@@ -88,6 +110,38 @@ export default async function handler(req, res) {
     console.error("lastfm charts", e);
     res.status(500).json({ error: "Failed to load chart tracks." });
   }
+}
+
+async function searchTags(apiKey, q) {
+  const url =
+    `${LASTFM}?method=tag.search` +
+    `&tag=${encodeURIComponent(q)}` +
+    `&limit=8` +
+    `&api_key=${encodeURIComponent(apiKey)}` +
+    `&format=json`;
+  const r = await fetch(url, {
+    headers: { "User-Agent": "Guessify/1.0 (https://guessify.uk)" },
+  });
+  if (!r.ok) throw new Error(`lastfm ${r.status}`);
+  const data = await r.json();
+  if (data?.error) throw new Error(data.message || "tag.search failed");
+  const raw = data?.results?.tagmatches?.tag;
+  const list = Array.isArray(raw) ? raw : raw ? [raw] : [];
+  const out = [];
+  const seen = new Set();
+  for (const t of list) {
+    const name = String(t?.name || "")
+      .trim()
+      .toLowerCase()
+      .slice(0, 64);
+    if (!name || seen.has(name)) continue;
+    seen.add(name);
+    out.push({
+      name,
+      count: Number(t?.count) || 0,
+    });
+  }
+  return out;
 }
 
 function largestImage(images) {
