@@ -8,9 +8,12 @@ import GuessMedia from "../components/GuessMedia.jsx";
 import GuessTransport from "../components/GuessTransport.jsx";
 import ShareScoreButton from "../components/ShareScoreButton.jsx";
 import PenaltyPop from "../components/PenaltyPop.jsx";
+import GameOverStats from "../components/GameOverStats.jsx";
 import { isNoPreviewError } from "../shareScore.js";
 import { loadLocalProfile } from "../localProfile.js";
 import { HINT_AFTER_SKIPS } from "../titleHint.js";
+import { computeGameStats } from "../gameStats.js";
+import { recordPlaylistScore } from "../playlistBests.js";
 import PlayerRail from "./PlayerRail.jsx";
 import ProfileEditor from "./ProfileEditor.jsx";
 import GuessPopups from "./GuessPopups.jsx";
@@ -34,6 +37,8 @@ export default function GuestApp({ code }) {
   const [hintUsed, setHintUsed] = useState(false);
   const [skipPop, setSkipPop] = useState(null);
   const [hintPop, setHintPop] = useState(null);
+  const [roundLog, setRoundLog] = useState([]);
+  const [playlistBests, setPlaylistBests] = useState(null);
   const { errorMsg, setErrorMsg, play, pause } = usePreviewPlayer();
   const [playBusy, setPlayBusy] = useState(false);
   const [localPlaying, setLocalPlaying] = useState(false);
@@ -43,6 +48,8 @@ export default function GuestApp({ code }) {
   const skipWrapRef = useRef(null);
   const titleFieldRef = useRef(null);
   const lastFxGuess = useRef(-1);
+  const roundStartedAt = useRef(Date.now());
+  const loggedRoundRef = useRef(-1);
 
   const joined = !!playerId;
   const me = state?.players?.find((p) => p.id === playerId);
@@ -81,6 +88,49 @@ export default function GuestApp({ code }) {
     setSkipPop(null);
     setHintPop(null);
   }, [state?.roundIdx]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  useEffect(() => {
+    if (state?.phase !== "play" || !state?.trackId) return;
+    roundStartedAt.current = Date.now();
+    loggedRoundRef.current = -1;
+  }, [state?.phase, state?.trackId, state?.roundIdx]);
+
+  useEffect(() => {
+    if (state?.phase !== "reveal") return;
+    const idx = state.roundIdx ?? 0;
+    if (loggedRoundRef.current === idx) return;
+    loggedRoundRef.current = idx;
+    const won = state.winnerId === playerId;
+    const wallMs =
+      won && roundStartedAt.current != null
+        ? Date.now() - roundStartedAt.current
+        : null;
+    setRoundLog((prev) => [
+      ...prev,
+      {
+        won,
+        artistClaimed: state.artistClaimedBy === playerId,
+        wallMs,
+        unlockStep: state.unlockByPlayer?.[playerId] ?? 0,
+      },
+    ]);
+  }, [
+    state?.phase,
+    state?.roundIdx,
+    state?.winnerId,
+    state?.artistClaimedBy,
+    state?.unlockByPlayer,
+    playerId,
+  ]);
+
+  useEffect(() => {
+    if (state?.phase !== "over") return;
+    const mine = state.players?.find((p) => p.id === playerId);
+    const plName = state.playlistName || "Party";
+    const id = `party:${upper}:${plName}`;
+    setPlaylistBests(recordPlaylistScore(id, plName, mine?.score ?? 0));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [state?.phase]);
 
   useEffect(() => {
     return () => {
@@ -276,19 +326,30 @@ export default function GuestApp({ code }) {
   if (state.phase === "over") {
     const ranked = [...state.players].sort((a, b) => b.score - a.score);
     const mine = ranked.find((p) => p.id === playerId);
+    const myScore = mine?.score ?? 0;
+    const endStats = computeGameStats(roundLog, { score: myScore });
     return (
       <div className="mp-guest mp-over">
         <h2 className="title">That's a wrap!</h2>
         <p className="subtitle">
-          You finished with <strong>{mine?.score ?? 0}</strong> pts.
+          You finished with <strong>{myScore}</strong> pts.
         </p>
         <PlayerRail players={ranked} />
+        <GameOverStats stats={endStats} bests={playlistBests} />
         <div className="gameover-actions">
           <ShareScoreButton
             mode="party"
-            score={mine?.score ?? 0}
+            score={myScore}
             name={mine?.name || name}
           />
+          <button
+            className="btn btn-big btn-play"
+            onClick={() => {
+              window.location.href = "/";
+            }}
+          >
+            back home
+          </button>
         </div>
       </div>
     );

@@ -12,7 +12,10 @@ import GuessTransport from "./GuessTransport.jsx";
 import ShareScoreButton from "./ShareScoreButton.jsx";
 import ScrubbableVinyl from "./ScrubbableVinyl.jsx";
 import PenaltyPop from "./PenaltyPop.jsx";
+import GameOverStats from "./GameOverStats.jsx";
 import PlayerRail from "../multiplayer/PlayerRail.jsx";
+import { computeGameStats } from "../gameStats.js";
+import { recordPlaylistScore } from "../playlistBests.js";
 import {
   STEPS,
   MAX_GUESSES,
@@ -81,8 +84,11 @@ export default function Game({ playlist, me, onExit, onReplay }) {
   const [titleHintText, setTitleHintText] = useState("");
   const [skipPop, setSkipPop] = useState(null);
   const [hintPop, setHintPop] = useState(null);
+  const [roundLog, setRoundLog] = useState([]);
+  const [playlistBests, setPlaylistBests] = useState(null);
 
   const { errorMsg, setErrorMsg, play, pause } = usePreviewPlayer();
+  const roundStartedAt = useRef(Date.now());
 
   const track = rounds[roundIdx];
   const unlocked = STEPS[Math.min(guessNum, MAX_GUESSES - 1)];
@@ -120,6 +126,23 @@ export default function Game({ playlist, me, onExit, onReplay }) {
     setSkipPop(null);
     setHintPop(null);
     setPhase("play");
+    roundStartedAt.current = Date.now();
+  }
+
+  function pushRoundResult({ won, artistClaimed }) {
+    const wallMs =
+      won && roundStartedAt.current != null
+        ? Date.now() - roundStartedAt.current
+        : null;
+    setRoundLog((prev) => [
+      ...prev,
+      {
+        won: !!won,
+        artistClaimed: !!artistClaimed,
+        wallMs,
+        unlockStep: guessNum,
+      },
+    ]);
   }
 
   /** Same round number; pull another track from the playlist/chart pool. */
@@ -244,6 +267,7 @@ export default function Game({ playlist, me, onExit, onReplay }) {
   function consumeGuess() {
     const nextNum = guessNum + 1;
     if (nextNum >= MAX_GUESSES) {
+      pushRoundResult({ won: false, artistClaimed: artistBonusTaken });
       setOutcome("lose");
       playSnippet(null); // full preview until next song
     } else {
@@ -282,6 +306,10 @@ export default function Game({ playlist, me, onExit, onReplay }) {
       const titlePts = titlePointsForGuess(guessNum, hintUsed);
       setEarnedPts(titlePts + artistPts);
       setScore((s) => s + titlePts);
+      pushRoundResult({
+        won: true,
+        artistClaimed: artistBonusTaken || artistPts > 0,
+      });
       setOutcome("win");
       setCelebrate(true);
       fireConfetti("title");
@@ -338,6 +366,18 @@ export default function Game({ playlist, me, onExit, onReplay }) {
   useEffect(() => {
     if (phase === "over") fireConfetti("victory");
   }, [phase]);
+
+  useEffect(() => {
+    if (phase !== "over") return;
+    const id = playlist?.id || playlist?.name || "solo";
+    const name = playlist?.name || "Solo";
+    setPlaylistBests(recordPlaylistScore(id, name, score));
+  }, [phase]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const endStats = useMemo(
+    () => (phase === "over" ? computeGameStats(roundLog, { score }) : null),
+    [phase, roundLog, score]
+  );
 
   const maxScore = rounds.length * ROUND_MAX_POINTS;
   const spinning = (playing || celebrate) && !scrubbing;
@@ -553,6 +593,9 @@ export default function Game({ playlist, me, onExit, onReplay }) {
               {rounds.length} records.
             </p>
             <PlayerRail players={players} />
+            {endStats && (
+              <GameOverStats stats={endStats} bests={playlistBests} />
+            )}
             <div className="gameover-actions">
               <ShareScoreButton mode="solo" score={score} maxScore={maxScore} />
               <button className="btn btn-big btn-play" onClick={playAgain}>

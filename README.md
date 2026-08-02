@@ -104,6 +104,12 @@ When the round ends you hear the full preview, see the cover, and move on (solo 
 
 Perfect game (5 clean rounds): **3000**. Excellent sits around 2600–2900; casual play often lands 1500–2100.
 
+### End-of-game stats
+After a solo, online, or party game you get:
+- **Score / accuracy / avg solve / artists / fastest / best streak** (solve times are wall-clock from round start → correct title)
+- **Personal bests** per playlist or chart (all-time + today), stored in the browser
+- **Solved after** distribution and a **replay timeline** for each round
+
 ---
 
 ## How it’s made

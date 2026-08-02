@@ -6,12 +6,15 @@ import GuessMedia from "./GuessMedia.jsx";
 import GuessTransport from "./GuessTransport.jsx";
 import ShareScoreButton from "./ShareScoreButton.jsx";
 import PenaltyPop from "./PenaltyPop.jsx";
+import GameOverStats from "./GameOverStats.jsx";
 import PlayerRail from "../multiplayer/PlayerRail.jsx";
 import GuessPopups from "../multiplayer/GuessPopups.jsx";
 import { isNoPreviewError } from "../shareScore.js";
 import { resolvePreview } from "../itunes.js";
 import { nextSpareTrack } from "../deadPreview.js";
 import { titleHintMask, HINT_AFTER_SKIPS } from "../titleHint.js";
+import { computeGameStats } from "../gameStats.js";
+import { recordPlaylistScore } from "../playlistBests.js";
 import {
   STEPS,
   MAX_GUESSES,
@@ -247,6 +250,9 @@ export default function OnlineRace({ profile, onExit }) {
   const [titleHintText, setTitleHintText] = useState("");
   const [skipPop, setSkipPop] = useState(null);
   const [hintPop, setHintPop] = useState(null);
+  const [roundLog, setRoundLog] = useState([]);
+  const [playlistBests, setPlaylistBests] = useState(null);
+  const [chartKey, setChartKey] = useState(null);
 
   const { errorMsg, setErrorMsg, play, pause } = usePreviewPlayer();
   const rootRef = useRef(null);
@@ -257,6 +263,8 @@ export default function OnlineRace({ profile, onExit }) {
   const artistClaimedRef = useRef(null);
   const roundKeyRef = useRef(0);
   const advancingRef = useRef(false);
+  const roundStartedAt = useRef(Date.now());
+  const loggedRoundRef = useRef(-1);
 
   phaseRef.current = phase;
   artistClaimedRef.current = artistClaimedBy;
@@ -310,6 +318,8 @@ export default function OnlineRace({ profile, onExit }) {
     setSkipPop(null);
     setHintPop(null);
     setPhase("play");
+    roundStartedAt.current = Date.now();
+    loggedRoundRef.current = -1;
   }
 
   async function replaceDeadTrack(deadTrack) {
@@ -413,6 +423,7 @@ export default function OnlineRace({ profile, onExit }) {
         usedIdsRef.current = new Set(tracks.map((t) => t.id).filter(Boolean));
         setRounds(tracks);
         setPlaylistName(data.name || "today’s charts");
+        setChartKey(`online:${tag}`);
 
         // Pause before anyone else shows up — feels less instant.
         await new Promise((res) => setTimeout(res, 900 + Math.random() * 700));
@@ -430,6 +441,8 @@ export default function OnlineRace({ profile, onExit }) {
         }
         await new Promise((res) => setTimeout(res, 1100 + Math.random() * 500));
         if (cancelled) return;
+        roundStartedAt.current = Date.now();
+        loggedRoundRef.current = -1;
         setPhase("play");
       } catch {
         if (!cancelled) {
@@ -492,6 +505,38 @@ export default function OnlineRace({ profile, onExit }) {
     setPhase("reveal");
     if (player.id === youId) fireConfetti("title");
   }
+
+  // Personal round log (you only) when the round resolves.
+  useEffect(() => {
+    if (phase !== "reveal") return;
+    if (loggedRoundRef.current === roundIdx) return;
+    loggedRoundRef.current = roundIdx;
+    const won = winnerId === youId;
+    const wallMs =
+      won && roundStartedAt.current != null
+        ? Date.now() - roundStartedAt.current
+        : null;
+    setRoundLog((prev) => [
+      ...prev,
+      {
+        won,
+        artistClaimed: artistClaimedBy === youId,
+        wallMs,
+        unlockStep: unlockByPlayer[youId] ?? 0,
+      },
+    ]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [phase, roundIdx, winnerId, artistClaimedBy]);
+
+  useEffect(() => {
+    if (phase !== "over") return;
+    const me = players.find((p) => p.id === youId);
+    const id = chartKey || `online:${playlistName || "charts"}`;
+    setPlaylistBests(
+      recordPlaylistScore(id, playlistName || "Online race", me?.score ?? 0)
+    );
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [phase]);
 
   function claimArtist(player, trackRef) {
     if (phaseRef.current !== "play") return false;
@@ -710,6 +755,8 @@ export default function OnlineRace({ profile, onExit }) {
     setSkipPop(null);
     setHintPop(null);
     setPhase("play");
+    roundStartedAt.current = Date.now();
+    loggedRoundRef.current = -1;
   }
 
   function voteNext(e) {
@@ -788,11 +835,13 @@ export default function OnlineRace({ profile, onExit }) {
     const ranked = [...players].sort((a, b) => b.score - a.score);
     const mine = ranked.find((p) => p.id === youId);
     const place = ranked.findIndex((p) => p.id === youId) + 1;
+    const myScore = mine?.score ?? 0;
+    const endStats = computeGameStats(roundLog, { score: myScore });
     return (
       <div className="mp-over">
         <h2>race over</h2>
         <p>
-          You finished <strong>#{place}</strong> with <strong>{mine?.score ?? 0}</strong> pts.
+          You finished <strong>#{place}</strong> with <strong>{myScore}</strong> pts.
         </p>
         <ol className="mp-final">
           {ranked.map((p, i) => (
@@ -803,10 +852,11 @@ export default function OnlineRace({ profile, onExit }) {
             </li>
           ))}
         </ol>
+        <GameOverStats stats={endStats} bests={playlistBests} />
         <div className="gameover-actions">
           <ShareScoreButton
             mode="online"
-            score={mine?.score ?? 0}
+            score={myScore}
             place={place}
           />
           <button className="btn btn-big btn-play" onClick={onExit}>

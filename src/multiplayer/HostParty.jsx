@@ -9,6 +9,7 @@ import GuessMedia from "../components/GuessMedia.jsx";
 import GuessTransport from "../components/GuessTransport.jsx";
 import ShareScoreButton from "../components/ShareScoreButton.jsx";
 import PenaltyPop from "../components/PenaltyPop.jsx";
+import GameOverStats from "../components/GameOverStats.jsx";
 import PlayerRail from "./PlayerRail.jsx";
 import ProfileEditor from "./ProfileEditor.jsx";
 import GuessPopups from "./GuessPopups.jsx";
@@ -16,6 +17,8 @@ import { loadLocalProfile, saveLocalProfile } from "../localProfile.js";
 import { applyThemeForAccent, accentMatchingTheme } from "../themes.js";
 import { isNoPreviewError } from "../shareScore.js";
 import { HINT_AFTER_SKIPS } from "../titleHint.js";
+import { computeGameStats } from "../gameStats.js";
+import { recordPlaylistScore } from "../playlistBests.js";
 
 /**
  * Host multiplayer session — picks playlist / starts game; audio plays locally
@@ -36,6 +39,8 @@ export default function HostParty({ code, playlist, me, profile, onExit }) {
   const [hintUsed, setHintUsed] = useState(false);
   const [skipPop, setSkipPop] = useState(null);
   const [hintPop, setHintPop] = useState(null);
+  const [roundLog, setRoundLog] = useState([]);
+  const [playlistBests, setPlaylistBests] = useState(null);
   const [hostName, setHostName] = useState(() => {
     const fromProfile = profile?.name?.trim();
     if (fromProfile) return fromProfile.slice(0, 16);
@@ -62,6 +67,8 @@ export default function HostParty({ code, playlist, me, profile, onExit }) {
   const skipWrapRef = useRef(null);
   const titleFieldRef = useRef(null);
   const lastFxGuess = useRef(-1);
+  const roundStartedAt = useRef(Date.now());
+  const loggedRoundRef = useRef(-1);
 
   // (host reclaim runs on every socket open — see effect below)
 
@@ -179,6 +186,51 @@ export default function HostParty({ code, playlist, me, profile, onExit }) {
     setSkipPop(null);
     setHintPop(null);
   }, [state?.roundIdx]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Wall-clock for this device: start when a play round's track is set.
+  useEffect(() => {
+    if (state?.phase !== "play" || !state?.trackId) return;
+    roundStartedAt.current = Date.now();
+    loggedRoundRef.current = -1;
+  }, [state?.phase, state?.trackId, state?.roundIdx]);
+
+  useEffect(() => {
+    if (state?.phase !== "reveal") return;
+    const idx = state.roundIdx ?? 0;
+    if (loggedRoundRef.current === idx) return;
+    loggedRoundRef.current = idx;
+    const won = state.winnerId === playerId;
+    const wallMs =
+      won && roundStartedAt.current != null
+        ? Date.now() - roundStartedAt.current
+        : null;
+    setRoundLog((prev) => [
+      ...prev,
+      {
+        won,
+        artistClaimed: state.artistClaimedBy === playerId,
+        wallMs,
+        unlockStep: state.unlockByPlayer?.[playerId] ?? 0,
+      },
+    ]);
+  }, [
+    state?.phase,
+    state?.roundIdx,
+    state?.winnerId,
+    state?.artistClaimedBy,
+    state?.unlockByPlayer,
+    playerId,
+  ]);
+
+  useEffect(() => {
+    if (state?.phase !== "over") return;
+    const mine = state.players?.find((p) => p.id === playerId);
+    const id = playlist?.id || playlist?.name || `party:${code}`;
+    setPlaylistBests(
+      recordPlaylistScore(id, playlist?.name || state.playlistName || "Party", mine?.score ?? 0)
+    );
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [state?.phase]);
 
   function updateHostProfile({ name, avatar }) {
     setHostName(name);
@@ -397,14 +449,17 @@ export default function HostParty({ code, playlist, me, profile, onExit }) {
   if (phase === "over") {
     const ranked = [...state.players].sort((a, b) => b.score - a.score);
     const mine = ranked.find((p) => p.id === playerId);
+    const myScore = mine?.score ?? 0;
+    const endStats = computeGameStats(roundLog, { score: myScore });
     return (
       <div className="mp-over">
         <h2 className="title">That's a wrap!</h2>
         <PlayerRail players={ranked} />
+        <GameOverStats stats={endStats} bests={playlistBests} />
         <div className="gameover-actions">
           <ShareScoreButton
             mode="party"
-            score={mine?.score ?? 0}
+            score={myScore}
             name={mine?.name || hostName}
           />
           <button className="btn btn-big btn-play" onClick={onExit}>
