@@ -420,43 +420,67 @@ export default function HostParty({ code, playlist, me, profile, onExit }) {
 
   useDebugActions("host-party", debugActions);
 
-  // ---- fake wrap (dev) ----
-  if (fastEnd) {
-    const ranked = [...fastEnd.players].sort((a, b) => b.score - a.score);
-    const mine = ranked.find((p) => p.isHost) || ranked[0];
+  // ---- wrap (debug fake + real party over share this UI) ----
+  if (fastEnd || (state && phase === "over")) {
+    const ranked = [
+      ...(fastEnd ? fastEnd.players : state.players),
+    ].sort((a, b) => b.score - a.score);
+    const mine = fastEnd
+      ? ranked.find((p) => p.isHost) || ranked[0]
+      : ranked.find((p) => p.id === playerId);
     const myScore = mine?.score ?? 0;
-    const endStats = computeGameStats(fastEnd.roundLog, { score: myScore });
+    const endStats = computeGameStats(
+      fastEnd ? fastEnd.roundLog : roundLog,
+      { score: myScore }
+    );
     return (
-      <div className="mp-over gameover">
-        <div className="turntable">
-          <ScrubbableVinyl spin="slow" title="drag to scrub">
-            <div className="vinyl-label" aria-hidden="true" />
-          </ScrubbableVinyl>
-        </div>
-        <h2 className="title">That's a wrap!</h2>
-        <p className="subtitle">
-          You finished with <strong>{myScore}</strong> pts.
-        </p>
-        <PlayerRail players={ranked} />
-        <GameOverStats
-          stats={endStats}
-          bests={playlistBests}
-          roundResults={fastEnd.roundResults}
-          players={ranked}
-          myId={mine?.id}
-          hideMisses
-        />
-        <div className="gameover-actions">
-          <ShareScoreButton
-            mode="party"
-            score={myScore}
-            name={mine?.name || hostName}
-            stats={endStats}
-            playlistName={playlist?.name || state?.playlistName || ""}
-          />
-          <button className="btn btn-big btn-play" onClick={onExit}>
-            back home
-          </button>
+      <div className="game mp-board mp-board--solo" ref={rootRef}>
+        <div className="mp-board-main">
+          <div className="game-head">
+            <button className="btn btn-mini" onClick={onExit}>
+              ← end party
+            </button>
+            <div className="scoreboard">
+              <span className="scoreboard-label">room</span>
+              <span className="scoreboard-value">{code}</span>
+            </div>
+          </div>
+          <div className="gameover">
+            <div className="turntable">
+              <ScrubbableVinyl spin="slow" title="drag to scrub">
+                <div className="vinyl-label" aria-hidden="true" />
+              </ScrubbableVinyl>
+            </div>
+            <h2 className="title">That's a wrap!</h2>
+            <p className="subtitle">
+              You finished with <strong>{myScore}</strong> pts.
+            </p>
+            <PlayerRail players={ranked} />
+            <GameOverStats
+              stats={endStats}
+              bests={playlistBests}
+              roundResults={
+                fastEnd ? fastEnd.roundResults : state.roundResults || []
+              }
+              players={ranked}
+              myId={mine?.id}
+              hideMisses
+            />
+            <div className="gameover-actions">
+              <ShareScoreButton
+                mode="party"
+                score={myScore}
+                name={mine?.name || hostName}
+                stats={endStats}
+                playlistName={
+                  playlist?.name || state?.playlistName || ""
+                }
+              />
+              <button className="btn btn-big btn-play" onClick={onExit}>
+                back home
+              </button>
+            </div>
+          </div>
         </div>
       </div>
     );
@@ -556,48 +580,6 @@ export default function HostParty({ code, playlist, me, profile, onExit }) {
       setHintPop(Date.now());
       shakeEl(titleFieldRef.current);
     }
-  }
-
-  // ---- game over ----
-  if (phase === "over") {
-    const ranked = [...state.players].sort((a, b) => b.score - a.score);
-    const mine = ranked.find((p) => p.id === playerId);
-    const myScore = mine?.score ?? 0;
-    const endStats = computeGameStats(roundLog, { score: myScore });
-    return (
-      <div className="mp-over gameover">
-        <div className="turntable">
-          <ScrubbableVinyl spin="slow" title="drag to scrub">
-            <div className="vinyl-label" aria-hidden="true" />
-          </ScrubbableVinyl>
-        </div>
-        <h2 className="title">That's a wrap!</h2>
-        <p className="subtitle">
-          You finished with <strong>{myScore}</strong> pts.
-        </p>
-        <PlayerRail players={ranked} />
-        <GameOverStats
-          stats={endStats}
-          bests={playlistBests}
-          roundResults={state.roundResults || []}
-          players={ranked}
-          myId={playerId}
-          hideMisses
-        />
-        <div className="gameover-actions">
-          <ShareScoreButton
-            mode="party"
-            score={myScore}
-            name={mine?.name || hostName}
-            stats={endStats}
-            playlistName={playlist?.name || state.playlistName || ""}
-          />
-          <button className="btn btn-big btn-play" onClick={onExit}>
-            back home
-          </button>
-        </div>
-      </div>
-    );
   }
 
   // ---- play / reveal board ----

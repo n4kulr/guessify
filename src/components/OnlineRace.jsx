@@ -983,36 +983,50 @@ export default function OnlineRace({ profile, onExit }) {
     const myScore = mine?.score ?? 0;
     const endStats = computeGameStats(roundLog, { score: myScore });
     return (
-      <div className="mp-over gameover">
-        <div className="turntable">
-          <ScrubbableVinyl spin="slow" title="drag to scrub">
-            <div className="vinyl-label" aria-hidden="true" />
-          </ScrubbableVinyl>
-        </div>
-        <h2 className="title">That's a wrap!</h2>
-        <p className="subtitle">
-          You finished <strong>#{place}</strong> with <strong>{myScore}</strong> pts.
-        </p>
-        <PlayerRail players={ranked} />
-        <GameOverStats
-          stats={endStats}
-          bests={playlistBests}
-          roundResults={roundResults}
-          players={ranked}
-          myId={youId}
-          hideMisses
-        />
-        <div className="gameover-actions">
-          <ShareScoreButton
-            mode="online"
-            score={myScore}
-            place={place}
-            stats={endStats}
-            playlistName={playlistName}
-          />
-          <button className="btn btn-big btn-play" onClick={onExit}>
-            back home
-          </button>
+      <div className="game mp-board mp-board--solo online-race" ref={rootRef}>
+        <div className="mp-board-main">
+          <div className="game-head">
+            <button className="btn btn-mini" onClick={onExit}>
+              ← leave race
+            </button>
+            <div className="scoreboard">
+              <span className="scoreboard-label">live</span>
+              <span className="scoreboard-value">online</span>
+            </div>
+          </div>
+          <div className="gameover">
+            <div className="turntable">
+              <ScrubbableVinyl spin="slow" title="drag to scrub">
+                <div className="vinyl-label" aria-hidden="true" />
+              </ScrubbableVinyl>
+            </div>
+            <h2 className="title">That's a wrap!</h2>
+            <p className="subtitle">
+              You finished <strong>#{place}</strong> with <strong>{myScore}</strong>{" "}
+              pts.
+            </p>
+            <PlayerRail players={ranked} />
+            <GameOverStats
+              stats={endStats}
+              bests={playlistBests}
+              roundResults={roundResults}
+              players={ranked}
+              myId={youId}
+              hideMisses
+            />
+            <div className="gameover-actions">
+              <ShareScoreButton
+                mode="online"
+                score={myScore}
+                place={place}
+                stats={endStats}
+                playlistName={playlistName}
+              />
+              <button className="btn btn-big btn-play" onClick={onExit}>
+                back home
+              </button>
+            </div>
+          </div>
         </div>
       </div>
     );

@@ -334,47 +334,61 @@ export default function GuestApp({ code }) {
 
   useDebugActions("guest", debugActions);
 
-  if (fastEnd) {
-    const ranked = [...fastEnd.players].sort((a, b) => b.score - a.score);
-    const mine = ranked[0];
+  // ---- wrap (debug fake + real party over share this UI) ----
+  if (fastEnd || state?.phase === "over") {
+    const ranked = [
+      ...(fastEnd ? fastEnd.players : state.players),
+    ].sort((a, b) => b.score - a.score);
+    const mine = fastEnd
+      ? ranked[0]
+      : ranked.find((p) => p.id === playerId);
     const myScore = mine?.score ?? 0;
-    const endStats = computeGameStats(fastEnd.roundLog, { score: myScore });
+    const endStats = computeGameStats(
+      fastEnd ? fastEnd.roundLog : roundLog,
+      { score: myScore }
+    );
     return (
-      <div className="mp-guest mp-over gameover">
-        <div className="turntable">
-          <ScrubbableVinyl spin="slow" title="drag to scrub">
-            <div className="vinyl-label" aria-hidden="true" />
-          </ScrubbableVinyl>
-        </div>
-        <h2 className="title">That's a wrap!</h2>
-        <p className="subtitle">
-          You finished with <strong>{myScore}</strong> pts.
-        </p>
-        <PlayerRail players={ranked} />
-        <GameOverStats
-          stats={endStats}
-          bests={playlistBests}
-          roundResults={fastEnd.roundResults}
-          players={ranked}
-          myId={mine?.id}
-          hideMisses
-        />
-        <div className="gameover-actions">
-          <ShareScoreButton
-            mode="party"
-            score={myScore}
-            name={mine?.name || name}
-            stats={endStats}
-            playlistName={state?.playlistName || ""}
-          />
-          <button
-            className="btn btn-big btn-play"
-            onClick={() => {
-              window.location.href = "/";
-            }}
-          >
-            back home
-          </button>
+      <div className="game mp-guest mp-board mp-board--solo" ref={rootRef}>
+        <div className="mp-board-main">
+          <div className="gameover">
+            <div className="turntable">
+              <ScrubbableVinyl spin="slow" title="drag to scrub">
+                <div className="vinyl-label" aria-hidden="true" />
+              </ScrubbableVinyl>
+            </div>
+            <h2 className="title">That's a wrap!</h2>
+            <p className="subtitle">
+              You finished with <strong>{myScore}</strong> pts.
+            </p>
+            <PlayerRail players={ranked} />
+            <GameOverStats
+              stats={endStats}
+              bests={playlistBests}
+              roundResults={
+                fastEnd ? fastEnd.roundResults : state.roundResults || []
+              }
+              players={ranked}
+              myId={mine?.id}
+              hideMisses
+            />
+            <div className="gameover-actions">
+              <ShareScoreButton
+                mode="party"
+                score={myScore}
+                name={mine?.name || name}
+                stats={endStats}
+                playlistName={state?.playlistName || ""}
+              />
+              <button
+                className="btn btn-big btn-play"
+                onClick={() => {
+                  window.location.href = "/";
+                }}
+              >
+                back home
+              </button>
+            </div>
+          </div>
         </div>
       </div>
     );
@@ -436,52 +450,6 @@ export default function GuestApp({ code }) {
           <h3 className="mp-side-title">players</h3>
           <PlayerRail players={state.players} />
           {error && <div className="error-banner">{error}</div>}
-        </div>
-      </div>
-    );
-  }
-
-  if (state.phase === "over") {
-    const ranked = [...state.players].sort((a, b) => b.score - a.score);
-    const mine = ranked.find((p) => p.id === playerId);
-    const myScore = mine?.score ?? 0;
-    const endStats = computeGameStats(roundLog, { score: myScore });
-    return (
-      <div className="mp-guest mp-over gameover">
-        <div className="turntable">
-          <ScrubbableVinyl spin="slow" title="drag to scrub">
-            <div className="vinyl-label" aria-hidden="true" />
-          </ScrubbableVinyl>
-        </div>
-        <h2 className="title">That's a wrap!</h2>
-        <p className="subtitle">
-          You finished with <strong>{myScore}</strong> pts.
-        </p>
-        <PlayerRail players={ranked} />
-        <GameOverStats
-          stats={endStats}
-          bests={playlistBests}
-          roundResults={state.roundResults || []}
-          players={ranked}
-          myId={playerId}
-          hideMisses
-        />
-        <div className="gameover-actions">
-          <ShareScoreButton
-            mode="party"
-            score={myScore}
-            name={mine?.name || name}
-            stats={endStats}
-            playlistName={state.playlistName || ""}
-          />
-          <button
-            className="btn btn-big btn-play"
-            onClick={() => {
-              window.location.href = "/";
-            }}
-          >
-            back home
-          </button>
         </div>
       </div>
     );
