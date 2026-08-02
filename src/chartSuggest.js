@@ -197,14 +197,25 @@ export function buildChartSuggestions(query, remote = {}) {
     const name = kind === "artist" ? String(raw || "").trim().slice(0, 120) : norm(raw);
     if (!name) return;
     const key = name.toLowerCase();
-    if (seen.has(key)) return;
-    seen.add(key);
+    // Artists and tags can share a name (“Drake” artist vs “drake” tag).
+    const dedupe = `${kind}:${key}`;
+    if (seen.has(dedupe)) return;
+    seen.add(dedupe);
     out.push({
       name: key,
       label: label || (kind === "artist" ? name : key),
       pack: pack || packSet.has(key),
       kind,
     });
+  }
+
+  // Artists first so “Drake” isn’t buried under tag decade spam.
+  const artistNames = new Set();
+  for (const hit of artists) {
+    const label = String(hit?.name || "").trim();
+    if (!label || !matchesPrefix(label, q)) continue;
+    artistNames.add(label.toLowerCase());
+    add(label, { kind: "artist", label });
   }
 
   // 1) CD packs
@@ -231,24 +242,21 @@ export function buildChartSuggestions(query, remote = {}) {
     if (matchesPrefix(era, q)) add(era, { kind: "tag" });
   }
 
-  // 5) Last.fm tags (+ compounds for short single-token hits)
+  // 5) Last.fm tags — skip decade compounds when the hit is also an artist name
   for (const hit of tags) {
     const name = norm(hit?.name);
     if (!name || !matchesPrefix(name, q)) continue;
     add(name, { kind: "tag" });
+    if (artistNames.has(name)) continue;
     if (!name.includes(" ") && name.length <= 24) {
       for (const era of CHART_ERA_SUFFIXES) add(`${name} ${era}`, { kind: "tag" });
     }
   }
 
-  // 6) Artists from Last.fm (no fake “Drake 2000s”)
-  for (const hit of artists) {
-    const label = String(hit?.name || "").trim();
-    if (!label || !matchesPrefix(label, q)) continue;
-    add(label, { kind: "artist", label });
-  }
-
   out.sort((a, b) => {
+    // Artists always float above tags for the same query.
+    if (a.kind !== b.kind) return a.kind === "artist" ? -1 : 1;
+
     const aL = a.label.toLowerCase();
     const bL = b.label.toLowerCase();
     const aStart = aL.startsWith(q) ? 0 : 1;
@@ -262,7 +270,6 @@ export function buildChartSuggestions(query, remote = {}) {
       return bTok.length - aTok.length;
     }
 
-    if (a.kind !== b.kind) return a.kind === "artist" ? -1 : 1;
     if (a.pack !== b.pack) return a.pack ? -1 : 1;
 
     // Same base: bare tag first, then common decades
@@ -283,5 +290,8 @@ export function buildChartSuggestions(query, remote = {}) {
     return aL.length - bL.length || aL.localeCompare(bL);
   });
 
-  return out.slice(0, 12);
+  // Keep a few artists visible even when local seeds explode.
+  const art = out.filter((x) => x.kind === "artist").slice(0, 5);
+  const rest = out.filter((x) => x.kind === "tag");
+  return [...art, ...rest].slice(0, 12);
 }

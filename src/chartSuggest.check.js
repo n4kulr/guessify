@@ -33,5 +33,14 @@ const withArtist = buildChartSuggestions("tayl", {
 });
 assert.ok(withArtist.some((x) => x.kind === "artist" && x.label === "Taylor Swift"));
 
+// Tag “drake” must not eat the artist “Drake”, and artists stay on top.
+const dra = buildChartSuggestions("dra", {
+  tags: [{ name: "drama" }, { name: "drake" }],
+  artists: [{ name: "Drake" }, { name: "Dramarama" }, { name: "Dr. Dre" }],
+});
+assert.equal(dra[0].kind, "artist");
+assert.ok(dra.some((x) => x.kind === "artist" && x.label === "Drake"), dra.map((x) => x.label).join(", "));
+assert.ok(!dra.some((x) => x.name === "drake 2000s"), "no fake artist-decade compounds");
+
 assert.deepEqual(buildChartSuggestions(""), []);
 console.log("chartSuggest.check: ok");
