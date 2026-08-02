@@ -2,6 +2,13 @@ import { useEffect, useRef, useState } from "react";
 import { THEMES, applyTheme } from "../themes.js";
 import ThemeNudge from "./ThemeNudge.jsx";
 
+/** Landing only — `/` home or login. Mid-flow paths must not Safari-reload. */
+function isLandingPath() {
+  if (typeof window === "undefined") return false;
+  const p = window.location.pathname.replace(/\/+$/, "") || "/";
+  return p === "/";
+}
+
 export default function ThemeSwitcher({ current, onChange }) {
   const [open, setOpen] = useState(false);
   const [flash, setFlash] = useState(false);
@@ -24,7 +31,7 @@ export default function ThemeSwitcher({ current, onChange }) {
   useEffect(() => () => clearTimeout(flashTimer.current), []);
 
   function pick(key) {
-    applyTheme(key);
+    applyTheme(key, { safariReload: isLandingPath() });
     onChange(key);
     setOpen(false);
 

@@ -11,7 +11,8 @@ import { applyThemeForAccent, accentMatchingTheme } from "../themes.js";
 
 function syncThemeFromAccent(color) {
   if (!color) return;
-  const key = applyThemeForAccent(color);
+  // Live retint only — never Safari-reload (that dumps online/host customize → home).
+  const key = applyThemeForAccent(color, { persist: false, safariReload: false });
   window.dispatchEvent(
     new CustomEvent("guessify:theme-from-accent", { detail: { key, color } })
   );

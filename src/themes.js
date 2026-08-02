@@ -157,7 +157,7 @@ export function getThemePalette() {
   };
 }
 
-export function applyTheme(key, { persist = true } = {}) {
+export function applyTheme(key, { persist = true, safariReload = false } = {}) {
   const resolved = THEMES[key] ? key : DEFAULT_THEME;
   const t = THEMES[resolved];
   const r = document.documentElement;
@@ -169,23 +169,25 @@ export function applyTheme(key, { persist = true } = {}) {
   r.style.setProperty("--text-color", t.text);
   r.style.setProperty("--error-color", t.error);
   syncBrowserChrome(t.bg);
-  if (!persist) return;
-
-  try {
-    localStorage.setItem(KEY, resolved);
-  } catch {
-    /* ignore */
-  }
-  try {
-    sessionStorage.setItem(SESSION_KEY, resolved);
-  } catch {
-    /* ignore */
+  if (persist) {
+    try {
+      localStorage.setItem(KEY, resolved);
+    } catch {
+      /* ignore */
+    }
+    try {
+      sessionStorage.setItem(SESSION_KEY, resolved);
+    } catch {
+      /* ignore */
+    }
   }
 
   // Safari (not Chrome/Firefox on iOS) freezes toolbar tint at first paint.
   // CSS/meta updates never retint — only a reload re-samples. ponytail: reload
   // ceiling; drop when WebKit re-tints live again.
-  if (needsSafariChromeReload()) {
+  // Only from the top-right theme menu on the landing page — never mid-flow
+  // (online/host profile customize, lobby, game, …).
+  if (safariReload && needsSafariChromeReload()) {
     let painted = null;
     try {
       painted = sessionStorage.getItem(SESSION_PAINTED_KEY);
