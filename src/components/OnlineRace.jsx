@@ -858,6 +858,8 @@ export default function OnlineRace({ profile, onExit }) {
             mode="online"
             score={myScore}
             place={place}
+            stats={endStats}
+            playlistName={playlistName}
           />
           <button className="btn btn-big btn-play" onClick={onExit}>
             back home

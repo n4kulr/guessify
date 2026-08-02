@@ -1,12 +1,11 @@
 import { formatSolveSec } from "../gameStats.js";
 
 /**
- * End-of-game stats: grid, personal bests, distribution, timeline.
+ * End-of-game stats: grid, personal bests, replay timeline.
  * @param {{ stats: object, bests?: { name: string, best: number, today: number } | null }} props
  */
 export default function GameOverStats({ stats, bests = null }) {
   if (!stats) return null;
-  const maxDist = Math.max(1, ...Object.values(stats.distribution || {}));
 
   return (
     <div className="gos">
@@ -52,28 +51,6 @@ export default function GameOverStats({ stats, bests = null }) {
           </span>
         </div>
       )}
-
-      <div className="gos-block">
-        <h3 className="gos-heading">Solved after</h3>
-        <ul className="gos-dist">
-          {(stats.steps || []).map((step) => {
-            const count = stats.distribution?.[step] || 0;
-            const pct = (count / maxDist) * 100;
-            return (
-              <li key={step} className="gos-dist-row">
-                <span className="gos-dist-label">{step}s</span>
-                <span className="gos-dist-track">
-                  <span
-                    className="gos-dist-bar"
-                    style={{ width: count ? `${pct}%` : "0%" }}
-                  />
-                </span>
-                <span className="gos-dist-count">{count || ""}</span>
-              </li>
-            );
-          })}
-        </ul>
-      </div>
 
       <div className="gos-block">
         <h3 className="gos-heading">Replay</h3>

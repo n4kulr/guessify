@@ -597,7 +597,13 @@ export default function Game({ playlist, me, onExit, onReplay }) {
               <GameOverStats stats={endStats} bests={playlistBests} />
             )}
             <div className="gameover-actions">
-              <ShareScoreButton mode="solo" score={score} maxScore={maxScore} />
+              <ShareScoreButton
+                mode="solo"
+                score={score}
+                maxScore={maxScore}
+                stats={endStats}
+                playlistName={playlist?.name || ""}
+              />
               <button className="btn btn-big btn-play" onClick={playAgain}>
                 play again
               </button>

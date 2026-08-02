@@ -341,6 +341,8 @@ export default function GuestApp({ code }) {
             mode="party"
             score={myScore}
             name={mine?.name || name}
+            stats={endStats}
+            playlistName={state.playlistName || ""}
           />
           <button
             className="btn btn-big btn-play"

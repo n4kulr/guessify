@@ -461,6 +461,8 @@ export default function HostParty({ code, playlist, me, profile, onExit }) {
             mode="party"
             score={myScore}
             name={mine?.name || hostName}
+            stats={endStats}
+            playlistName={playlist?.name || state.playlistName || ""}
           />
           <button className="btn btn-big btn-play" onClick={onExit}>
             back home

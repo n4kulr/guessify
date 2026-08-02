@@ -70,7 +70,7 @@ When the round ends you hear the full preview, see the cover, and move on (solo 
 - 105 **Open Peeps** bust avatars for races.
 - First-run **howto**; `?` FAB anytime.
 - **Feedback** FAB → Discord (optional screenshots).
-- Share score at the end (native share or copy).
+- Share a Wrapped-style score image at the end (or download + copy text).
 - Keyboard click SFX; confetti on wins.
 
 ### Music sources
@@ -108,7 +108,8 @@ Perfect game (5 clean rounds): **3000**. Excellent sits around 2600–2900; casu
 After a solo, online, or party game you get:
 - **Score / accuracy / avg solve / artists / fastest / best streak** (solve times are wall-clock from round start → correct title)
 - **Personal bests** per playlist or chart (all-time + today), stored in the browser
-- **Solved after** distribution and a **replay timeline** for each round
+- **Replay timeline** for each round
+- **Share** builds a Wrapped-style score image (when the device supports sharing files)
 
 ---
 

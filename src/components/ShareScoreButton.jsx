@@ -1,24 +1,45 @@
 import { useRef, useState } from "react";
 import { shareScore } from "../shareScore.js";
 
-/** Game-over CTA — prefers navigator.share, else copies the score blurb. */
+/** Game-over CTA — shares a Wrapped-style PNG when possible. */
 export default function ShareScoreButton({
   mode,
   score,
   maxScore,
   place,
   name,
+  stats = null,
+  playlistName = "",
   className = "btn btn-big btn-multi",
 }) {
   const [label, setLabel] = useState("share score");
   const timer = useRef(0);
 
   async function onClick() {
-    const result = await shareScore({ mode, score, maxScore, place, name });
+    const result = await shareScore({
+      mode,
+      score,
+      maxScore,
+      place,
+      name,
+      playlistName,
+      accuracy: stats?.accuracy,
+      fastestMs: stats?.fastestMs,
+      bestStreak: stats?.bestStreak,
+      artistsClaimed: stats?.artistsClaimed,
+      artistsTotal: stats?.artistsTotal,
+      timeline: stats?.timeline,
+    });
     if (result === "cancelled") return;
     clearTimeout(timer.current);
-    setLabel(result === "shared" ? "shared!" : "copied!");
-    timer.current = window.setTimeout(() => setLabel("share score"), 1600);
+    const next =
+      result === "shared"
+        ? "shared!"
+        : result === "downloaded"
+          ? "saved image!"
+          : "copied!";
+    setLabel(next);
+    timer.current = window.setTimeout(() => setLabel("share score"), 1800);
   }
 
   return (

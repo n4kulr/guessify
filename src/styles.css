@@ -3434,7 +3434,6 @@ button { font-family: var(--font); }
   color: var(--sub-color);
   font-weight: 600;
 }
-.gos-dist,
 .gos-timeline {
   list-style: none;
   margin: 0;
@@ -3443,7 +3442,6 @@ button { font-family: var(--font); }
   flex-direction: column;
   gap: 6px;
 }
-.gos-dist-row,
 .gos-tl-row {
   display: grid;
   grid-template-columns: 3.5rem 1fr 2.5rem;
@@ -3452,11 +3450,9 @@ button { font-family: var(--font); }
   font-size: 13px;
   font-variant-numeric: tabular-nums;
 }
-.gos-dist-label,
 .gos-tl-label {
   color: var(--sub-color);
 }
-.gos-dist-track,
 .gos-tl-track {
   position: relative;
   height: 10px;
@@ -3464,7 +3460,6 @@ button { font-family: var(--font); }
   border-radius: 2px;
   overflow: hidden;
 }
-.gos-dist-bar,
 .gos-tl-bar {
   display: block;
   height: 100%;
@@ -3472,7 +3467,6 @@ button { font-family: var(--font); }
   border-radius: 2px;
   min-width: 0;
 }
-.gos-dist-count,
 .gos-tl-time {
   text-align: right;
   color: var(--text-color);
