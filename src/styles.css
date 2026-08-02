@@ -1587,8 +1587,17 @@ button { font-family: var(--font); }
   -webkit-overflow-scrolling: touch;
   touch-action: pan-x;
   overscroll-behavior-x: contain;
+  /* Native trackpad; CSS smooth fights every wheel tick and feels laggy */
+  scroll-behavior: auto;
 }
 .shelf-cases:active { cursor: grabbing; }
+/* Snap is nice on touch; on trackpad it fights inertia and feels sticky */
+@media (hover: hover) and (pointer: fine) {
+  .shelf-cases,
+  .cd-spines {
+    scroll-snap-type: none;
+  }
+}
 .shelf-cases::-webkit-scrollbar { height: 6px; }
 .shelf-cases::-webkit-scrollbar-thumb {
   background: color-mix(in srgb, var(--text-color) 25%, transparent);
@@ -1860,10 +1869,11 @@ button { font-family: var(--font); }
   box-sizing: content-box;
   overflow-x: auto;
   overflow-y: hidden;
-  scroll-snap-type: x mandatory;
-  scroll-behavior: smooth;
+  scroll-snap-type: x proximity;
+  scroll-behavior: auto;
   -webkit-overflow-scrolling: touch;
   touch-action: pan-x;
+  overscroll-behavior-x: contain;
   cursor: grab;
   scrollbar-gutter: stable;
   scrollbar-width: thin;

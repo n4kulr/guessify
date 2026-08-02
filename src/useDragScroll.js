@@ -1,14 +1,14 @@
 import { useEffect } from "react";
 
 /**
- * Click-drag + two-finger horizontal trackpad scroll for overflow-x shelves.
- * Vertical trackpad gestures are left alone so the page scrolls (mobile-like).
+ * Mouse click-drag for overflow-x shelves.
+ * Trackpad / touch scrolling stays native (compositor) so it feels like mobile —
+ * do not intercept wheel; preventDefault + scrollLeft is what made it laggy.
  */
-export function useDragScroll(scrollRef, surfaceRef) {
+export function useDragScroll(scrollRef) {
   useEffect(() => {
     const el = scrollRef.current;
     if (!el) return;
-    const surface = surfaceRef?.current || el;
     let dragging = false;
     let startX = 0;
     let startScroll = 0;
@@ -54,27 +54,6 @@ export function useDragScroll(scrollRef, surfaceRef) {
     function onDragStart(e) {
       e.preventDefault();
     }
-    function onWheel(e) {
-      const max = el.scrollWidth - el.clientWidth;
-      if (max <= 0) return;
-
-      // Horizontal only. Remapping deltaY made vertical two-finger scroll
-      // drag the shelf and felt laggy (esp. when the handler also ran twice).
-      let dx = e.deltaX;
-      if (e.shiftKey && Math.abs(e.deltaY) >= Math.abs(e.deltaX)) {
-        dx = e.deltaY; // mouse wheel → horizontal
-      }
-      if (dx === 0) return;
-      if (!e.shiftKey && Math.abs(e.deltaY) > Math.abs(dx)) return;
-
-      if (e.deltaMode === 1) dx *= 16;
-      else if (e.deltaMode === 2) dx *= el.clientWidth;
-
-      const next = Math.max(0, Math.min(max, el.scrollLeft + dx));
-      if (next === el.scrollLeft) return;
-      e.preventDefault();
-      el.scrollLeft = next;
-    }
 
     el.addEventListener("pointerdown", onDown);
     el.addEventListener("pointermove", onMove);
@@ -82,8 +61,6 @@ export function useDragScroll(scrollRef, surfaceRef) {
     el.addEventListener("pointercancel", onUp);
     el.addEventListener("click", onClickCapture, true);
     el.addEventListener("dragstart", onDragStart);
-    // One listener only — surface+el both capturing doubled every delta.
-    surface.addEventListener("wheel", onWheel, { passive: false, capture: true });
     return () => {
       el.removeEventListener("pointerdown", onDown);
       el.removeEventListener("pointermove", onMove);
@@ -91,7 +68,6 @@ export function useDragScroll(scrollRef, surfaceRef) {
       el.removeEventListener("pointercancel", onUp);
       el.removeEventListener("click", onClickCapture, true);
       el.removeEventListener("dragstart", onDragStart);
-      surface.removeEventListener("wheel", onWheel, { capture: true });
     };
-  }, [scrollRef, surfaceRef]);
+  }, [scrollRef]);
 }

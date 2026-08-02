@@ -58,7 +58,7 @@ export default function ChartCdSpindle({ packs, loadingId, onChoose }) {
   const scrollRef = useRef(null);
   const trayRef = useRef(null);
   const rowRef = useRef(null);
-  useDragScroll(scrollRef, trayRef);
+  useDragScroll(scrollRef);
 
   const pickedPack = picked
     ? packs.find((p) => p.tag === picked) || null

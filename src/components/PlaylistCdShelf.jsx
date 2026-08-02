@@ -45,7 +45,7 @@ export default function PlaylistCdShelf({ playlists, loadingId, onChoose }) {
   const scrollRef = useRef(null);
   const trayRef = useRef(null);
   const rowRef = useRef(null);
-  useDragScroll(scrollRef, trayRef);
+  useDragScroll(scrollRef);
 
   const pickedPlaylist = picked
     ? playlists.find((p) => p.id === picked) || null

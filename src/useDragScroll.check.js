@@ -1,5 +1,5 @@
 /**
- * Self-check: wheel mapping is horizontal-only (no vertical remap).
+ * Self-check: shelf drag helper must not intercept wheel (native = smooth).
  * Run: node src/useDragScroll.check.js
  */
 import assert from "node:assert/strict";
@@ -8,12 +8,7 @@ import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 
 const src = readFileSync(join(dirname(fileURLToPath(import.meta.url)), "useDragScroll.js"), "utf8");
-assert.match(src, /e\.deltaX/, "uses deltaX");
-assert.doesNotMatch(
-  src,
-  /Math\.abs\(e\.deltaX\) > Math\.abs\(e\.deltaY\) \? e\.deltaX : e\.deltaY/,
-  "must not remap dominant vertical to horizontal"
-);
-assert.match(src, /Math\.abs\(e\.deltaY\) > Math\.abs\(dx\)/, "ignores vertical-dominant gestures");
-assert.doesNotMatch(src, /el\.addEventListener\("wheel"/, "single wheel listener only");
+assert.doesNotMatch(src, /addEventListener\(\s*["']wheel["']/, "must not intercept wheel");
+assert.doesNotMatch(src, /onWheel/, "no wheel handler");
+assert.match(src, /pointerdown/, "still supports click-drag");
 console.log("useDragScroll.check: ok");
