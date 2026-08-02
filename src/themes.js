@@ -9,6 +9,7 @@ export const THEMES = {
   gruvbox_dark: { name: "gruvbox dark", bg: "#282828", main: "#d79921", sub: "#928374", subAlt: "#32302f", text: "#ebdbb2", error: "#fb4934" },
   catppuccin:   { name: "catppuccin",   bg: "#1e1e2e", main: "#f5c2e7", sub: "#6c7086", subAlt: "#181825", text: "#cdd6f4", error: "#f38ba8" },
   tokyo_night:  { name: "tokyo night",  bg: "#1a1b26", main: "#7aa2f7", sub: "#565f89", subAlt: "#16161e", text: "#c0caf5", error: "#f7768e" },
+  tokyo_pink:   { name: "tokyo pink",   bg: "#1a1b26", main: "#f7768e", sub: "#565f89", subAlt: "#16161e", text: "#c0caf5", error: "#e0af68" },
   rose_pine:    { name: "rosé pine",    bg: "#191724", main: "#ebbcba", sub: "#6e6a86", subAlt: "#1f1d2e", text: "#e0def4", error: "#eb6f92" },
   carbon:       { name: "carbon",       bg: "#313131", main: "#f66e0d", sub: "#616161", subAlt: "#3d3d3d", text: "#e7e7e7", error: "#da3333" },
   matrix:       { name: "matrix",       bg: "#0d120d", main: "#5dba63", sub: "#3a5f3c", subAlt: "#121812", text: "#c5e0c6", error: "#d20f39" },
@@ -26,6 +27,15 @@ function parseHex(hex) {
   return { r: (n >> 16) & 255, g: (n >> 8) & 255, b: n & 255 };
 }
 
+function normHex(hex) {
+  const p = parseHex(hex);
+  if (!p) return null;
+  return (
+    "#" +
+    [p.r, p.g, p.b].map((n) => n.toString(16).padStart(2, "0")).join("")
+  );
+}
+
 function colorDist(a, b) {
   const dr = a.r - b.r;
   const dg = a.g - b.g;
@@ -33,10 +43,27 @@ function colorDist(a, b) {
   return dr * dr + dg * dg + db * db;
 }
 
+/** 1:1 avatar accent → theme (every PLAYER_COLORS swatch gets its own look). */
+const ACCENT_THEME_BY_HEX = {
+  "#e2b714": "serika_dark",
+  "#7aa2f7": "tokyo_night",
+  "#ff7a90": "bento",
+  "#bd93f9": "dracula",
+  "#88c0d0": "nord",
+  "#f66e0d": "carbon",
+  "#f5c2e7": "catppuccin",
+  "#ebbcba": "rose_pine",
+  "#e9d5c6": "olivia",
+  "#d79921": "gruvbox_dark",
+  "#5dba63": "matrix",
+  "#f7768e": "tokyo_pink",
+};
+
 /** Prefer a dark theme when two mains tie (skip serika_light). */
 const ACCENT_THEME_ORDER = [
   "serika_dark",
   "tokyo_night",
+  "tokyo_pink",
   "bento",
   "dracula",
   "nord",
@@ -48,8 +75,11 @@ const ACCENT_THEME_ORDER = [
   "matrix",
 ];
 
-/** Pick the theme whose accent (`main`) is closest to `hex`. */
+/** Pick the theme for an accent: exact map first, else closest `main`. */
 export function themeKeyForAccent(hex) {
+  const exact = ACCENT_THEME_BY_HEX[normHex(hex)];
+  if (exact) return exact;
+
   const target = parseHex(hex);
   if (!target) return DEFAULT_THEME;
   let best = DEFAULT_THEME;
