@@ -1,12 +1,12 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { formatSolveSec, solveCompareSeries } from "../gameStats.js";
 
 const W = 320;
 const H = 168;
-const PAD = { t: 14, r: 10, b: 26, l: 40 };
-const DOT_R = 2.5;
+const PAD = { t: 16, r: 12, b: 26, l: 40 };
+const DOT_R = 3;
 const RING_R = 6;
-const HIT_R = 14;
+const HIT_R = 16;
 
 function pointLabel(p) {
   if (p.label) return p.label;
@@ -18,6 +18,13 @@ function pointLabel(p) {
 /** Compact SVG line chart — rings on every round; hover/tap shows the song. */
 function SolveCompareChart({ series = [], myId = null, showLegend = true }) {
   const [tip, setTip] = useState(null);
+  const [drawn, setDrawn] = useState(false);
+
+  useEffect(() => {
+    const id = requestAnimationFrame(() => setDrawn(true));
+    return () => cancelAnimationFrame(id);
+  }, []);
+
   if (!series.length) return null;
 
   const innerW = W - PAD.l - PAD.r;
@@ -67,7 +74,7 @@ function SolveCompareChart({ series = [], myId = null, showLegend = true }) {
       }}
     >
       <svg
-        className="gos-chart"
+        className={`gos-chart${drawn ? " is-drawn" : ""}`}
         viewBox={`0 0 ${W} ${H}`}
         role="img"
         aria-label="Solve times by round"
@@ -113,6 +120,7 @@ function SolveCompareChart({ series = [], myId = null, showLegend = true }) {
           return (
             <g key={s.id}>
               <path
+                className={`gos-chart-line${drawn ? " is-drawn" : ""}`}
                 d={d}
                 fill="none"
                 stroke={stroke}
@@ -163,7 +171,6 @@ function SolveCompareChart({ series = [], myId = null, showLegend = true }) {
                       }}
                       onPointerUp={(e) => {
                         e.stopPropagation();
-                        // Hover covers desktop; tap/click for touch.
                         if (e.pointerType === "mouse") return;
                         setTip((prev) =>
                           prev?.key === key
@@ -219,13 +226,14 @@ function SolveCompareChart({ series = [], myId = null, showLegend = true }) {
   );
 }
 
-function personalSeriesFromTimeline(timeline, myId) {
+function personalSeriesFromTimeline(timeline, myId, players = null) {
   if (!timeline.length) return [];
+  const me = (players || []).find((p) => p.id === myId);
   return [
     {
       id: myId || "you",
       name: "you",
-      color: null,
+      color: me?.color || me?.avatar?.color || null,
       points: timeline.map((r) => ({
         round: r.round,
         wallMs: r.won ? r.wallMs : null,
@@ -236,6 +244,33 @@ function personalSeriesFromTimeline(timeline, myId) {
       })),
     },
   ];
+}
+
+/**
+ * One chart: your line (wins + misses) plus other players' wins when racing.
+ */
+function chartSeries({ timeline, roundResults, players, myId, hideMisses }) {
+  const personal = personalSeriesFromTimeline(timeline, myId, players);
+  if (!personal.length) return [];
+  if (!hideMisses) return personal;
+
+  const others = solveCompareSeries(
+    roundResults ||
+      (timeline || [])
+        .filter((r) => r.won)
+        .map((r) => ({
+          round: r.round,
+          winnerId: myId || "you",
+          wallMs: r.wallMs,
+          winnerName: "you",
+          title: r.title,
+          artist: r.artist,
+          label: r.label,
+        })),
+    players || []
+  ).filter((s) => s.id !== (myId || "you"));
+
+  return [...personal, ...others];
 }
 
 /**
@@ -256,24 +291,14 @@ export default function GameOverStats({
   const wins = stats.timelineWins || timeline.filter((r) => r.won);
   const replay = hideMisses ? wins : timeline;
 
-  const personal = personalSeriesFromTimeline(timeline, myId);
-  const compare =
-    hideMisses && (roundResults?.length || wins.length)
-      ? solveCompareSeries(
-          roundResults ||
-            wins.map((r) => ({
-              round: r.round,
-              winnerId: myId || "you",
-              wallMs: r.wallMs,
-              winnerName: "you",
-              title: r.title,
-              artist: r.artist,
-              label: r.label,
-            })),
-          players || []
-        )
-      : [];
-  const showCompare = compare.length > 1;
+  const series = chartSeries({
+    timeline,
+    roundResults,
+    players,
+    myId,
+    hideMisses,
+  });
+  const multi = series.length > 1;
 
   return (
     <div className="gos">
@@ -320,17 +345,16 @@ export default function GameOverStats({
         </div>
       )}
 
-      {personal.length > 0 && (
+      {series.length > 0 && (
         <div className="gos-block">
-          <h3 className="gos-heading">Your solves</h3>
-          <SolveCompareChart series={personal} myId={myId} showLegend={false} />
-        </div>
-      )}
-
-      {showCompare && (
-        <div className="gos-block">
-          <h3 className="gos-heading">Solve times</h3>
-          <SolveCompareChart series={compare} myId={myId} showLegend />
+          <h3 className="gos-heading">
+            {multi ? "Solve times" : "Your solves"}
+          </h3>
+          <SolveCompareChart
+            series={series}
+            myId={myId}
+            showLegend={multi}
+          />
         </div>
       )}
 
