@@ -19,6 +19,9 @@ export const THEMES = {
 
 export const DEFAULT_THEME = "olivia";
 const KEY = "guessify-theme";
+/** In-tab theme after a Safari chrome reload (fresh tabs still open on Olivia). */
+const SESSION_KEY = "guessify-theme-session";
+const SESSION_PAINTED_KEY = "guessify-theme-painted";
 
 function parseHex(hex) {
   const m = /^#?([0-9a-f]{6})$/i.exec(String(hex || "").trim());
@@ -130,7 +133,8 @@ export function accentMatchingTheme(palette) {
 }
 
 export function applyTheme(key, { persist = true } = {}) {
-  const t = THEMES[key] || THEMES[DEFAULT_THEME];
+  const resolved = THEMES[key] ? key : DEFAULT_THEME;
+  const t = THEMES[resolved];
   const r = document.documentElement;
   r.style.setProperty("--bg-color", t.bg);
   r.style.setProperty("--main-color", t.main);
@@ -140,17 +144,46 @@ export function applyTheme(key, { persist = true } = {}) {
   r.style.setProperty("--error-color", t.error);
   syncBrowserChrome(t.bg);
   if (!persist) return;
-  try { localStorage.setItem(KEY, key); } catch { /* ignore */ }
+
+  try {
+    localStorage.setItem(KEY, resolved);
+  } catch {
+    /* ignore */
+  }
+  try {
+    sessionStorage.setItem(SESSION_KEY, resolved);
+  } catch {
+    /* ignore */
+  }
+
+  // Safari (not Chrome/Firefox on iOS) freezes toolbar tint at first paint.
+  // CSS/meta updates never retint — only a reload re-samples. ponytail: reload
+  // ceiling; drop when WebKit re-tints live again.
+  if (needsSafariChromeReload()) {
+    let painted = null;
+    try {
+      painted = sessionStorage.getItem(SESSION_PAINTED_KEY);
+    } catch {
+      /* ignore */
+    }
+    if (painted !== resolved) {
+      try {
+        sessionStorage.setItem(SESSION_PAINTED_KEY, resolved);
+      } catch {
+        /* ignore */
+      }
+      location.reload();
+    }
+  }
 }
 
 /**
  * Keep Safari / Chrome UI chrome in sync with the page bg.
  * - theme-color: Chrome + older Safari
- * - inline html/body backgroundColor: Safari 26+ samples these (CSS vars alone often don't re-tint)
- * - fixed edge strips: Safari 26 prefers fixed elements at the viewport edges
+ * - inline html/body backgroundColor + edge strips: best-effort for Safari 26+
+ *   (often ignored until reload — see needsSafariChromeReload)
  */
 function syncBrowserChrome(bg) {
-  // Replace meta so agents that only watch DOM mutations still notice.
   document.querySelectorAll('meta[name="theme-color"]').forEach((m) => m.remove());
   const meta = document.createElement("meta");
   meta.setAttribute("name", "theme-color");
@@ -174,6 +207,19 @@ function syncBrowserChrome(bg) {
   }
 }
 
+/** True for iOS/iPadOS Safari only (CriOS etc. already retint fine). */
+function needsSafariChromeReload() {
+  if (typeof navigator === "undefined") return false;
+  const ua = navigator.userAgent || "";
+  if (/CriOS|FxiOS|EdgiOS|OPiOS|DuckDuckGo/i.test(ua)) return false;
+  const iOS =
+    /iP(hone|ad|od)/.test(ua) ||
+    (typeof navigator.platform === "string" &&
+      navigator.platform === "MacIntel" &&
+      navigator.maxTouchPoints > 1);
+  return iOS && /Safari/i.test(ua);
+}
+
 /** Apply the theme that best matches an avatar accent color. Returns theme key. */
 export function applyThemeForAccent(hex, opts) {
   const key = themeKeyForAccent(hex);
@@ -182,7 +228,19 @@ export function applyThemeForAccent(hex, opts) {
 }
 
 export function loadTheme() {
-  // Always open on Olivia; users can still switch for the session.
-  applyTheme(DEFAULT_THEME);
-  return DEFAULT_THEME;
+  // Fresh tab → Olivia. Same tab after Safari theme reload → session theme.
+  let key = DEFAULT_THEME;
+  try {
+    const session = sessionStorage.getItem(SESSION_KEY);
+    if (session && THEMES[session]) key = session;
+  } catch {
+    /* ignore */
+  }
+  applyTheme(key, { persist: false });
+  try {
+    sessionStorage.setItem(SESSION_PAINTED_KEY, key);
+  } catch {
+    /* ignore */
+  }
+  return key;
 }
