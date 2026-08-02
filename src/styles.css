@@ -2757,11 +2757,6 @@ button { font-family: var(--font); }
 .mp-guess-popup-body .by { color: var(--sub-color); font-weight: 500; font-size: 11px; }
 .mp-guess-popup-body .ok { color: #3ecf8e; }
 .mp-guess-popup-body .no { color: var(--error-color); opacity: 0.9; }
-.mp-guess-popup.win .mp-guess-popup-body .ok,
-.mp-guess-popup.win .mp-guess-popup-body .no,
-.mp-guess-popup.win .mp-guess-popup-body .by {
-  color: inherit;
-}
 @keyframes mp-guess-in {
   from { opacity: 0; transform: translateX(12px); }
   to { opacity: 1; transform: translateX(0); }
@@ -3201,6 +3196,14 @@ button { font-family: var(--font); }
   font-variant-numeric: tabular-nums;
 }
 .guess-input:focus { outline: none; border-color: var(--main-color); }
+/* Locked correct artist — keep green (disabled inputs grey out otherwise). */
+.guess-input.guess-input--locked,
+.guess-input.guess-input--locked:disabled {
+  color: #3ecf8e;
+  -webkit-text-fill-color: #3ecf8e;
+  opacity: 1;
+  cursor: default;
+}
 
 .suggestions {
   position: absolute; top: 54px; left: 0; right: 0; z-index: 5;
@@ -3492,6 +3495,7 @@ button { font-family: var(--font); }
 }
 .gos-chart-wrap {
   margin-top: 4px;
+  position: relative;
 }
 .gos-chart {
   width: 100%;
@@ -3506,6 +3510,26 @@ button { font-family: var(--font); }
   fill: var(--sub-color);
   font-size: 9px;
   font-family: var(--font);
+}
+.gos-chart-hit {
+  cursor: pointer;
+  outline: none;
+}
+.gos-chart-tip {
+  position: absolute;
+  z-index: 2;
+  transform: translate(-50%, calc(-100% - 10px));
+  max-width: min(220px, 70%);
+  padding: 6px 10px;
+  border-radius: 8px;
+  background: var(--bg-color);
+  color: var(--text-color);
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.3;
+  text-align: center;
+  box-shadow: 0 6px 18px color-mix(in srgb, #000 28%, transparent);
+  pointer-events: none;
 }
 .gos-chart-legend {
   list-style: none;

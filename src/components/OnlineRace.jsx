@@ -177,18 +177,30 @@ function pickLobbyNames(count = 5) {
   return shuffle(picked).slice(0, count);
 }
 
-function makeOpponents(count = 3) {
+function makeOpponents(count = 3, reservedColors = []) {
   const names = pickLobbyNames(count);
+  const taken = new Set(
+    reservedColors
+      .filter((c) => typeof c === "string")
+      .map((c) => c.toLowerCase())
+  );
+  const free = shuffle(
+    PLAYER_COLORS.filter((c) => !taken.has(c.toLowerCase()))
+  );
+  // Prefer unused swatches; wrap only if the lobby is bigger than the palette.
+  const colors =
+    free.length >= count
+      ? free.slice(0, count)
+      : [...free, ...shuffle(PLAYER_COLORS)].slice(0, count);
+
   return names.map((name, i) => {
-    const avatar = normalizeAvatar(
-      randomAvatar(),
-      PLAYER_COLORS[(i + 1) % PLAYER_COLORS.length]
-    );
+    const color = colors[i];
+    const avatar = normalizeAvatar({ ...randomAvatar(), color }, color);
     return {
       id: `op-${i}-${name.replace(/\s+/g, "_")}`,
       name,
       avatar,
-      color: avatar.color,
+      color,
       score: 0,
       wins: 0,
       connected: true,
@@ -412,7 +424,7 @@ export default function OnlineRace({ profile, onExit }) {
   // Matchmaking + chart load
   useEffect(() => {
     let cancelled = false;
-    const opponents = makeOpponents(3);
+    const opponents = makeOpponents(3, [youAvatar.color]);
     const tag = HOT_TAGS[Math.floor(Math.random() * HOT_TAGS.length)];
 
     (async () => {
@@ -529,6 +541,8 @@ export default function OnlineRace({ profile, onExit }) {
         artistClaimed: artistClaimedBy === youId,
         wallMs: won ? wallMs : null,
         unlockStep: unlockByPlayer[youId] ?? 0,
+        title: track?.name || null,
+        artist: (track?.artists || []).join(", ") || null,
       },
     ]);
     if (winnerId && wallMs != null) {
@@ -544,12 +558,17 @@ export default function OnlineRace({ profile, onExit }) {
             winnerName: winnerId === youId ? youName : w?.name || "?",
             color: w?.color || w?.avatar?.color || youAvatar?.color,
             wallMs,
+            title: track?.name || null,
+            artist: (track?.artists || []).join(", ") || null,
+            label: track?.name
+              ? `${track.name}${(track.artists || []).length ? ` · ${track.artists.join(", ")}` : ""}`
+              : null,
           },
         ];
       });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [phase, roundIdx, winnerId, artistClaimedBy]);
+  }, [phase, roundIdx, winnerId, artistClaimedBy, track?.id]);
 
   useEffect(() => {
     if (phase !== "over") return;
@@ -603,7 +622,7 @@ export default function OnlineRace({ profile, onExit }) {
         title: trackRef.name,
         artist: artistClaimedRef.current ? (trackRef.artists || []).join(", ") : null,
         titleOk: true,
-        artistOk: false,
+        artistOk: !!artistClaimedRef.current,
         win: true,
         artistPts: artistPtsJustNow,
       },
@@ -694,6 +713,12 @@ export default function OnlineRace({ profile, onExit }) {
       artistPts = ARTIST_BONUS;
     }
 
+    // Locked artist stays green on later title tries (wrong → red title + green artist).
+    const artistKnown = artistOk || artistWasClaimed || !!artistClaimedRef.current;
+    const artistLabel = artistKnown
+      ? (track.artists || []).join(", ")
+      : artist || null;
+
     // Artist-only success already logged in claimArtist; add a row for title / misses.
     if (titleOk || !artistOk) {
       setGuesses((g) => [
@@ -704,9 +729,9 @@ export default function OnlineRace({ profile, onExit }) {
           color: youAvatar.color,
           avatar: youAvatar,
           title: title || null,
-          artist: artistOk ? (track.artists || []).join(", ") : artist || null,
+          artist: artistLabel,
           titleOk,
-          artistOk,
+          artistOk: artistKnown,
           win: titleOk,
           artistPts: titleOk ? artistPts : 0,
         },
@@ -869,19 +894,8 @@ export default function OnlineRace({ profile, onExit }) {
     const endStats = computeGameStats(roundLog, { score: myScore });
     return (
       <div className="mp-over">
-        <h2>race over</h2>
-        <p>
-          You finished <strong>#{place}</strong> with <strong>{myScore}</strong> pts.
-        </p>
-        <ol className="mp-final">
-          {ranked.map((p, i) => (
-            <li key={p.id} className={p.id === youId ? "me" : ""}>
-              <span className="mp-final-place">{i + 1}</span>
-              <span className="mp-final-name">{p.id === youId ? "you" : p.name}</span>
-              <span className="mp-final-score">{p.score}</span>
-            </li>
-          ))}
-        </ol>
+        <h2 className="title">That's a wrap!</h2>
+        <PlayerRail players={ranked} />
         <GameOverStats
           stats={endStats}
           bests={playlistBests}
@@ -1031,7 +1045,7 @@ export default function OnlineRace({ profile, onExit }) {
               <div className="guess-artist-row">
                 <div className="guess-artist-field">
                   <input
-                    className="guess-input"
+                    className={`guess-input${revealedArtist ? " guess-input--locked" : ""}`}
                     placeholder="artist…"
                     value={revealedArtist || artistGuess}
                     disabled={!!revealedArtist}

@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Guessify — solo solve chart mock</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Lexend+Deca:wght@400;600;700&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg: #323437;
+      --main: #e2b714;
+      --text: #d1d0c5;
+      --sub: #646669;
+      --sub-alt: #2c2e31;
+      --font: "Lexend Deca", system-ui, sans-serif;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 20px;
+      padding: 32px 16px 48px;
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--font);
+    }
+    h1 {
+      margin: 0;
+      font-size: 13px;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--sub);
+    }
+    .card {
+      width: min(420px, 100%);
+      background: var(--sub-alt);
+      border-radius: 12px;
+      padding: 18px 16px 20px;
+    }
+    .heading {
+      margin: 0 0 12px;
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: var(--sub);
+    }
+    .chart {
+      width: 100%;
+      height: auto;
+      display: block;
+    }
+    .grid { stroke: color-mix(in srgb, var(--sub) 28%, transparent); stroke-width: 1; }
+    .axis {
+      fill: var(--sub);
+      font-size: 10px;
+      font-family: var(--font);
+    }
+    .axis-x { fill: var(--sub); }
+    .line {
+      fill: none;
+      stroke: var(--main);
+      stroke-width: 2.5;
+      stroke-linejoin: round;
+      stroke-linecap: round;
+    }
+    .dot { fill: var(--main); }
+    .ring {
+      fill: none;
+      stroke: var(--main);
+      stroke-width: 1.25;
+    }
+    .note {
+      width: min(420px, 100%);
+      font-size: 12px;
+      color: var(--sub);
+      line-height: 1.5;
+      margin: 0;
+    }
+    code { color: var(--text); }
+  </style>
+</head>
+<body>
+  <h1>solo solve chart mock</h1>
+
+  <div class="card">
+    <h2 class="heading">Your solves</h2>
+    <!--
+      Example run (5 rounds):
+      R1 solve 7.8s
+      R2 miss  → bottom X band
+      R3 solve 16s
+      R4 solve 4.2s
+      R5 miss  → bottom X band
+      Y axis: X (bottom) → 0 → up. No × glyphs on the line.
+    -->
+    <svg class="chart" viewBox="0 0 360 180" role="img" aria-label="Solve times with misses on bottom X band">
+      <!-- Equal Y gaps: 16s@18, 8s@58, 0@98, X@138. Plot x 44–348; labels inset left of plot. -->
+      <line class="grid" x1="44" x2="348" y1="18" y2="18" />
+      <text class="axis" x="30" y="21" text-anchor="end">16s</text>
+
+      <line class="grid" x1="44" x2="348" y1="58" y2="58" />
+      <text class="axis" x="30" y="61" text-anchor="end">8.0s</text>
+
+      <line class="grid" x1="44" x2="348" y1="98" y2="98" />
+      <text class="axis" x="30" y="101" text-anchor="end">0.0s</text>
+
+      <line class="grid" x1="44" x2="348" y1="138" y2="138" />
+      <text class="axis" x="30" y="141" text-anchor="end">X</text>
+
+      <text class="axis axis-x" x="44" y="164" text-anchor="middle">R1</text>
+      <text class="axis axis-x" x="120" y="164" text-anchor="middle">R2</text>
+      <text class="axis axis-x" x="196" y="164" text-anchor="middle">R3</text>
+      <text class="axis axis-x" x="272" y="164" text-anchor="middle">R4</text>
+      <text class="axis axis-x" x="348" y="164" text-anchor="middle">R5</text>
+
+      <!--
+        0s → 98, 16s → 18 (timeH=80), miss → 138
+        7.8s → 98 - (7.8/16)*80 = 59
+        4.2s → 98 - (4.2/16)*80 = 77
+      -->
+      <path
+        class="line"
+        d="M44,59 L120,138 L196,18 L272,77 L348,138"
+      />
+
+      <!-- rings + dots on every round (incl. misses) -->
+      <circle class="ring" cx="44" cy="59" r="6" />
+      <circle class="dot" cx="44" cy="59" r="2.5" />
+      <circle class="ring" cx="120" cy="138" r="6" />
+      <circle class="dot" cx="120" cy="138" r="2.5" />
+      <circle class="ring" cx="196" cy="18" r="6" />
+      <circle class="dot" cx="196" cy="18" r="2.5" />
+      <circle class="ring" cx="272" cy="77" r="6" />
+      <circle class="dot" cx="272" cy="77" r="2.5" />
+      <circle class="ring" cx="348" cy="138" r="6" />
+      <circle class="dot" cx="348" cy="138" r="2.5" />
+    </svg>
+  </div>
+
+  <p class="note">
+    Open via Vite: <code>/mocks/solve-chart.html</code><br />
+    Thin polyline through every round; ringed dots on solves + misses (bottom <b>X</b>).
+    Hover / tap a dot for the song name in the live stats chart.
+  </p>
+</body>
+</html>

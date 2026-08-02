@@ -15,7 +15,7 @@ import PenaltyPop from "./PenaltyPop.jsx";
 import AlmostFlash from "./AlmostFlash.jsx";
 import GameOverStats from "./GameOverStats.jsx";
 import PlayerRail from "../multiplayer/PlayerRail.jsx";
-import { computeGameStats, roundResultsFromLog } from "../gameStats.js";
+import { computeGameStats } from "../gameStats.js";
 import { recordPlaylistScore } from "../playlistBests.js";
 import {
   STEPS,
@@ -139,6 +139,7 @@ export default function Game({ playlist, me, onExit, onReplay }) {
       won && roundStartedAt.current != null
         ? Date.now() - roundStartedAt.current
         : null;
+    const t = track;
     setRoundLog((prev) => [
       ...prev,
       {
@@ -146,6 +147,8 @@ export default function Game({ playlist, me, onExit, onReplay }) {
         artistClaimed: !!artistClaimed,
         wallMs,
         unlockStep: guessNum,
+        title: t?.name || null,
+        artist: (t?.artists || []).join(", ") || null,
       },
     ]);
   }
@@ -552,7 +555,7 @@ export default function Game({ playlist, me, onExit, onReplay }) {
                   <div className="guess-artist-row">
                     <div className="guess-artist-field">
                       <input
-                        className="guess-input"
+                        className={`guess-input${revealedArtist ? " guess-input--locked" : ""}`}
                         placeholder="artist…"
                         value={revealedArtist || artistGuess}
                         disabled={!!revealedArtist}
@@ -620,11 +623,6 @@ export default function Game({ playlist, me, onExit, onReplay }) {
               <GameOverStats
                 stats={endStats}
                 bests={playlistBests}
-                roundResults={roundResultsFromLog(roundLog, YOU_ID, {
-                  name: soloName,
-                  color: soloAvatar?.color,
-                })}
-                players={players}
                 myId={YOU_ID}
               />
             )}

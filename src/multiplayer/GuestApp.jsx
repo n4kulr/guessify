@@ -117,6 +117,8 @@ export default function GuestApp({ code }) {
         artistClaimed: state.artistClaimedBy === playerId,
         wallMs,
         unlockStep: state.unlockByPlayer?.[playerId] ?? 0,
+        title: state.track?.name || null,
+        artist: (state.track?.artists || []).join(", ") || null,
       },
     ]);
   }, [
@@ -125,6 +127,7 @@ export default function GuestApp({ code }) {
     state?.winnerId,
     state?.artistClaimedBy,
     state?.unlockByPlayer,
+    state?.track,
     playerId,
   ]);
 
@@ -165,7 +168,10 @@ export default function GuestApp({ code }) {
     else {
       if (g.almostTitle) setAlmostTitle(Date.now());
       if (g.almostArtist) setAlmostArtist(Date.now());
-      if (!g.artistOk && !g.almostTitle && !g.almostArtist) shakeEl(rootRef.current);
+      // artistOk stays true once locked — still shake on a wrong title try
+      if (!g.almostTitle && !g.almostArtist && (g.title ? !g.titleOk : !g.artistOk)) {
+        shakeEl(rootRef.current);
+      }
     }
   }, [state?.guesses, playerId]);
 
@@ -482,7 +488,7 @@ export default function GuestApp({ code }) {
               <div className="guess-artist-row">
                 <div className="guess-artist-field">
                   <input
-                    className="guess-input"
+                    className={`guess-input${state.revealedArtist ? " guess-input--locked" : ""}`}
                     placeholder="artist…"
                     value={state.revealedArtist || artistGuess}
                     disabled={!!state.revealedArtist}

@@ -62,10 +62,18 @@ export function computeGameStats(log = [], opts = {}) {
   const timeline = rounds.map((r, i) => {
     const won = !!r?.won;
     const wallMs = won && r.wallMs != null && Number.isFinite(r.wallMs) ? r.wallMs : null;
+    const title = r?.title || null;
+    const artist = r?.artist || null;
     return {
       round: i + 1,
       won,
       wallMs,
+      title,
+      artist,
+      label:
+        title && artist
+          ? `${title} · ${artist}`
+          : title || artist || `Round ${i + 1}`,
       stepBin: wallMs != null ? wallSecToStepBin(wallMs / 1000) : null,
       barPct: wallMs != null ? Math.min(100, (wallMs / 1000 / TOTAL) * 100) : 0,
     };
@@ -117,7 +125,13 @@ export function solveCompareSeries(roundResults = [], players = []) {
       };
       seriesById.set(r.winnerId, s);
     }
-    s.points.push({ round: r.round, wallMs: r.wallMs });
+    s.points.push({
+      round: r.round,
+      wallMs: r.wallMs,
+      label: r.label || r.title || null,
+      title: r.title || null,
+      artist: r.artist || null,
+    });
   }
   return [...seriesById.values()]
     .filter((s) => s.points.length > 0)

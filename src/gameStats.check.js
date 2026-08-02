@@ -45,6 +45,14 @@ assert.equal(s.timeline[2].won, false);
 assert.equal(s.timelineWins.length, 4);
 assert.equal(s.timelineWins[0].round, 1);
 
+const labeled = computeGameStats([
+  { won: true, wallMs: 2000, title: "baby", artist: "Justin Bieber" },
+  { won: false, title: "hello", artist: "Adele" },
+]);
+assert.equal(labeled.timeline[0].label, "baby · Justin Bieber");
+assert.equal(labeled.timeline[1].label, "hello · Adele");
+assert.equal(labeled.timeline[1].won, false);
+
 const series = solveCompareSeries(
   [
     { round: 1, winnerId: "a", wallMs: 2000, color: "#e2b714" },

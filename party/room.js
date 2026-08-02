@@ -496,15 +496,17 @@ export class Room extends Server {
       player.score += artistPts;
     }
 
+    // Locked / just-claimed artist stays green on later title tries.
+    const artistKnown = artistOk || !!this.state.revealedArtist;
     this.state.guesses.push({
       playerId: player.id,
       name: player.name,
       color: player.color,
       avatar: player.avatar,
       title: title || null,
-      artist: artistOk ? this.state.revealedArtist : artist || null,
+      artist: artistKnown ? this.state.revealedArtist : artist || null,
       titleOk,
-      artistOk,
+      artistOk: artistKnown,
       almostTitle: !!almostTitle,
       almostArtist: !!almostArtist,
       win,
@@ -668,6 +670,7 @@ export class Room extends Server {
     const round = (this.state.roundIdx ?? 0) + 1;
     if (this.state.roundResults.some((r) => r.round === round)) return;
     const w = this.state.players.find((p) => p.id === this.state.winnerId);
+    const track = this.state.tracks?.[this.state.roundIdx];
     const wallMs =
       this.state.roundStartedAt != null
         ? Math.max(0, Date.now() - this.state.roundStartedAt)
@@ -678,6 +681,11 @@ export class Room extends Server {
       winnerName: w?.name || "?",
       color: w?.color || w?.avatar?.color || null,
       wallMs,
+      title: track?.name || null,
+      artist: (track?.artists || []).join(", ") || null,
+      label: track?.name
+        ? `${track.name}${(track.artists || []).length ? ` · ${track.artists.join(", ")}` : ""}`
+        : null,
     });
   }
 

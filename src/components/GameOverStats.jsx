@@ -1,47 +1,92 @@
+import { useState } from "react";
 import { formatSolveSec, solveCompareSeries } from "../gameStats.js";
 
-/** Compact SVG line chart — no chart lib. */
-function SolveCompareChart({ series = [], myId = null }) {
+const W = 320;
+const H = 168;
+const PAD = { t: 14, r: 10, b: 26, l: 40 };
+const DOT_R = 2.5;
+const RING_R = 6;
+const HIT_R = 14;
+
+function pointLabel(p) {
+  if (p.label) return p.label;
+  if (p.title && p.artist) return `${p.title} · ${p.artist}`;
+  if (p.title) return p.title;
+  return p.miss ? `Round ${p.round} · miss` : `Round ${p.round}`;
+}
+
+/** Compact SVG line chart — rings on every round; hover/tap shows the song. */
+function SolveCompareChart({ series = [], myId = null, showLegend = true }) {
+  const [tip, setTip] = useState(null);
   if (!series.length) return null;
 
-  const pad = { t: 16, r: 12, b: 28, l: 36 };
-  const W = 320;
-  const H = 160;
-  const innerW = W - pad.l - pad.r;
-  const innerH = H - pad.t - pad.b;
+  const innerW = W - PAD.l - PAD.r;
+  // Equal gaps: max → mid → 0 → X
+  const axisTop = PAD.t;
+  const axisBottom = H - PAD.b;
+  const step = (axisBottom - axisTop) / 3;
+  const zeroY = axisTop + step * 2;
+  const timeH = step * 2;
 
   const allPts = series.flatMap((s) => s.points);
   const rounds = [...new Set(allPts.map((p) => p.round))].sort((a, b) => a - b);
   const maxRound = Math.max(...rounds, 1);
-  const maxMs = Math.max(...allPts.map((p) => p.wallMs), 1);
+  const solveMs = allPts
+    .filter((p) => !p.miss && p.wallMs != null && Number.isFinite(p.wallMs))
+    .map((p) => p.wallMs);
+  const maxMs = Math.max(...solveMs, 1);
 
   const xFor = (round) =>
-    pad.l + (maxRound <= 1 ? innerW / 2 : ((round - 1) / (maxRound - 1)) * innerW);
-  const yFor = (ms) => pad.t + innerH - (ms / maxMs) * innerH;
+    PAD.l + (maxRound <= 1 ? innerW / 2 : ((round - 1) / (maxRound - 1)) * innerW);
+  const yFor = (p) => {
+    if (p.miss) return axisBottom;
+    return zeroY - ((p.wallMs || 0) / maxMs) * timeH;
+  };
 
-  const yTicks = [0, 0.5, 1].map((t) => ({
-    y: pad.t + innerH * (1 - t),
-    label: formatSolveSec(maxMs * t),
-  }));
+  const yTicks = [
+    { y: axisTop, label: formatSolveSec(maxMs) },
+    { y: axisTop + step, label: formatSolveSec(maxMs * 0.5) },
+    { y: zeroY, label: formatSolveSec(0) },
+    { y: axisBottom, label: "X" },
+  ];
+
+  function openTip(s, p, cx, cy) {
+    setTip({
+      key: `${s.id}-${p.round}`,
+      cx,
+      cy,
+      text: pointLabel(p),
+    });
+  }
 
   return (
-    <div className="gos-chart-wrap">
+    <div
+      className="gos-chart-wrap"
+      onPointerDown={(e) => {
+        if (!e.target.closest?.("[data-gos-hit]")) setTip(null);
+      }}
+    >
       <svg
         className="gos-chart"
         viewBox={`0 0 ${W} ${H}`}
         role="img"
-        aria-label="Solve times by round for each player"
+        aria-label="Solve times by round"
       >
         {yTicks.map((t) => (
-          <g key={t.y}>
+          <g key={`${t.label}-${t.y}`}>
             <line
               className="gos-chart-grid"
-              x1={pad.l}
-              x2={W - pad.r}
+              x1={PAD.l}
+              x2={W - PAD.r}
               y1={t.y}
               y2={t.y}
             />
-            <text className="gos-chart-axis" x={pad.l - 6} y={t.y + 3} textAnchor="end">
+            <text
+              className="gos-chart-axis"
+              x={PAD.l - 14}
+              y={t.y + 3}
+              textAnchor="end"
+            >
               {t.label}
             </text>
           </g>
@@ -51,15 +96,17 @@ function SolveCompareChart({ series = [], myId = null }) {
             key={r}
             className="gos-chart-axis"
             x={xFor(r)}
-            y={H - 8}
+            y={H - 6}
             textAnchor="middle"
           >
             R{r}
           </text>
         ))}
         {series.map((s) => {
-          const d = s.points
-            .map((p, i) => `${i === 0 ? "M" : "L"}${xFor(p.round)},${yFor(p.wallMs)}`)
+          const pts = [...s.points].sort((a, b) => a.round - b.round);
+          if (!pts.length) return null;
+          const d = pts
+            .map((p, i) => `${i === 0 ? "M" : "L"}${xFor(p.round)},${yFor(p)}`)
             .join(" ");
           const stroke = s.color || "var(--main-color)";
           const mine = myId && s.id === myId;
@@ -69,35 +116,126 @@ function SolveCompareChart({ series = [], myId = null }) {
                 d={d}
                 fill="none"
                 stroke={stroke}
-                strokeWidth={mine ? 2.5 : 1.75}
-                strokeOpacity={mine ? 1 : 0.75}
+                strokeWidth={mine || !myId ? 2.5 : 1.75}
+                strokeOpacity={mine || !myId ? 1 : 0.7}
+                strokeLinejoin="round"
+                strokeLinecap="round"
               />
-              {s.points.map((p) => (
-                <circle
-                  key={`${s.id}-${p.round}`}
-                  cx={xFor(p.round)}
-                  cy={yFor(p.wallMs)}
-                  r={mine ? 4 : 3}
-                  fill={stroke}
-                />
-              ))}
+              {pts.map((p) => {
+                const cx = xFor(p.round);
+                const cy = yFor(p);
+                const key = `${s.id}-${p.round}`;
+                return (
+                  <g key={key}>
+                    <circle
+                      className="gos-chart-ring"
+                      cx={cx}
+                      cy={cy}
+                      r={RING_R}
+                      fill="none"
+                      stroke={stroke}
+                      strokeWidth={1.25}
+                      strokeOpacity={mine || !myId ? 1 : 0.7}
+                    />
+                    <circle
+                      className="gos-chart-dot"
+                      cx={cx}
+                      cy={cy}
+                      r={DOT_R}
+                      fill={stroke}
+                      fillOpacity={mine || !myId ? 1 : 0.7}
+                    />
+                    <circle
+                      data-gos-hit=""
+                      className="gos-chart-hit"
+                      cx={cx}
+                      cy={cy}
+                      r={HIT_R}
+                      fill="transparent"
+                      role="button"
+                      tabIndex={0}
+                      aria-label={pointLabel(p)}
+                      onPointerEnter={(e) => {
+                        if (e.pointerType === "mouse") openTip(s, p, cx, cy);
+                      }}
+                      onPointerLeave={(e) => {
+                        if (e.pointerType === "mouse") setTip(null);
+                      }}
+                      onPointerUp={(e) => {
+                        e.stopPropagation();
+                        // Hover covers desktop; tap/click for touch.
+                        if (e.pointerType === "mouse") return;
+                        setTip((prev) =>
+                          prev?.key === key
+                            ? null
+                            : {
+                                key,
+                                cx,
+                                cy,
+                                text: pointLabel(p),
+                              }
+                        );
+                      }}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter" || e.key === " ") {
+                          e.preventDefault();
+                          openTip(s, p, cx, cy);
+                        }
+                      }}
+                    />
+                  </g>
+                );
+              })}
             </g>
           );
         })}
       </svg>
-      <ul className="gos-chart-legend">
-        {series.map((s) => (
-          <li key={s.id} className={myId && s.id === myId ? "is-me" : ""}>
-            <span
-              className="gos-chart-swatch"
-              style={{ background: s.color || "var(--main-color)" }}
-            />
-            {s.name}
-          </li>
-        ))}
-      </ul>
+      {tip && (
+        <div
+          className="gos-chart-tip"
+          style={{
+            left: `${(tip.cx / W) * 100}%`,
+            top: `${(tip.cy / H) * 100}%`,
+          }}
+          role="tooltip"
+        >
+          {tip.text}
+        </div>
+      )}
+      {showLegend && series.length > 1 && (
+        <ul className="gos-chart-legend">
+          {series.map((s) => (
+            <li key={s.id} className={myId && s.id === myId ? "is-me" : ""}>
+              <span
+                className="gos-chart-swatch"
+                style={{ background: s.color || "var(--main-color)" }}
+              />
+              {s.name}
+            </li>
+          ))}
+        </ul>
+      )}
     </div>
   );
+}
+
+function personalSeriesFromTimeline(timeline, myId) {
+  if (!timeline.length) return [];
+  return [
+    {
+      id: myId || "you",
+      name: "you",
+      color: null,
+      points: timeline.map((r) => ({
+        round: r.round,
+        wallMs: r.won ? r.wallMs : null,
+        miss: !r.won,
+        title: r.title || null,
+        artist: r.artist || null,
+        label: r.label || null,
+      })),
+    },
+  ];
 }
 
 /**
@@ -118,18 +256,24 @@ export default function GameOverStats({
   const wins = stats.timelineWins || timeline.filter((r) => r.won);
   const replay = hideMisses ? wins : timeline;
 
-  const series = solveCompareSeries(
-    roundResults ||
-      (hideMisses
-        ? wins.map((r) => ({
-            round: r.round,
-            winnerId: myId || "you",
-            wallMs: r.wallMs,
-            winnerName: "you",
-          }))
-        : []),
-    players || []
-  );
+  const personal = personalSeriesFromTimeline(timeline, myId);
+  const compare =
+    hideMisses && (roundResults?.length || wins.length)
+      ? solveCompareSeries(
+          roundResults ||
+            wins.map((r) => ({
+              round: r.round,
+              winnerId: myId || "you",
+              wallMs: r.wallMs,
+              winnerName: "you",
+              title: r.title,
+              artist: r.artist,
+              label: r.label,
+            })),
+          players || []
+        )
+      : [];
+  const showCompare = compare.length > 1;
 
   return (
     <div className="gos">
@@ -176,12 +320,17 @@ export default function GameOverStats({
         </div>
       )}
 
-      {series.length > 0 && (
+      {personal.length > 0 && (
         <div className="gos-block">
-          <h3 className="gos-heading">
-            {series.length > 1 ? "Solve times" : "Your solves"}
-          </h3>
-          <SolveCompareChart series={series} myId={myId} />
+          <h3 className="gos-heading">Your solves</h3>
+          <SolveCompareChart series={personal} myId={myId} showLegend={false} />
+        </div>
+      )}
+
+      {showCompare && (
+        <div className="gos-block">
+          <h3 className="gos-heading">Solve times</h3>
+          <SolveCompareChart series={compare} myId={myId} showLegend />
         </div>
       )}
 
