@@ -157,41 +157,16 @@ function isTypingField(t) {
 /**
  * Attach once — same click SFX on every text field (invite code, guesses,
  * nickname, feedback, chart search, …).
- * Prefers `beforeinput` (mobile / IME friendly); keydown is the fallback.
+ * One listener only (`keydown`) so each keystroke is a single clack.
  * Returns cleanup.
  */
 export function attachKeyboardSounds(root = document) {
-  // beforeinput + keydown can both fire for one keystroke — play once.
-  let handledByBeforeInput = false;
-
-  function onBeforeInput(e) {
-    if (!isTypingField(e.target)) return;
-    const it = e.inputType || "";
-    if (!it) return;
-
-    if (it.startsWith("delete")) {
-      playKeyClick("backspace");
-      handledByBeforeInput = true;
-    } else if (it === "insertLineBreak" || it === "insertParagraph") {
-      playKeyClick("enter");
-      handledByBeforeInput = true;
-    } else if (it.startsWith("insert")) {
-      // insertText, insertFromPaste, insertCompositionText, …
-      playKeyClick("type");
-      handledByBeforeInput = true;
-    } else {
-      return;
-    }
-    queueMicrotask(() => {
-      handledByBeforeInput = false;
-    });
-  }
-
   function onKeyDown(e) {
-    if (handledByBeforeInput) return;
     if (e.ctrlKey || e.metaKey || e.altKey) return;
     if (SKIP_KEYS.has(e.key)) return;
     if (!isTypingField(e.target)) return;
+    // Repeat from holding a key — don't machine-gun the SFX.
+    if (e.repeat) return;
 
     if (e.key === "Backspace" || e.key === "Delete") {
       playKeyClick("backspace");
@@ -205,11 +180,6 @@ export function attachKeyboardSounds(root = document) {
     if (e.key.length === 1) playKeyClick("type");
   }
 
-  // Capture so nested stopPropagation on bubble can't mute typing SFX.
-  root.addEventListener("beforeinput", onBeforeInput, true);
   root.addEventListener("keydown", onKeyDown, true);
-  return () => {
-    root.removeEventListener("beforeinput", onBeforeInput, true);
-    root.removeEventListener("keydown", onKeyDown, true);
-  };
+  return () => root.removeEventListener("keydown", onKeyDown, true);
 }
