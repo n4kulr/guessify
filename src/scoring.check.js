@@ -1,0 +1,20 @@
+/**
+ * Self-check: round title payout after skip/hint cuts.
+ * Run: node src/scoring.check.js
+ */
+import assert from "node:assert/strict";
+import {
+  titlePointsForGuess,
+  TITLE_POINTS,
+  SKIP_PENALTY,
+  HINT_PENALTY,
+} from "./multiplayer/constants.js";
+
+assert.equal(titlePointsForGuess(), TITLE_POINTS);
+assert.equal(titlePointsForGuess(0, false), 500);
+assert.equal(titlePointsForGuess(1, false), 500 - SKIP_PENALTY);
+assert.equal(titlePointsForGuess(2, false), 420);
+assert.equal(titlePointsForGuess(4, false), 340);
+assert.equal(titlePointsForGuess(4, true), 500 - 4 * SKIP_PENALTY - HINT_PENALTY);
+assert.equal(titlePointsForGuess(20, true), 0);
+console.log("scoring.check: ok");

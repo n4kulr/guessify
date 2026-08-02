@@ -9,8 +9,6 @@ import {
   randomAvatar,
   titlePointsForGuess,
   ARTIST_BONUS,
-  SKIP_PENALTY,
-  HINT_PENALTY,
   nextVotesNeeded,
   activePlayerCount,
   allPlayersMaxUnlocked,
@@ -500,7 +498,9 @@ export class Room extends Server {
     });
 
     if (win) {
-      const titlePts = titlePointsForGuess();
+      const skips = this.state.unlockByPlayer?.[player.id] ?? 0;
+      const hinted = !!this.state.hintByPlayer?.[player.id];
+      const titlePts = titlePointsForGuess(skips, hinted);
       this.state.bonus = artistPts;
       this.state.earnedPts = titlePts + artistPts;
       this.state.winnerId = player.id;
@@ -541,9 +541,8 @@ export class Room extends Server {
       skip: true,
     });
 
-    // Only this player's snippet grows.
+    // Only this player's snippet grows — cuts apply to their title payout later.
     this.state.unlockByPlayer[player.id] = step + 1;
-    player.score = Math.max(0, (player.score || 0) - SKIP_PENALTY);
 
     // Round only ends once every active player has fully unlocked.
     if (allPlayersMaxUnlocked(this.state.players, this.state.unlockByPlayer)) {
@@ -581,8 +580,6 @@ export class Room extends Server {
     if (!this.state.hintByPlayer) this.state.hintByPlayer = {};
     if (!this.state.hintByPlayer[player.id]) {
       this.state.hintByPlayer[player.id] = true;
-      player.score = Math.max(0, (player.score || 0) - HINT_PENALTY);
-      this.broadcastState();
       void this.persist();
     }
 

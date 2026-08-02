@@ -5,8 +5,9 @@
 import assert from "node:assert/strict";
 import { titleHintMask, HINT_MAX_LETTERS } from "./titleHint.js";
 
-assert.equal(titleHintMask("daisies"), "d _ _ s _ e _");
-assert.equal(titleHintMask("Daisies"), "d _ _ s _ e _");
+assert.equal(titleHintMask("daisies"), "d··s·e·");
+assert.equal(titleHintMask("Daisies"), "d··s·e·");
+assert.equal(titleHintMask("hello world"), "h··l· / w··l·");
 
 const long = titleHintMask("supercalifragilisticexpialidocious");
 const letters = long.replace(/[^a-z0-9]/gi, "");

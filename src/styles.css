@@ -3133,6 +3133,12 @@ button { font-family: var(--font); }
   background: var(--bg-color); color: var(--text-color);
 }
 .guess-input::placeholder { color: var(--sub-color); }
+.guess-input--hint::placeholder {
+  color: color-mix(in srgb, var(--sub-color) 55%, transparent);
+  opacity: 1;
+  letter-spacing: 0.06em;
+  font-variant-numeric: tabular-nums;
+}
 .guess-input:focus { outline: none; border-color: var(--main-color); }
 
 .suggestions {

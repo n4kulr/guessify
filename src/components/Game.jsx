@@ -75,6 +75,7 @@ export default function Game({ playlist, me, onExit, onReplay }) {
   const [celebrate, setCelebrate] = useState(false);
   const [scrubbing, setScrubbing] = useState(false);
   const [hintUsed, setHintUsed] = useState(false);
+  const [titleHintText, setTitleHintText] = useState("");
 
   const { errorMsg, setErrorMsg, play, pause } = usePreviewPlayer();
 
@@ -110,6 +111,7 @@ export default function Game({ playlist, me, onExit, onReplay }) {
     setTitleGuess("");
     setArtistGuess("");
     setHintUsed(false);
+    setTitleHintText("");
     setPhase("play");
   }
 
@@ -233,7 +235,6 @@ export default function Game({ playlist, me, onExit, onReplay }) {
 
   // Skip only: unlock more audio, or lose the round when steps are exhausted.
   function consumeGuess() {
-    setScore((s) => Math.max(0, s - SKIP_PENALTY));
     const nextNum = guessNum + 1;
     if (nextNum >= MAX_GUESSES) {
       setOutcome("lose");
@@ -271,7 +272,7 @@ export default function Game({ playlist, me, onExit, onReplay }) {
     }
 
     if (win) {
-      const titlePts = titlePointsForGuess();
+      const titlePts = titlePointsForGuess(guessNum, hintUsed);
       setEarnedPts(titlePts + artistPts);
       setScore((s) => s + titlePts);
       setOutcome("win");
@@ -296,11 +297,8 @@ export default function Game({ playlist, me, onExit, onReplay }) {
   function applyTitleHint() {
     if (phase !== "play" || resolved || !track?.name) return;
     if (guessNum < HINT_AFTER_SKIPS) return;
-    if (!hintUsed) {
-      setHintUsed(true);
-      setScore((s) => Math.max(0, s - HINT_PENALTY));
-    }
-    setTitleGuess(titleHintMask(track.name));
+    if (!hintUsed) setHintUsed(true);
+    setTitleHintText(titleHintMask(track.name));
   }
 
   function nextRound() {
@@ -451,8 +449,8 @@ export default function Game({ playlist, me, onExit, onReplay }) {
                   <div className="guess-title-row">
                     <div className="guess-title-field">
                       <input
-                        className="guess-input"
-                        placeholder="song title…"
+                        className={`guess-input${titleHintText ? " guess-input--hint" : ""}`}
+                        placeholder={titleHintText || "song title…"}
                         value={titleGuess}
                         onChange={(e) => setTitleGuess(e.target.value)}
                         onKeyDown={(e) => e.key === "Enter" && submitGuess()}
@@ -462,9 +460,9 @@ export default function Game({ playlist, me, onExit, onReplay }) {
                           type="button"
                           className="guess-hint-link"
                           onClick={applyTitleHint}
-                          aria-label="Reveal title hint"
+                          aria-label={`Reveal title hint (−${HINT_PENALTY})`}
                         >
-                          hint
+                          hint · −{HINT_PENALTY}
                         </button>
                       )}
                     </div>
@@ -491,7 +489,7 @@ export default function Game({ playlist, me, onExit, onReplay }) {
                 <div className="guess-actions">
                   <button className="btn btn-skip" onClick={skip}>
                     <span className="btn-label">skip</span>
-                    <span className="btn-hint">+audio</span>
+                    <span className="btn-hint">+audio · −{SKIP_PENALTY}</span>
                   </button>
                   <button
                     className="btn btn-guess"

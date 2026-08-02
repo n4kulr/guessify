@@ -4,13 +4,13 @@ export const MAX_GUESSES = STEPS.length;
 export const TOTAL = STEPS[STEPS.length - 1];
 export const ROUND_COUNT = 5;
 
-/** Points for nailing the title — always full amount. */
+/** Points for nailing the title before skip/hint cuts. */
 export const TITLE_POINTS = 500;
 /** Small bonus for revealing the artist first (hint + a little score). */
 export const ARTIST_BONUS = 100;
-/** Lost each time you skip for more audio. */
+/** Cut from this round's title payout each skip (not banked score). */
 export const SKIP_PENALTY = 40;
-/** Lost the first time you use the title hint in a round. */
+/** Cut from this round's title payout the first time you take the hint. */
 export const HINT_PENALTY = 100;
 /** @deprecated use TITLE_POINTS */
 export const TITLE_POINTS_SONG_FIRST = TITLE_POINTS;
@@ -38,9 +38,14 @@ export function allPlayersMaxUnlocked(players = [], unlockByPlayer = {}) {
   );
 }
 
-/** Title always awards full points. */
-export function titlePointsForGuess() {
-  return TITLE_POINTS;
+/**
+ * Title payout for this round after skip/hint cuts.
+ * Banked score from earlier rounds is never touched — only what you earn now.
+ */
+export function titlePointsForGuess(skips = 0, hintUsed = false) {
+  const n = Math.max(0, Math.floor(Number(skips) || 0));
+  const cut = n * SKIP_PENALTY + (hintUsed ? HINT_PENALTY : 0);
+  return Math.max(0, TITLE_POINTS - cut);
 }
 
 /**

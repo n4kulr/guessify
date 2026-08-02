@@ -4,7 +4,7 @@ import { usePreviewPlayer } from "../usePreviewPlayer.js";
 import PlayerRail from "./PlayerRail.jsx";
 import ProfileEditor from "./ProfileEditor.jsx";
 import GuessPopups from "./GuessPopups.jsx";
-import { STEPS, TOTAL, randomAvatar, normalizeAvatar, unlockSecondsFor, PLAYER_COLORS, nextVotesNeeded, activePlayerCount } from "./constants.js";
+import { STEPS, TOTAL, randomAvatar, normalizeAvatar, unlockSecondsFor, PLAYER_COLORS, nextVotesNeeded, activePlayerCount, SKIP_PENALTY, HINT_PENALTY } from "./constants.js";
 import { accentMatchingTheme } from "../themes.js";
 import { fireConfetti, shakeEl } from "../fx.js";
 import GuessMedia from "../components/GuessMedia.jsx";
@@ -29,6 +29,7 @@ export default function GuestApp({ code }) {
   });
   const [titleGuess, setTitleGuess] = useState("");
   const [artistGuess, setArtistGuess] = useState("");
+  const [titleHintText, setTitleHintText] = useState("");
   const { errorMsg, setErrorMsg, play, pause } = usePreviewPlayer();
   const [playBusy, setPlayBusy] = useState(false);
   const [localPlaying, setLocalPlaying] = useState(false);
@@ -69,6 +70,7 @@ export default function GuestApp({ code }) {
 
   useEffect(() => {
     if (!state?.revealedArtist) setArtistGuess("");
+    setTitleHintText("");
   }, [state?.roundIdx]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
@@ -138,7 +140,7 @@ export default function GuestApp({ code }) {
 
   useEffect(() => {
     if (!titleHint) return;
-    setTitleGuess(titleHint);
+    setTitleHintText(titleHint);
     consumeTitleHint();
   }, [titleHint, consumeTitleHint]);
 
@@ -346,8 +348,8 @@ export default function GuestApp({ code }) {
               <div className="guess-title-row">
                 <div className="guess-title-field">
                   <input
-                    className="guess-input"
-                    placeholder="song title…"
+                    className={`guess-input${titleHintText ? " guess-input--hint" : ""}`}
+                    placeholder={titleHintText || "song title…"}
                     value={titleGuess}
                     onChange={(e) => setTitleGuess(e.target.value)}
                     onKeyDown={(e) => e.key === "Enter" && submitGuess()}
@@ -357,9 +359,9 @@ export default function GuestApp({ code }) {
                       type="button"
                       className="guess-hint-link"
                       onClick={applyTitleHint}
-                      aria-label="Reveal title hint"
+                      aria-label={`Reveal title hint (−${HINT_PENALTY})`}
                     >
-                      hint
+                      hint · −{HINT_PENALTY}
                     </button>
                   )}
                 </div>
@@ -386,7 +388,7 @@ export default function GuestApp({ code }) {
             <div className="guess-actions">
               <button className="btn btn-skip" onClick={skipGuess}>
                 <span className="btn-label">skip</span>
-                <span className="btn-hint">+audio</span>
+                <span className="btn-hint">+audio · −{SKIP_PENALTY}</span>
               </button>
               <button
                 className="btn btn-guess"
