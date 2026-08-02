@@ -17,6 +17,7 @@ import { titleHintMask, HINT_AFTER_SKIPS } from "../titleHint.js";
 import { computeGameStats } from "../gameStats.js";
 import { recordPlaylistScore } from "../playlistBests.js";
 import { isFastTest, FAST_ROUND_LOG } from "../fastTest.js";
+import { useDebugActions } from "../debugRegistry.js";
 import {
   STEPS,
   MAX_GUESSES,
@@ -890,7 +891,6 @@ export default function OnlineRace({ profile, onExit }) {
     const ops = roster.filter((p) => p.id !== youId);
     const results = FAST_ROUND_LOG.flatMap((r, i) => {
       if (!r.won || r.wallMs == null) return [];
-      // Hand one win to an opponent so the compare chart has 2 series.
       const toOp = i === 2 && ops[0];
       const w = toOp ? ops[0] : null;
       return [
@@ -917,17 +917,38 @@ export default function OnlineRace({ profile, onExit }) {
     setPhase("over");
   }
 
-  const fastEndBtn = fast && phase !== "over" && (
-    <button type="button" className="btn btn-mini fast-end-btn" onClick={endFast}>
-      end now (race)
-    </button>
-  );
+  const debugActions = useMemo(() => {
+    if (!fast) return [];
+    const acts = [];
+    if (phase === "matching") {
+      acts.push({
+        id: "end-match",
+        label: "skip match → wrap (fake)",
+        run: endFast,
+      });
+    } else if (phase !== "over") {
+      acts.push(
+        { id: "end", label: "jump to wrap (fake stats)", run: endFast },
+        {
+          id: "force-reveal-win",
+          label: "force you win this round",
+          run: () => {
+            const you = players.find((p) => p.id === youId);
+            if (you && track) endRoundWin(you, 500, 0);
+          },
+        }
+      );
+    }
+    acts.push({ id: "exit", label: "leave race", run: () => onExit?.() });
+    return acts;
+  }, [fast, phase, players, track]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  useDebugActions("online-race", debugActions);
 
   // ---- matching / error ----
   if (loadError) {
     return (
       <div className="mp-lobby online-race">
-        {fastEndBtn}
         <button className="btn btn-mini mp-back" onClick={onExit}>
           ← back
         </button>
@@ -942,7 +963,6 @@ export default function OnlineRace({ profile, onExit }) {
   if (phase === "matching") {
     return (
       <div className="mp-lobby online-race online-race--match">
-        {fastEndBtn}
         <button className="btn btn-mini mp-back" onClick={onExit}>
           ← leave
         </button>
@@ -996,7 +1016,6 @@ export default function OnlineRace({ profile, onExit }) {
 
   return (
     <div className="game mp-host mp-board online-race" ref={rootRef}>
-      {fastEndBtn}
       <div className="mp-board-main">
         <div className="game-head">
           <button className="btn btn-mini" onClick={onExit}>

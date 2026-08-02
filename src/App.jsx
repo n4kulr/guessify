@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Login from "./components/Login.jsx";
 import Home from "./components/Home.jsx";
 import PlaylistPicker from "./components/PlaylistPicker.jsx";
@@ -10,11 +10,14 @@ import UserMenu from "./components/UserMenu.jsx";
 import HostParty from "./multiplayer/HostParty.jsx";
 import GuestApp from "./multiplayer/GuestApp.jsx";
 import OnlineRace from "./components/OnlineRace.jsx";
+import DebugPanel from "./components/DebugPanel.jsx";
 import { isFastTest } from "./fastTest.js";
+import { useDebugActions } from "./debugRegistry.js";
 import OnlineJoinDialog from "./components/OnlineJoinDialog.jsx";
 import PlayHowto, {
   hasSeenPlayHowto,
   markPlayHowtoSeen,
+  HOWTO_KEY,
 } from "./components/PlayHowto.jsx";
 import { makeRoomCode } from "./multiplayer/constants.js";
 import { loadLocalProfile, saveLocalProfile, hasSavedLocalProfile } from "./localProfile.js";
@@ -428,6 +431,106 @@ export default function App() {
     mode !== "online" &&
     (status === "loggedIn" || status === "loggedOut");
 
+  const debugScreen = joinCode
+    ? "guest"
+    : howtoMode
+      ? `howto:${howtoMode}`
+      : onlinePrompt
+        ? "online-prompt"
+        : hostPrompt
+          ? "host-prompt"
+          : mode === "online" && onlineProfile
+            ? "online-race"
+            : mode === "multi" && playlist && roomCode
+              ? "host-party"
+              : mode === "solo" && playlist
+                ? "solo"
+                : picking
+                  ? `picker:${mode}`
+                  : onLanding
+                    ? status === "loggedIn"
+                      ? "home"
+                      : "login"
+                    : "app";
+
+  const debugActions = useMemo(() => {
+    /** Shell-level only — game screens register their own actions. */
+    if (
+      debugScreen === "solo" ||
+      debugScreen === "online-race" ||
+      debugScreen === "host-party" ||
+      debugScreen === "guest"
+    ) {
+      return null;
+    }
+    const acts = [];
+    if (debugScreen === "home" || debugScreen === "login") {
+      acts.push(
+        { id: "solo", label: "start solo picker", run: () => beginSolo() },
+        { id: "multi", label: "start host picker", run: () => beginMulti() },
+        { id: "online", label: "open quick play prompt", run: () => startOnline() },
+        {
+          id: "howto-solo",
+          label: "show howto (solo)",
+          run: () => setHowtoMode("solo"),
+        },
+        {
+          id: "clear-howto",
+          label: "reset howto seen flag",
+          run: () => {
+            try {
+              localStorage.removeItem(HOWTO_KEY);
+            } catch {
+              /* ignore */
+            }
+          },
+        }
+      );
+    }
+    if (debugScreen.startsWith("picker:")) {
+      acts.push({
+        id: "home",
+        label: "back home",
+        run: () => goHome(),
+      });
+    }
+    if (debugScreen === "online-prompt" || debugScreen === "host-prompt") {
+      acts.push({
+        id: "cancel-prompt",
+        label: "close prompt",
+        run: () =>
+          debugScreen === "online-prompt"
+            ? cancelOnlinePrompt()
+            : cancelHostPrompt(),
+      });
+    }
+    if (debugScreen.startsWith("howto:")) {
+      acts.push({
+        id: "finish-howto",
+        label: "finish howto",
+        run: () => finishHowto(),
+      });
+    }
+    acts.push({
+      id: "off",
+      label: "turn off fast mode",
+      run: () => {
+        try {
+          sessionStorage.removeItem("guessify-fast");
+        } catch {
+          /* ignore */
+        }
+        window.location.href = "/?fast=0";
+      },
+    });
+    return acts;
+  }, [debugScreen]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  useDebugActions(
+    debugActions == null ? null : debugScreen,
+    debugActions || []
+  );
+
   return (
     <div className="app">
       <header className={`topbar${onLanding ? " topbar--landing" : ""}`}>
@@ -539,6 +642,7 @@ export default function App() {
       </footer>
 
       <FabDock />
+      <DebugPanel />
     </div>
   );
 }

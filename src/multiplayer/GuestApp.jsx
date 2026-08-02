@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { usePartyRoom } from "./usePartyRoom.js";
 import { usePreviewPlayer } from "../usePreviewPlayer.js";
 import { STEPS, TOTAL, MAX_GUESSES, randomAvatar, normalizeAvatar, unlockSecondsFor, PLAYER_COLORS, nextVotesNeeded, activePlayerCount, SKIP_PENALTY, HINT_PENALTY } from "./constants.js";
@@ -15,6 +15,8 @@ import { loadLocalProfile } from "../localProfile.js";
 import { HINT_AFTER_SKIPS } from "../titleHint.js";
 import { computeGameStats } from "../gameStats.js";
 import { recordPlaylistScore } from "../playlistBests.js";
+import { isFastTest, buildFastPartyEnd } from "../fastTest.js";
+import { useDebugActions } from "../debugRegistry.js";
 import PlayerRail from "./PlayerRail.jsx";
 import ProfileEditor from "./ProfileEditor.jsx";
 import GuessPopups from "./GuessPopups.jsx";
@@ -42,6 +44,7 @@ export default function GuestApp({ code }) {
   const [almostArtist, setAlmostArtist] = useState(null);
   const [roundLog, setRoundLog] = useState([]);
   const [playlistBests, setPlaylistBests] = useState(null);
+  const [fastEnd, setFastEnd] = useState(null);
   const { errorMsg, setErrorMsg, play, pause } = usePreviewPlayer();
   const [playBusy, setPlayBusy] = useState(false);
   const [localPlaying, setLocalPlaying] = useState(false);
@@ -276,6 +279,97 @@ export default function GuestApp({ code }) {
     lastRevealPlayRef.current = revealPlayKey;
     playSnippet(null);
   }, [phase, revealPlayKey, canPlay]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const fast = isFastTest();
+  function endFast(alone) {
+    pause();
+    setLocalPlaying(false);
+    const payload = buildFastPartyEnd({
+      alone,
+      host: {
+        id: playerId || "guest",
+        name: name || "you",
+        avatar,
+        color: avatar?.color,
+      },
+    });
+    // Mark as non-host guest seat for the rail.
+    payload.players = payload.players.map((p) =>
+      p.id === (playerId || "guest") ? { ...p, isHost: false } : p
+    );
+    setRoundLog(payload.roundLog);
+    setPlaylistBests(
+      recordPlaylistScore(
+        `party:${upper}`,
+        state?.playlistName || "Party",
+        payload.myScore
+      )
+    );
+    setFastEnd(payload);
+  }
+
+  const debugActions = useMemo(() => {
+    if (!fast || fastEnd) return [];
+    return [
+      {
+        id: "end-alone",
+        label: "wrap alone (fake)",
+        run: () => endFast(true),
+      },
+      {
+        id: "end-4",
+        label: "wrap with 4 players (fake)",
+        run: () => endFast(false),
+      },
+      {
+        id: "home",
+        label: "leave → home",
+        run: () => {
+          window.location.href = "/";
+        },
+      },
+    ];
+  }, [fast, fastEnd]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  useDebugActions("guest", debugActions);
+
+  if (fastEnd) {
+    const ranked = [...fastEnd.players].sort((a, b) => b.score - a.score);
+    const mine = ranked[0];
+    const myScore = mine?.score ?? 0;
+    const endStats = computeGameStats(fastEnd.roundLog, { score: myScore });
+    return (
+      <div className="mp-guest mp-over">
+        <h2 className="title">That's a wrap!</h2>
+        <PlayerRail players={ranked} />
+        <GameOverStats
+          stats={endStats}
+          bests={playlistBests}
+          roundResults={fastEnd.roundResults}
+          players={ranked}
+          myId={mine?.id}
+          hideMisses
+        />
+        <div className="gameover-actions">
+          <ShareScoreButton
+            mode="party"
+            score={myScore}
+            name={mine?.name || name}
+            stats={endStats}
+            playlistName={state?.playlistName || ""}
+          />
+          <button
+            className="btn btn-big btn-play"
+            onClick={() => {
+              window.location.href = "/";
+            }}
+          >
+            back home
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   if (status === "error") {
     return (

@@ -18,6 +18,7 @@ import PlayerRail from "../multiplayer/PlayerRail.jsx";
 import { computeGameStats } from "../gameStats.js";
 import { recordPlaylistScore } from "../playlistBests.js";
 import { isFastTest, FAST_ROUND_LOG } from "../fastTest.js";
+import { useDebugActions } from "../debugRegistry.js";
 import {
   STEPS,
   MAX_GUESSES,
@@ -395,7 +396,6 @@ export default function Game({ playlist, me, onExit, onReplay }) {
 
   const maxScore = rounds.length * ROUND_MAX_POINTS;
   const spinning = (playing || celebrate) && !scrubbing;
-  const fast = isFastTest();
 
   function endFast() {
     stopAudio();
@@ -411,16 +411,48 @@ export default function Game({ playlist, me, onExit, onReplay }) {
     setPhase("over");
   }
 
+  const debugActions = useMemo(() => {
+    if (!isFastTest()) return [];
+    const acts = [];
+    if (phase !== "over") {
+      acts.push(
+        { id: "end", label: "jump to wrap (fake stats)", run: endFast },
+        {
+          id: "max-skip",
+          label: "max unlock (skip bar)",
+          run: () => setGuessNum(MAX_GUESSES - 1),
+        },
+        {
+          id: "clear-fields",
+          label: "clear guess fields",
+          run: () => {
+            setTitleGuess("");
+            setArtistGuess("");
+          },
+        }
+      );
+    } else {
+      acts.push({
+        id: "replay",
+        label: "play again (remount)",
+        run: () => (onReplay ? onReplay() : window.location.reload()),
+      });
+    }
+    acts.push({
+      id: "exit",
+      label: "exit to picker",
+      run: () => onExit?.(),
+    });
+    return acts;
+  }, [phase]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  useDebugActions("solo", debugActions);
+
   return (
     <div
       ref={rootRef}
       className={`game mp-board mp-board--solo ${outcome === "win" ? "game--win" : ""} ${outcome === "lose" ? "game--lose" : ""}`}
     >
-      {fast && phase !== "over" && (
-        <button type="button" className="btn btn-mini fast-end-btn" onClick={endFast}>
-          end now (solo)
-        </button>
-      )}
       <div className="mp-board-main">
         <div className="game-head">
           <button className="btn btn-mini" onClick={onExit}>

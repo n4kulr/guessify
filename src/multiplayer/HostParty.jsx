@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import QRCode from "qrcode";
 import { usePartyRoom } from "./usePartyRoom.js";
 import { usePreviewPlayer } from "../usePreviewPlayer.js";
@@ -21,6 +21,7 @@ import { HINT_AFTER_SKIPS } from "../titleHint.js";
 import { computeGameStats } from "../gameStats.js";
 import { recordPlaylistScore } from "../playlistBests.js";
 import { isFastTest, buildFastPartyEnd } from "../fastTest.js";
+import { useDebugActions } from "../debugRegistry.js";
 
 /**
  * Host multiplayer session — picks playlist / starts game; audio plays locally
@@ -391,16 +392,32 @@ export default function HostParty({ code, playlist, me, profile, onExit }) {
     setFastEnd(payload);
   }
 
-  const fastEndBtns = fast && !fastEnd && (
-    <div className="fast-end-btn-stack">
-      <button type="button" className="btn btn-mini fast-end-btn" onClick={() => endFast(true)}>
-        end alone
-      </button>
-      <button type="button" className="btn btn-mini fast-end-btn" onClick={() => endFast(false)}>
-        end w/ 4
-      </button>
-    </div>
-  );
+  const debugActions = useMemo(() => {
+    if (!fast || fastEnd) return [];
+    const acts = [
+      {
+        id: "end-alone",
+        label: "wrap alone (fake)",
+        run: () => endFast(true),
+      },
+      {
+        id: "end-4",
+        label: "wrap with 4 players (fake)",
+        run: () => endFast(false),
+      },
+    ];
+    if (phase === "lobby" || phase === "empty") {
+      acts.push({
+        id: "start",
+        label: "send start (if connected)",
+        run: () => send({ type: "start" }),
+      });
+    }
+    acts.push({ id: "exit", label: "end party → home", run: () => onExit?.() });
+    return acts;
+  }, [fast, fastEnd, phase]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  useDebugActions("host-party", debugActions);
 
   // ---- fake wrap (dev) ----
   if (fastEnd) {
@@ -442,7 +459,6 @@ export default function HostParty({ code, playlist, me, profile, onExit }) {
     const canStart = players.some((p) => p.connected);
     return (
       <div className="mp-lobby">
-        {fastEndBtns}
         <button className="btn btn-mini mp-back" onClick={onExit}>
           ← cancel
         </button>
@@ -574,7 +590,6 @@ export default function HostParty({ code, playlist, me, profile, onExit }) {
 
   return (
     <div className="game mp-host mp-board" ref={rootRef}>
-      {fastEndBtns}
       <div className="mp-board-main">
       <div className="game-head">
         <button className="btn btn-mini" onClick={onExit}>
