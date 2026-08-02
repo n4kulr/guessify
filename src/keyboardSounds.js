@@ -1,4 +1,5 @@
 // Soft mechanical key clicks (Web Audio, no assets).
+// Same sound everywhere you type: invite code, guesses, nickname, feedback, charts…
 
 let ctx = null;
 
@@ -99,7 +100,7 @@ export function playKeyClick(kind = "type") {
   });
 }
 
-const SKIP = new Set([
+const SKIP_KEYS = new Set([
   "Shift",
   "Control",
   "Alt",
@@ -130,26 +131,67 @@ const SKIP = new Set([
   "F12",
 ]);
 
-/** Attach once — plays on keydown in text fields. Returns cleanup. */
-export function attachKeyboardSounds(root = document) {
-  function onKeyDown(e) {
-    if (e.ctrlKey || e.metaKey || e.altKey) return;
-    if (SKIP.has(e.key)) return;
+const SKIP_INPUT_TYPES = new Set([
+  "checkbox",
+  "radio",
+  "range",
+  "button",
+  "submit",
+  "reset",
+  "file",
+  "color",
+  "hidden",
+  "image",
+]);
 
-    const t = e.target;
-    if (!(t instanceof HTMLElement)) return;
-    const tag = t.tagName;
-    const typing =
-      tag === "INPUT" ||
-      tag === "TEXTAREA" ||
-      t.isContentEditable;
-    if (!typing) return;
-    if (tag === "INPUT") {
-      const type = (t.getAttribute("type") || "text").toLowerCase();
-      if (type === "checkbox" || type === "radio" || type === "range" || type === "button" || type === "submit") {
-        return;
-      }
+function isTypingField(t) {
+  if (!(t instanceof HTMLElement)) return false;
+  if (t.isContentEditable) return true;
+  const tag = t.tagName;
+  if (tag === "TEXTAREA") return true;
+  if (tag !== "INPUT") return false;
+  const type = (t.getAttribute("type") || "text").toLowerCase();
+  return !SKIP_INPUT_TYPES.has(type);
+}
+
+/**
+ * Attach once — same click SFX on every text field (invite code, guesses,
+ * nickname, feedback, chart search, …).
+ * Prefers `beforeinput` (mobile / IME friendly); keydown is the fallback.
+ * Returns cleanup.
+ */
+export function attachKeyboardSounds(root = document) {
+  // beforeinput + keydown can both fire for one keystroke — play once.
+  let handledByBeforeInput = false;
+
+  function onBeforeInput(e) {
+    if (!isTypingField(e.target)) return;
+    const it = e.inputType || "";
+    if (!it) return;
+
+    if (it.startsWith("delete")) {
+      playKeyClick("backspace");
+      handledByBeforeInput = true;
+    } else if (it === "insertLineBreak" || it === "insertParagraph") {
+      playKeyClick("enter");
+      handledByBeforeInput = true;
+    } else if (it.startsWith("insert")) {
+      // insertText, insertFromPaste, insertCompositionText, …
+      playKeyClick("type");
+      handledByBeforeInput = true;
+    } else {
+      return;
     }
+    queueMicrotask(() => {
+      handledByBeforeInput = false;
+    });
+  }
+
+  function onKeyDown(e) {
+    if (handledByBeforeInput) return;
+    if (e.ctrlKey || e.metaKey || e.altKey) return;
+    if (SKIP_KEYS.has(e.key)) return;
+    if (!isTypingField(e.target)) return;
 
     if (e.key === "Backspace" || e.key === "Delete") {
       playKeyClick("backspace");
@@ -159,11 +201,15 @@ export function attachKeyboardSounds(root = document) {
       playKeyClick("enter");
       return;
     }
-    // Printable / space (including IME may send Process — skip those)
     if (e.key === "Process" || e.key === "Dead") return;
     if (e.key.length === 1) playKeyClick("type");
   }
 
-  root.addEventListener("keydown", onKeyDown);
-  return () => root.removeEventListener("keydown", onKeyDown);
+  // Capture so nested stopPropagation on bubble can't mute typing SFX.
+  root.addEventListener("beforeinput", onBeforeInput, true);
+  root.addEventListener("keydown", onKeyDown, true);
+  return () => {
+    root.removeEventListener("beforeinput", onBeforeInput, true);
+    root.removeEventListener("keydown", onKeyDown, true);
+  };
 }

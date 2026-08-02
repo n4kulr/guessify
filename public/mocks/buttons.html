@@ -1,0 +1,909 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Guessify — button sound board</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Lexend+Deca:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg-color: #323437;
+      --main-color: #e2b714;
+      --text-color: #d1d0c5;
+      --sub-color: #646669;
+      --sub-alt-color: #2c2e31;
+      --error-color: #ca4754;
+      --font: "Lexend Deca", system-ui, sans-serif;
+      --radius: 10px;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      padding: 28px 16px 56px;
+      background: var(--bg-color);
+      color: var(--text-color);
+      font-family: var(--font);
+    }
+    h1 {
+      margin: 0 0 6px;
+      font-size: 13px;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--sub-color);
+      text-align: center;
+    }
+    .note {
+      max-width: 720px;
+      margin: 0 auto 22px;
+      text-align: center;
+      font-size: 12px;
+      color: var(--sub-color);
+      line-height: 1.5;
+    }
+    code { color: var(--text-color); }
+    .toolbar {
+      display: flex;
+      justify-content: center;
+      gap: 10px;
+      margin-bottom: 22px;
+    }
+    .board {
+      max-width: 720px;
+      margin: 0 auto;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+    .card {
+      background: var(--sub-alt-color);
+      border-radius: 14px;
+      padding: 16px;
+    }
+    .card h2 {
+      margin: 0 0 12px;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--sub-color);
+    }
+    .row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      align-items: center;
+    }
+    .cell {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      align-items: flex-start;
+    }
+    .tag {
+      font-size: 10px;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: var(--sub-color);
+    }
+
+    /* ---- buttons (mirrors src/styles.css) ---- */
+    .btn {
+      font-family: var(--font);
+      font-size: 14px;
+      font-weight: 500;
+      color: var(--text-color);
+      background: var(--sub-alt-color);
+      border: none;
+      border-radius: var(--radius);
+      padding: 11px 18px;
+      cursor: pointer;
+      transition: color 0.15s ease, background 0.15s ease, transform 0.1s ease;
+    }
+    .btn:hover { background: var(--main-color); color: var(--bg-color); }
+    .btn:active { transform: scale(0.97); }
+    .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+    .btn:disabled:hover { background: var(--sub-alt-color); color: var(--text-color); }
+
+    .btn-big {
+      font-size: 16px;
+      padding: 14px 26px;
+      display: inline-flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .btn-mini { font-size: 12px; padding: 6px 10px; }
+
+    .btn-play { background: var(--main-color); color: var(--bg-color); font-weight: 600; }
+    .btn-play:hover { filter: brightness(1.08); background: var(--main-color); color: var(--bg-color); }
+
+    .btn-multi {
+      background: var(--bg-color);
+      color: var(--text-color);
+      font-weight: 600;
+      border: 2px solid var(--main-color);
+    }
+    .btn-multi:hover { background: var(--main-color); color: var(--bg-color); }
+
+    .btn-online {
+      justify-content: center;
+      gap: 8px;
+      background: var(--sub-alt-color);
+      color: var(--text-color);
+      font-weight: 600;
+      border: 2px solid transparent;
+    }
+    .btn-online:hover {
+      filter: brightness(1.08);
+      background: var(--sub-alt-color);
+      color: var(--text-color);
+    }
+    .btn-online-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: var(--main-color);
+      animation: online-pulse 1.6s ease-in-out infinite;
+    }
+    .btn-online-count {
+      color: var(--sub-color);
+      font-weight: 500;
+      font-size: 0.92em;
+    }
+    @keyframes online-pulse {
+      0%, 100% { opacity: 0.45; transform: scale(0.9); }
+      50% { opacity: 1; transform: scale(1.15); }
+    }
+
+    .gameover-actions .btn-online {
+      width: auto;
+      background: color-mix(in srgb, var(--sub-alt-color) 82%, #000);
+      border: 2px solid transparent;
+      color: var(--text-color);
+    }
+    .gameover-actions .btn-online:hover {
+      filter: none;
+      background: color-mix(in srgb, var(--sub-alt-color) 68%, #000);
+    }
+
+    .btn-spotify {
+      background: color-mix(in srgb, var(--main-color) 16%, var(--bg-color));
+      color: var(--main-color);
+      font-weight: 600;
+    }
+    .btn-spotify:hover {
+      background: color-mix(in srgb, var(--main-color) 24%, var(--bg-color));
+      color: var(--main-color);
+    }
+
+    .btn-ghost { background: var(--bg-color); }
+    .btn-ghost:hover { background: var(--main-color); color: var(--bg-color); }
+
+    .btn-play-icon {
+      width: 0;
+      height: 0;
+      flex: none;
+      border-style: solid;
+      border-width: 7px 0 7px 12px;
+      border-color: transparent transparent transparent currentColor;
+      margin-left: 2px;
+      transform: translateX(1px);
+    }
+
+    .btn-skip {
+      display: inline-flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 2px;
+      background: var(--bg-color);
+      color: var(--text-color);
+      box-shadow: 0 4px 0 var(--sub-color);
+    }
+    .btn-skip:hover {
+      background: var(--bg-color);
+      color: var(--text-color);
+      filter: brightness(1.12);
+      transform: translateY(-2px);
+      box-shadow: 0 6px 0 var(--sub-color);
+    }
+    .btn-skip:active {
+      transform: translateY(3px);
+      box-shadow: 0 1px 0 var(--sub-color);
+    }
+
+    .btn-guess {
+      display: inline-flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 2px;
+      background: var(--main-color);
+      color: var(--bg-color);
+      box-shadow: 0 4px 0 color-mix(in srgb, var(--main-color) 55%, #000);
+    }
+    .btn-guess:hover {
+      background: var(--main-color);
+      color: var(--bg-color);
+      filter: brightness(1.08);
+      transform: translateY(-2px);
+      box-shadow: 0 6px 0 color-mix(in srgb, var(--main-color) 55%, #000);
+    }
+    .btn-guess:active:not(:disabled) {
+      transform: translateY(3px);
+      box-shadow: 0 1px 0 color-mix(in srgb, var(--main-color) 55%, #000);
+    }
+    .btn-guess:disabled {
+      opacity: 0.45;
+      filter: grayscale(0.25);
+      transform: none;
+    }
+    .btn-guess:disabled:hover {
+      background: var(--main-color);
+      color: var(--bg-color);
+      filter: grayscale(0.25);
+      transform: none;
+    }
+    .btn-label { line-height: 1.1; }
+    .btn-hint {
+      font-size: 10px;
+      font-weight: 600;
+      letter-spacing: 0.14em;
+      opacity: 0.7;
+      text-transform: uppercase;
+    }
+
+    .media-stage-btn.is-voted {
+      opacity: 0.7;
+      filter: grayscale(0.2);
+    }
+
+    .guess-transport-switch {
+      position: relative;
+      width: 72px;
+      height: 36px;
+      border: none;
+      border-radius: 999px;
+      background: var(--bg-color);
+      cursor: pointer;
+      padding: 0;
+      flex: none;
+    }
+    .guess-transport-thumb {
+      position: absolute;
+      top: 3px;
+      left: 3px;
+      width: 30px;
+      height: 30px;
+      border-radius: 50%;
+      background: var(--main-color);
+      transition: transform 0.18s ease;
+    }
+    .guess-transport-switch.is-playing .guess-transport-thumb {
+      transform: translateX(36px);
+    }
+    .guess-transport-slot {
+      position: absolute;
+      top: 0;
+      bottom: 0;
+      width: 36px;
+      display: grid;
+      place-items: center;
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--sub-color);
+      pointer-events: none;
+    }
+    .guess-transport-slot--play { left: 0; }
+    .guess-transport-slot--pause { right: 0; }
+    .guess-transport-switch.is-paused .guess-transport-slot--play,
+    .guess-transport-switch.is-playing .guess-transport-slot--pause {
+      color: var(--bg-color);
+    }
+
+    .debug-fab {
+      font-size: 12px;
+      padding: 8px 12px;
+      opacity: 0.92;
+    }
+    .feedback-send {
+      background: var(--main-color);
+      color: var(--bg-color);
+      font-weight: 600;
+    }
+    .feedback-send:hover {
+      filter: brightness(1.08);
+      background: var(--main-color);
+      color: var(--bg-color);
+    }
+
+    .mute-on { outline: 2px solid var(--error-color); }
+  </style>
+</head>
+<body>
+  <h1>button sound board</h1>
+  <p class="note">
+    Open via Vite: <code>/mocks/buttons.html</code><br />
+    Convention: rising = go, falling = back · sine soft · triangle warm · square game-y · saw sharp.<br />
+    Clicks ~40–90&nbsp;ms (arps a touch longer). No mp3 assets — Web Audio only.
+  </p>
+
+  <div class="toolbar">
+    <button type="button" class="btn btn-mini" id="mute">
+      sound on
+    </button>
+  </div>
+
+  <div class="board">
+    <section class="card">
+      <h2>Home / login</h2>
+      <div class="row">
+        <div class="cell">
+          <span class="tag">triangle · C5→G5 · 90ms</span>
+          <button type="button" class="btn btn-big btn-play" data-sound="play-solo">
+            <span class="btn-play-icon" aria-hidden="true"></span>
+            play solo
+          </button>
+        </div>
+        <div class="cell">
+          <span class="tag">triangle · E5→G5→C6 · 110ms</span>
+          <button type="button" class="btn btn-big btn-multi" data-sound="host-party">
+            host party
+          </button>
+        </div>
+        <div class="cell">
+          <span class="tag">square · 500→800 · 60ms</span>
+          <button type="button" class="btn btn-big btn-online" data-sound="play-online">
+            <span class="btn-online-dot" aria-hidden="true"></span>
+            play online
+            <span class="btn-online-count">(24 active)</span>
+          </button>
+        </div>
+        <div class="cell">
+          <span class="tag">sine · gentle rise · 80ms</span>
+          <button type="button" class="btn btn-big btn-spotify" data-sound="spotify">
+            log in with Spotify
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>Guessing</h2>
+      <div class="row">
+        <div class="cell">
+          <span class="tag">saw · 400→300 · 45ms quiet</span>
+          <button type="button" class="btn btn-skip" data-sound="skip">
+            <span class="btn-label">skip</span>
+            <span class="btn-hint">+audio</span>
+          </button>
+        </div>
+        <div class="cell">
+          <span class="tag">triangle · 600→850 · 60ms</span>
+          <button type="button" class="btn btn-guess" data-sound="guess">
+            <span class="btn-label">guess</span>
+            <span class="btn-hint">enter</span>
+          </button>
+        </div>
+        <div class="cell">
+          <span class="tag">sine · flat 180 · 30ms</span>
+          <button type="button" class="btn btn-guess" disabled data-sound="guess-deny">
+            <span class="btn-label">guess</span>
+            <span class="btn-hint">enter</span>
+          </button>
+        </div>
+        <div class="cell">
+          <span class="tag">sine · rise / fall · 40ms</span>
+          <button
+            type="button"
+            class="guess-transport-switch is-paused"
+            id="transport"
+            data-sound="transport"
+            aria-label="Play"
+          >
+            <span class="guess-transport-thumb" aria-hidden="true"></span>
+            <span class="guess-transport-slot guess-transport-slot--play" aria-hidden="true">▶</span>
+            <span class="guess-transport-slot guess-transport-slot--pause" aria-hidden="true">❚❚</span>
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>Round / wrap</h2>
+      <div class="row gameover-actions" style="margin-top:0">
+        <div class="cell">
+          <span class="tag">triangle · 500→750 · 70ms</span>
+          <button type="button" class="btn btn-big btn-play" data-sound="next-song">
+            <span class="btn-play-icon" aria-hidden="true"></span>
+            next song →
+          </button>
+        </div>
+        <div class="cell">
+          <span class="tag">sine · flat ~500 · 55ms</span>
+          <button type="button" class="btn btn-big btn-play media-stage-btn is-voted" data-sound="see-results">
+            <span class="btn-play-icon" aria-hidden="true"></span>
+            see results
+          </button>
+        </div>
+        <div class="cell">
+          <span class="tag">square · 500→800 · 80ms</span>
+          <button type="button" class="btn btn-big btn-play" data-sound="play-again">
+            play again
+          </button>
+        </div>
+        <div class="cell">
+          <span class="tag">sine · mid tick · 55ms</span>
+          <button type="button" class="btn btn-big btn-online" data-sound="pick-playlist">
+            pick another playlist
+          </button>
+        </div>
+        <div class="cell">
+          <span class="tag">sine · 500→350 · 70ms</span>
+          <button type="button" class="btn btn-big btn-play" data-sound="back-home">
+            back home
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>Mini / utility</h2>
+      <div class="row">
+        <div class="cell">
+          <span class="tag">sine · fall · 45ms quiet</span>
+          <button type="button" class="btn btn-mini" data-sound="change-playlist">← change playlist</button>
+        </div>
+        <div class="cell">
+          <span class="tag">triangle · 450→300 · 60ms</span>
+          <button type="button" class="btn btn-mini" data-sound="cancel">← cancel</button>
+        </div>
+        <div class="cell">
+          <span class="tag">sine · 700+900 blips · 50ms</span>
+          <button type="button" class="btn btn-mini" data-sound="copy-link">copy join link</button>
+        </div>
+        <div class="cell">
+          <span class="tag">sine · flat 350 · 35ms</span>
+          <button type="button" class="btn btn-ghost" data-sound="load-more">load more</button>
+        </div>
+        <div class="cell">
+          <span class="tag">triangle · 550→800 · 70ms</span>
+          <button type="button" class="btn btn-play" data-sound="join">join</button>
+        </div>
+        <div class="cell">
+          <span class="tag">square · C5→E5→G5 · 120ms</span>
+          <button type="button" class="btn btn-big btn-play" data-sound="start-party">
+            <span class="btn-play-icon" aria-hidden="true"></span>
+            start party
+          </button>
+        </div>
+        <div class="cell">
+          <span class="tag">sine · soft rise · 90ms</span>
+          <button type="button" class="btn btn-big feedback-send" data-sound="send-feedback">
+            send feedback
+          </button>
+        </div>
+        <div class="cell">
+          <span class="tag">square · ~440 wobble · 50ms</span>
+          <button type="button" class="btn btn-mini debug-fab" data-sound="debug">debug</button>
+        </div>
+        <div class="cell">
+          <span class="tag">sine · flat 500 · 40ms</span>
+          <button type="button" class="btn" data-sound="default">default</button>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <script>
+    // Note refs (equal temperament, A4=440)
+    const C5 = 523.25;
+    const E5 = 659.25;
+    const G5 = 783.99;
+    const C6 = 1046.5;
+
+    let muted = false;
+    let ctx = null;
+
+    function audioCtx() {
+      if (!ctx) ctx = new (window.AudioContext || window.webkitAudioContext)();
+      if (ctx.state === "suspended") ctx.resume();
+      return ctx;
+    }
+
+    function tone(ac, { type, freq, freqEnd, start, dur, gain = 0.06 }) {
+      const osc = ac.createOscillator();
+      const g = ac.createGain();
+      osc.type = type;
+      osc.frequency.setValueAtTime(freq, start);
+      if (freqEnd != null && freqEnd !== freq) {
+        osc.frequency.exponentialRampToValueAtTime(
+          Math.max(40, freqEnd),
+          start + dur
+        );
+      }
+      g.gain.setValueAtTime(0.0001, start);
+      g.gain.exponentialRampToValueAtTime(gain, start + 0.008);
+      g.gain.exponentialRampToValueAtTime(0.0001, start + dur);
+      osc.connect(g);
+      g.connect(ac.destination);
+      osc.start(start);
+      osc.stop(start + dur + 0.02);
+    }
+
+    /** Sweep / flat / arp / blips / wobble recipes from the sound design note. */
+    const SOUNDS = {
+      "sound-on": {
+        play(ac, t0) {
+          tone(ac, {
+            type: "sine",
+            freq: 600,
+            freqEnd: 900,
+            start: t0,
+            dur: 0.07,
+            gain: 0.07,
+          });
+        },
+      },
+      "sound-off": {
+        play(ac, t0) {
+          tone(ac, {
+            type: "sine",
+            freq: 900,
+            freqEnd: 500,
+            start: t0,
+            dur: 0.07,
+            gain: 0.07,
+          });
+        },
+      },
+      "play-solo": {
+        play(ac, t0) {
+          // Two-note rise C5→G5 over 90ms
+          const step = 0.045;
+          tone(ac, {
+            type: "triangle",
+            freq: C5,
+            start: t0,
+            dur: step,
+            gain: 0.1,
+          });
+          tone(ac, {
+            type: "triangle",
+            freq: G5,
+            start: t0 + step,
+            dur: step,
+            gain: 0.1,
+          });
+        },
+      },
+      "host-party": {
+        play(ac, t0) {
+          // E5→G5→C6 arp, 110ms
+          const step = 0.11 / 3;
+          [E5, G5, C6].forEach((f, i) => {
+            tone(ac, {
+              type: "triangle",
+              freq: f,
+              start: t0 + i * step,
+              dur: step * 1.1,
+              gain: 0.095,
+            });
+          });
+        },
+      },
+      "play-online": {
+        play(ac, t0) {
+          tone(ac, {
+            type: "square",
+            freq: 500,
+            freqEnd: 800,
+            start: t0,
+            dur: 0.06,
+            gain: 0.05,
+          });
+        },
+      },
+      spotify: {
+        play(ac, t0) {
+          tone(ac, {
+            type: "sine",
+            freq: 420,
+            freqEnd: 560,
+            start: t0,
+            dur: 0.08,
+            gain: 0.055,
+          });
+        },
+      },
+      skip: {
+        play(ac, t0) {
+          tone(ac, {
+            type: "sawtooth",
+            freq: 400,
+            freqEnd: 300,
+            start: t0,
+            dur: 0.045,
+            gain: 0.028,
+          });
+        },
+      },
+      guess: {
+        play(ac, t0) {
+          tone(ac, {
+            type: "triangle",
+            freq: 600,
+            freqEnd: 850,
+            start: t0,
+            dur: 0.06,
+            gain: 0.075,
+          });
+        },
+      },
+      "guess-deny": {
+        play(ac, t0) {
+          tone(ac, {
+            type: "sine",
+            freq: 180,
+            start: t0,
+            dur: 0.03,
+            gain: 0.02,
+          });
+        },
+      },
+      "transport-play": {
+        play(ac, t0) {
+          tone(ac, {
+            type: "sine",
+            freq: 380,
+            freqEnd: 460,
+            start: t0,
+            dur: 0.04,
+            gain: 0.05,
+          });
+        },
+      },
+      "transport-pause": {
+        play(ac, t0) {
+          tone(ac, {
+            type: "sine",
+            freq: 460,
+            freqEnd: 380,
+            start: t0,
+            dur: 0.04,
+            gain: 0.05,
+          });
+        },
+      },
+      "next-song": {
+        play(ac, t0) {
+          tone(ac, {
+            type: "triangle",
+            freq: 500,
+            freqEnd: 750,
+            start: t0,
+            dur: 0.07,
+            gain: 0.08,
+          });
+        },
+      },
+      "see-results": {
+        play(ac, t0) {
+          tone(ac, {
+            type: "sine",
+            freq: 500,
+            start: t0,
+            dur: 0.055,
+            gain: 0.05,
+          });
+        },
+      },
+      "play-again": {
+        play(ac, t0) {
+          tone(ac, {
+            type: "square",
+            freq: 500,
+            freqEnd: 800,
+            start: t0,
+            dur: 0.08,
+            gain: 0.055,
+          });
+        },
+      },
+      "pick-playlist": {
+        play(ac, t0) {
+          tone(ac, {
+            type: "sine",
+            freq: 480,
+            start: t0,
+            dur: 0.055,
+            gain: 0.045,
+          });
+        },
+      },
+      "back-home": {
+        play(ac, t0) {
+          tone(ac, {
+            type: "sine",
+            freq: 500,
+            freqEnd: 350,
+            start: t0,
+            dur: 0.07,
+            gain: 0.05,
+          });
+        },
+      },
+      "change-playlist": {
+        play(ac, t0) {
+          tone(ac, {
+            type: "sine",
+            freq: 420,
+            freqEnd: 300,
+            start: t0,
+            dur: 0.045,
+            gain: 0.03,
+          });
+        },
+      },
+      cancel: {
+        play(ac, t0) {
+          tone(ac, {
+            type: "triangle",
+            freq: 450,
+            freqEnd: 300,
+            start: t0,
+            dur: 0.06,
+            gain: 0.05,
+          });
+        },
+      },
+      "copy-link": {
+        play(ac, t0) {
+          tone(ac, {
+            type: "sine",
+            freq: 700,
+            start: t0,
+            dur: 0.025,
+            gain: 0.045,
+          });
+          tone(ac, {
+            type: "sine",
+            freq: 900,
+            start: t0 + 0.025,
+            dur: 0.025,
+            gain: 0.045,
+          });
+        },
+      },
+      "load-more": {
+        play(ac, t0) {
+          tone(ac, {
+            type: "sine",
+            freq: 350,
+            start: t0,
+            dur: 0.035,
+            gain: 0.022,
+          });
+        },
+      },
+      join: {
+        play(ac, t0) {
+          tone(ac, {
+            type: "triangle",
+            freq: 550,
+            freqEnd: 800,
+            start: t0,
+            dur: 0.07,
+            gain: 0.07,
+          });
+        },
+      },
+      "start-party": {
+        play(ac, t0) {
+          // C5→E5→G5, 120ms — most celebratory utility
+          const step = 0.12 / 3;
+          [C5, E5, G5].forEach((f, i) => {
+            tone(ac, {
+              type: "square",
+              freq: f,
+              start: t0 + i * step,
+              dur: step * 1.15,
+              gain: 0.05,
+            });
+          });
+        },
+      },
+      "send-feedback": {
+        play(ac, t0) {
+          tone(ac, {
+            type: "sine",
+            freq: 440,
+            freqEnd: 620,
+            start: t0,
+            dur: 0.09,
+            gain: 0.05,
+          });
+        },
+      },
+      debug: {
+        play(ac, t0) {
+          // Flat ~440 with tiny detuned wobble
+          const osc = ac.createOscillator();
+          const osc2 = ac.createOscillator();
+          const g = ac.createGain();
+          osc.type = "square";
+          osc2.type = "square";
+          osc.frequency.setValueAtTime(440, t0);
+          osc2.frequency.setValueAtTime(446, t0);
+          g.gain.setValueAtTime(0.0001, t0);
+          g.gain.exponentialRampToValueAtTime(0.028, t0 + 0.008);
+          g.gain.exponentialRampToValueAtTime(0.0001, t0 + 0.05);
+          osc.connect(g);
+          osc2.connect(g);
+          g.connect(ac.destination);
+          osc.start(t0);
+          osc2.start(t0);
+          osc.stop(t0 + 0.07);
+          osc2.stop(t0 + 0.07);
+        },
+      },
+      default: {
+        play(ac, t0) {
+          tone(ac, {
+            type: "sine",
+            freq: 500,
+            start: t0,
+            dur: 0.04,
+            gain: 0.04,
+          });
+        },
+      },
+    };
+
+    function playSound(name) {
+      if (muted && name !== "sound-off") return;
+      const spec = SOUNDS[name] || SOUNDS.default;
+      const ac = audioCtx();
+      spec.play(ac, ac.currentTime);
+    }
+
+    document.querySelectorAll("[data-sound]").forEach((el) => {
+      el.addEventListener("click", (e) => {
+        if (el.id === "transport") return; // handled below
+        if (el.disabled) {
+          playSound("guess-deny");
+          e.preventDefault();
+          return;
+        }
+        playSound(el.dataset.sound);
+      });
+    });
+
+    const muteBtn = document.getElementById("mute");
+    muteBtn.addEventListener("click", () => {
+      if (!muted) {
+        // turning off — play fall chirp then mute
+        playSound("sound-off");
+        muted = true;
+        muteBtn.textContent = "sound off";
+        muteBtn.classList.add("mute-on");
+      } else {
+        muted = false;
+        muteBtn.textContent = "sound on";
+        muteBtn.classList.remove("mute-on");
+        playSound("sound-on");
+      }
+    });
+
+    const transport = document.getElementById("transport");
+    transport.addEventListener("click", () => {
+      const willPlay = !transport.classList.contains("is-playing");
+      transport.classList.toggle("is-playing", willPlay);
+      transport.classList.toggle("is-paused", !willPlay);
+      transport.setAttribute("aria-label", willPlay ? "Pause" : "Play");
+      playSound(willPlay ? "transport-play" : "transport-pause");
+    });
+  </script>
+</body>
+</html>

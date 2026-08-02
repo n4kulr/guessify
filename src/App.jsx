@@ -23,6 +23,7 @@ import { makeRoomCode } from "./multiplayer/constants.js";
 import { loadLocalProfile, saveLocalProfile, hasSavedLocalProfile } from "./localProfile.js";
 import { loadTheme, DEFAULT_THEME } from "./themes.js";
 import { attachKeyboardSounds } from "./keyboardSounds.js";
+import { attachButtonSounds } from "./buttonSounds.js";
 
 function joinCodeFromPath() {
   const m = window.location.pathname.match(/^\/join\/([A-Za-z0-9]+)/i);
@@ -182,6 +183,7 @@ export default function App() {
   }
 
   useEffect(() => attachKeyboardSounds(), []);
+  useEffect(() => attachButtonSounds(), []);
 
   useEffect(() => {
     function onAccentTheme(e) {
