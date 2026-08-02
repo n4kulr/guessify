@@ -138,16 +138,40 @@ export function applyTheme(key, { persist = true } = {}) {
   r.style.setProperty("--sub-alt-color", t.subAlt);
   r.style.setProperty("--text-color", t.text);
   r.style.setProperty("--error-color", t.error);
-  // iOS Safari toolbar / status chrome follows theme-color, not CSS vars.
-  let meta = document.querySelector('meta[name="theme-color"]');
-  if (!meta) {
-    meta = document.createElement("meta");
-    meta.setAttribute("name", "theme-color");
-    document.head.appendChild(meta);
-  }
-  meta.setAttribute("content", t.bg);
+  syncBrowserChrome(t.bg);
   if (!persist) return;
   try { localStorage.setItem(KEY, key); } catch { /* ignore */ }
+}
+
+/**
+ * Keep Safari / Chrome UI chrome in sync with the page bg.
+ * - theme-color: Chrome + older Safari
+ * - inline html/body backgroundColor: Safari 26+ samples these (CSS vars alone often don't re-tint)
+ * - fixed edge strips: Safari 26 prefers fixed elements at the viewport edges
+ */
+function syncBrowserChrome(bg) {
+  // Replace meta so agents that only watch DOM mutations still notice.
+  document.querySelectorAll('meta[name="theme-color"]').forEach((m) => m.remove());
+  const meta = document.createElement("meta");
+  meta.setAttribute("name", "theme-color");
+  meta.setAttribute("content", bg);
+  document.head.appendChild(meta);
+
+  document.documentElement.style.backgroundColor = bg;
+  if (document.body) document.body.style.backgroundColor = bg;
+
+  for (const edge of ["top", "bottom"]) {
+    const id = `guessify-safari-tint-${edge}`;
+    let el = document.getElementById(id);
+    if (!el) {
+      el = document.createElement("div");
+      el.id = id;
+      el.className = `safari-chrome-tint safari-chrome-tint--${edge}`;
+      el.setAttribute("aria-hidden", "true");
+      (document.body || document.documentElement).appendChild(el);
+    }
+    el.style.backgroundColor = bg;
+  }
 }
 
 /** Apply the theme that best matches an avatar accent color. Returns theme key. */

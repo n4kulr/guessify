@@ -18,6 +18,25 @@ html, body, #root { height: 100%; }
    gestures using <html>'s own background, not <body>'s — without this it
    fell back to a stale color that didn't track theme switches. */
 html { background: var(--bg-color); }
+#root { position: relative; z-index: 1; }
+
+/* Safari 26+ toolbar tint: fixed edge samples (filled by themes.js). */
+.safari-chrome-tint {
+  position: fixed;
+  left: 0;
+  width: 100%;
+  min-height: 3px;
+  pointer-events: none;
+  z-index: 0;
+}
+.safari-chrome-tint--top {
+  top: 0;
+  height: max(3px, env(safe-area-inset-top, 0px));
+}
+.safari-chrome-tint--bottom {
+  bottom: 0;
+  height: max(3px, env(safe-area-inset-bottom, 0px));
+}
 
 body {
   margin: 0;
@@ -26,7 +45,7 @@ body {
   color: var(--text-color);
   background: var(--bg-color);
   -webkit-font-smoothing: antialiased;
-  transition: background-color 0.2s ease, color 0.2s ease;
+  transition: color 0.2s ease;
   position: relative;
 }
 body::before {
