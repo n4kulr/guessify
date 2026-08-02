@@ -10,6 +10,7 @@ import UserMenu from "./components/UserMenu.jsx";
 import HostParty from "./multiplayer/HostParty.jsx";
 import GuestApp from "./multiplayer/GuestApp.jsx";
 import OnlineRace from "./components/OnlineRace.jsx";
+import { isFastTest } from "./fastTest.js";
 import OnlineJoinDialog from "./components/OnlineJoinDialog.jsx";
 import PlayHowto, {
   hasSeenPlayHowto,
@@ -51,6 +52,8 @@ export default function App() {
   const [hostPrompt, setHostPrompt] = useState(false);
   const [hostProfile, setHostProfile] = useState(null);
   const [howtoMode, setHowtoMode] = useState(null); // null | solo | multi | online
+  // Capture ?fast=1 before history seeding strips the query.
+  const [fastMode] = useState(() => isFastTest());
 
   const howtoRef = useRef(howtoMode);
   const onlinePromptRef = useRef(onlinePrompt);
@@ -189,15 +192,25 @@ export default function App() {
 
   useEffect(() => {
     setTheme(loadTheme());
+    // Keep sticky flag even if we rewrite the path below.
+    isFastTest();
     const params = new URLSearchParams(window.location.search);
     if (params.get("error")) {
       setAuthError(params.get("error"));
-      window.history.replaceState({ step: "home" }, "", "/");
+      window.history.replaceState(
+        { step: "home" },
+        "",
+        isFastTest() ? "/?fast=1" : "/"
+      );
     } else if (!joinCode) {
       // Seed so the first in-app push has a home entry to return to.
       const existing = window.history.state;
       if (!existing?.step) {
-        window.history.replaceState({ step: "home" }, "", "/");
+        window.history.replaceState(
+          { step: "home" },
+          "",
+          isFastTest() ? "/?fast=1" : "/"
+        );
       }
     }
     if (joinCode) {
@@ -433,6 +446,12 @@ export default function App() {
       </header>
 
       <main className="stage">
+        {fastMode && (
+          <div className="fast-mode-banner" role="status">
+            fast test on — start solo / quick play / host, then use the{" "}
+            <b>end now</b> button(s) bottom-left
+          </div>
+        )}
         {status === "checking" && <div className="loader">loading…</div>}
 
         {status === "guest" && joinCode && <GuestApp code={joinCode} />}
