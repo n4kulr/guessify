@@ -15,13 +15,23 @@ export const TITLE_POINTS_AFTER_ARTIST = TITLE_POINTS;
 /** Max points from one round (title + artist). */
 export const ROUND_MAX_POINTS = TITLE_POINTS + ARTIST_BONUS;
 
-/** Votes to advance after reveal: all players if ≤3, else cap at 3. */
+/** Votes to advance after reveal: every active player in the room. */
 export function nextVotesNeeded(playerCount) {
-  return Math.min(3, Math.max(1, Number(playerCount) || 1));
+  return Math.max(1, Number(playerCount) || 1);
 }
 
+/** Players still in the race (not left, and currently connected when flagged). */
 export function activePlayerCount(players = []) {
-  return players.filter((p) => p && !p.left).length;
+  return players.filter((p) => p && !p.left && p.connected !== false).length;
+}
+
+/** True when every active player has unlocked the full snippet via skip. */
+export function allPlayersMaxUnlocked(players = [], unlockByPlayer = {}) {
+  const active = players.filter((p) => p && !p.left && p.connected !== false);
+  if (!active.length) return false;
+  return active.every(
+    (p) => (unlockByPlayer?.[p.id] ?? 0) >= MAX_GUESSES - 1
+  );
 }
 
 /** Title always awards full points. */

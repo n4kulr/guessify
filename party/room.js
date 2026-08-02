@@ -11,6 +11,7 @@ import {
   ARTIST_BONUS,
   nextVotesNeeded,
   activePlayerCount,
+  allPlayersMaxUnlocked,
 } from "../src/multiplayer/constants.js";
 import { resolveItunesPreview } from "./itunesPreview.js";
 
@@ -535,14 +536,8 @@ export class Room extends Server {
     // Only this player's snippet grows.
     this.state.unlockByPlayer[player.id] = step + 1;
 
-    // Round only ends once every currently-connected player has fully
-    // unlocked the snippet and still hasn't guessed it — reveal as a loss.
-    // (A stale disconnected player shouldn't be able to stall this forever.)
-    const active = this.state.players.filter((p) => p.connected && !p.left);
-    const allMaxed =
-      active.length > 0 &&
-      active.every((p) => (this.state.unlockByPlayer[p.id] ?? 0) >= MAX_GUESSES - 1);
-    if (allMaxed) {
+    // Round only ends once every active player has fully unlocked.
+    if (allPlayersMaxUnlocked(this.state.players, this.state.unlockByPlayer)) {
       this.state.outcome = "lose";
       this.state.winnerId = null;
       this.state.earnedPts = 0;
@@ -570,8 +565,10 @@ export class Room extends Server {
     }
     this.state.nextVotes[player.id] = true;
 
-    const need = nextVotesNeeded(activePlayerCount(this.state.players));
-    const have = Object.keys(this.state.nextVotes).length;
+    const active = this.state.players.filter((p) => p.connected && !p.left);
+    const need = nextVotesNeeded(active.length);
+    const activeIds = new Set(active.map((p) => p.id));
+    const have = Object.keys(this.state.nextVotes).filter((id) => activeIds.has(id)).length;
     if (have < need) {
       this.broadcastState();
       void this.persist();
@@ -694,7 +691,9 @@ export class Room extends Server {
       roundCount: this.state.tracks.length,
       unlockByPlayer: { ...(this.state.unlockByPlayer || {}) },
       guesses: this.state.guesses,
-      nextVotes: Object.keys(this.state.nextVotes || {}),
+      nextVotes: Object.keys(this.state.nextVotes || {}).filter((id) =>
+        this.state.players.some((p) => p.id === id && p.connected && !p.left)
+      ),
       nextVotesNeeded: nextVotesNeeded(activePlayerCount(this.state.players)),
       outcome: this.state.outcome,
       winnerId: this.state.winnerId,

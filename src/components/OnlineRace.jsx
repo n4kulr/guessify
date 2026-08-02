@@ -18,6 +18,7 @@ import {
   PLAYER_COLORS,
   nextVotesNeeded,
   activePlayerCount,
+  allPlayersMaxUnlocked,
 } from "../multiplayer/constants.js";
 
 const HOT_TAGS = ["pop", "hip-hop", "rnb", "2010s", "k-pop", "afrobeats", "latin", "indie"];
@@ -459,10 +460,10 @@ export default function OnlineRace({ profile, onExit }) {
       const artistAt = (9000 + (1 - skill) * 16000) * (0.9 + Math.random() * 0.45);
       const titleAt = (16000 + (1 - skill) * 24000) * (0.9 + Math.random() * 0.5);
 
-      // Skips early + often so rail fills visibly update.
-      const skipCount = 2 + Math.floor(Math.random() * 2); // 2–3
+      // Skip up to full unlock so a human who maxes out still waits on others.
+      const skipCount = MAX_GUESSES - 1;
       for (let s = 0; s < skipCount; s++) {
-        const skipAt = 1200 + s * (2800 + Math.random() * 2200) + Math.random() * 800;
+        const skipAt = 1200 + s * (2400 + Math.random() * 2000) + Math.random() * 800;
         const tSkip = setTimeout(() => {
           if (roundKeyRef.current !== key) return;
           if (phaseRef.current !== "play") return;
@@ -558,12 +559,18 @@ export default function OnlineRace({ profile, onExit }) {
     stopAudio();
     setTitleGuess("");
     setArtistGuess("");
-    if (myStep < MAX_GUESSES - 1) {
-      bumpUnlock(youId);
-    } else {
-      endRoundLose();
-    }
+    // Grow unlock only — never end the round alone. Loss waits until
+    // every active player has fully skipped (see effect below).
+    bumpUnlock(youId);
   }
+
+  // Lose only once everyone still in the race has maxed their skip ladder.
+  useEffect(() => {
+    if (phase !== "play") return;
+    if (!allPlayersMaxUnlocked(players, unlockByPlayer)) return;
+    endRoundLose();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [phase, unlockByPlayer, players]);
 
   function nextRound() {
     stopAudio();
