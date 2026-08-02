@@ -465,7 +465,7 @@ export default function Game({ playlist, me, onExit, onReplay }) {
                         onChange={(e) => setTitleGuess(e.target.value)}
                         onKeyDown={(e) => e.key === "Enter" && submitGuess()}
                       />
-                      {guessNum >= HINT_AFTER_SKIPS && (
+                      {guessNum >= HINT_AFTER_SKIPS && (!hintUsed || hintPop) && (
                         <div className="guess-hint-slot">
                           {hintPop ? (
                             <PenaltyPop

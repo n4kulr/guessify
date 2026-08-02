@@ -368,7 +368,7 @@ export default function GuestApp({ code }) {
                     onChange={(e) => setTitleGuess(e.target.value)}
                     onKeyDown={(e) => e.key === "Enter" && submitGuess()}
                   />
-                  {myStep >= HINT_AFTER_SKIPS && (
+                  {myStep >= HINT_AFTER_SKIPS && (!hintUsed || hintPop) && (
                     <div className="guess-hint-slot">
                       {hintPop ? (
                         <PenaltyPop
