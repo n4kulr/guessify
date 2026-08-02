@@ -1,15 +1,16 @@
 /**
  * Mask a song title for the late-game hint.
  * Only the first HINT_MAX_LETTERS letters are shown (rest omitted).
- * Unknown letters are middle dots; words split with " / ".
- * Example: "daisies" → "d··s·e·"
- *          "hello world" → "h··l· / w··l·"
+ * Unknown letters are box glyphs; words split with a middle-dot gap
+ * (not "/" — titles like "House of Balloons / …" already use that).
+ * Example: "daisies" → "d▢▢s▢e▢"
+ *          "hello world" → "h▢▢l▢ · w▢▢l▢"
  */
 
 export const HINT_MAX_LETTERS = 10;
 
-const BLANK = "·";
-const WORD_GAP = " / ";
+const BLANK = "▢";
+const WORD_GAP = " · ";
 
 function revealAt(i, len) {
   if (len <= 1) return true;

@@ -57,7 +57,7 @@ When the round ends you hear the full preview, see the cover, and move on (solo 
 
 ### Skip & hint
 - **Skip** → more audio; red **−40** pops above the button (cuts this round’s title).
-- **Hint** (after 4 skips, at the 16s step) → masked placeholder like `d··s·e·`; the hint label swaps to a red **−100** flash and stays gone for the round.
+- **Hint** (after 4 skips, at the 16s step) → masked placeholder like `d▢▢s▢e▢`; the hint label swaps to a red **−100** flash and stays gone for the round.
 - Both shake the board when the cut applies.
 
 ### Vinyl & audio
