@@ -13,7 +13,6 @@ import ShareScoreButton from "./ShareScoreButton.jsx";
 import ScrubbableVinyl from "./ScrubbableVinyl.jsx";
 import PenaltyPop from "./PenaltyPop.jsx";
 import AlmostFlash from "./AlmostFlash.jsx";
-import ShopReveal from "./ShopReveal.jsx";
 import GameOverStats from "./GameOverStats.jsx";
 import PlayerRail from "../multiplayer/PlayerRail.jsx";
 import { computeGameStats } from "../gameStats.js";
@@ -321,6 +320,7 @@ export default function Game({ playlist, me, onExit, onReplay }) {
       });
       setOutcome("win");
       setCelebrate(true);
+      fireConfetti("title");
       playSnippet(null); // full preview until next song
     } else {
       // Unlimited guesses — only Skip unlocks more audio / ends the round.
@@ -424,37 +424,27 @@ export default function Game({ playlist, me, onExit, onReplay }) {
               unlockByPlayer={{ [YOU_ID]: guessNum }}
             />
 
-            {!resolved ? (
-              <GuessMedia
-                mode="vinyl"
-                revealed={false}
-                spinning={spinning}
-                celebrate={false}
-                cover={track.cover}
-                title={track.name}
-                artist={(track.artists || []).join(", ")}
-                canControl={canControl}
-                interactive={canControl}
-                vinylTitle={
-                  canControl
-                    ? playing
-                      ? "click to pause · drag to scrub"
-                      : "click to play · drag to scrub"
-                    : undefined
-                }
-                onTogglePlay={togglePlay}
-                onScrubStart={onVinylScrubStart}
-                onScrubEnd={onVinylScrubEnd}
-              />
-            ) : (
-              <ShopReveal
-                playKey={`${roundIdx}-${outcome}`}
-                cover={track.cover}
-                title={track.name}
-                artist={(track.artists || []).join(", ")}
-                points={outcome === "win" ? earnedPts : null}
-              />
-            )}
+            <GuessMedia
+              mode="vinyl"
+              revealed={resolved}
+              spinning={spinning}
+              celebrate={celebrate}
+              cover={track.cover}
+              title={track.name}
+              artist={(track.artists || []).join(", ")}
+              canControl={canControl}
+              interactive={canControl}
+              vinylTitle={
+                canControl
+                  ? playing
+                    ? "click to pause · drag to scrub"
+                    : "click to play · drag to scrub"
+                  : undefined
+              }
+              onTogglePlay={togglePlay}
+              onScrubStart={onVinylScrubStart}
+              onScrubEnd={onVinylScrubEnd}
+            />
 
             {outcome === "win" && (
               <div key={`badge-${roundIdx}`} className="inline-badge inline-badge--win">
@@ -497,6 +487,21 @@ export default function Game({ playlist, me, onExit, onReplay }) {
 
             {resolved ? (
               <div className={`inline-reveal ${outcome}`}>
+                <div className="reveal">
+                  <div className="reveal-art">
+                    {track.cover && <img src={track.cover} alt="" className="reveal-cover" />}
+                  </div>
+                  <div className="reveal-text">
+                    <span className="reveal-title">{track.name}</span>
+                    <span className="reveal-artist">{track.artists.join(", ")}</span>
+                    {outcome === "win" && (
+                      <span className="reveal-points">
+                        +{earnedPts} pts
+                        {bonus ? " · artist bonus!" : ""}
+                      </span>
+                    )}
+                  </div>
+                </div>
                 <button className="btn btn-big btn-play" onClick={nextRound}>
                   <span className="btn-play-icon" aria-hidden="true" />
                   {roundIdx + 1 >= rounds.length ? "see results →" : "next song →"}

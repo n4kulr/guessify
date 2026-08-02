@@ -3,7 +3,13 @@
  * Run: node src/themes.check.js
  */
 import assert from "node:assert/strict";
-import { themeKeyForAccent, THEMES } from "./themes.js";
+import {
+  themeKeyForAccent,
+  THEMES,
+  DEFAULT_THEME,
+  getThemePalette,
+  currentThemeKey,
+} from "./themes.js";
 import { PLAYER_COLORS } from "./multiplayer/constants.js";
 
 const used = new Map();
@@ -19,4 +25,10 @@ for (const hex of PLAYER_COLORS) {
   used.set(key, hex);
 }
 assert.equal(used.size, PLAYER_COLORS.length);
+
+assert.equal(currentThemeKey(), DEFAULT_THEME);
+const palette = getThemePalette();
+assert.equal(palette.main, THEMES[DEFAULT_THEME].main);
+assert.equal(palette.bg, THEMES[DEFAULT_THEME].bg);
+
 console.log("themes.check: ok");

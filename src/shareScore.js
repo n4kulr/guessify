@@ -1,4 +1,5 @@
 import { formatSolveSec } from "./gameStats.js";
+import { getThemePalette } from "./themes.js";
 
 /**
  * End-of-game share text + Wrapped-style PNG + native share / download.
@@ -34,15 +35,13 @@ export function scoreSharePayload({
 }
 
 function grabTheme() {
-  const cs = getComputedStyle(document.documentElement);
-  const g = (name, fallback) =>
-    cs.getPropertyValue(name).trim() || fallback;
+  const t = getThemePalette();
   return {
-    bg: g("--bg-color", "#1c1a1d"),
-    main: g("--main-color", "#e9d5c6"),
-    sub: g("--sub-color", "#75696d"),
-    subAlt: g("--sub-alt-color", "#282528"),
-    text: g("--text-color", "#e9e9e9"),
+    bg: t.bg,
+    main: t.main,
+    sub: t.sub,
+    subAlt: t.subAlt,
+    text: t.text,
   };
 }
 

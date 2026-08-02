@@ -132,10 +132,36 @@ export function accentMatchingTheme(palette) {
   return nearestAccent(currentMainColor(), palette);
 }
 
+/** Active theme key from the live document (set by applyTheme). */
+export function currentThemeKey() {
+  if (typeof document === "undefined") return DEFAULT_THEME;
+  const key = document.documentElement.dataset.theme;
+  return key && THEMES[key] ? key : DEFAULT_THEME;
+}
+
+/** Palette for the theme currently on screen (live CSS, then THEMES fallback). */
+export function getThemePalette() {
+  const base = THEMES[currentThemeKey()] || THEMES[DEFAULT_THEME];
+  if (typeof document === "undefined") {
+    return { ...base };
+  }
+  const cs = getComputedStyle(document.documentElement);
+  const g = (name, fb) => cs.getPropertyValue(name).trim() || fb;
+  return {
+    bg: g("--bg-color", base.bg),
+    main: g("--main-color", base.main),
+    sub: g("--sub-color", base.sub),
+    subAlt: g("--sub-alt-color", base.subAlt),
+    text: g("--text-color", base.text),
+    error: g("--error-color", base.error),
+  };
+}
+
 export function applyTheme(key, { persist = true } = {}) {
   const resolved = THEMES[key] ? key : DEFAULT_THEME;
   const t = THEMES[resolved];
   const r = document.documentElement;
+  r.dataset.theme = resolved;
   r.style.setProperty("--bg-color", t.bg);
   r.style.setProperty("--main-color", t.main);
   r.style.setProperty("--sub-color", t.sub);
