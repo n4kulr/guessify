@@ -597,10 +597,11 @@ export default function OnlineRace({ profile, onExit }) {
     setPhase("play");
   }
 
-  function voteNext() {
+  function voteNext(e) {
     if (phase !== "reveal" || nextVotes[youId]) return;
     stopAudio();
     setNextVotes((prev) => ({ ...prev, [youId]: true }));
+    e?.currentTarget?.blur?.();
   }
 
   // Opponents cast next-votes during reveal so the tally fills — staggered

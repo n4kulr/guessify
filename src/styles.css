@@ -1584,6 +1584,9 @@ button { font-family: var(--font); }
   scrollbar-color: color-mix(in srgb, var(--text-color) 28%, transparent) transparent;
   cursor: grab;
   box-sizing: content-box;
+  -webkit-overflow-scrolling: touch;
+  touch-action: pan-x;
+  overscroll-behavior-x: contain;
 }
 .shelf-cases:active { cursor: grabbing; }
 .shelf-cases::-webkit-scrollbar { height: 6px; }
@@ -2709,10 +2712,24 @@ button { font-family: var(--font); }
   color: var(--bg-color);
   letter-spacing: 0.02em;
 }
+/* Voted: keep it readable on mobile (sticky :hover + :disabled was greying it out). */
 .media-stage-btn.is-voted,
-.media-stage-btn:disabled.is-voted {
-  opacity: 0.72;
-  border-color: var(--main-color);
+.media-stage-btn:disabled.is-voted,
+.media-stage-btn.is-voted:hover,
+.media-stage-btn:disabled.is-voted:hover,
+.media-stage-btn.is-voted:active,
+.media-stage-btn:disabled.is-voted:active {
+  opacity: 1;
+  filter: none;
+  transform: none;
+  cursor: default;
+  background: color-mix(in srgb, var(--main-color) 22%, var(--bg-color));
+  color: var(--main-color);
+  box-shadow: inset 0 0 0 1.5px var(--main-color);
+}
+.media-stage-btn.is-voted .vote-tally,
+.media-stage-btn:disabled.is-voted .vote-tally {
+  color: var(--main-color);
 }
 .turntable--md {
   width: 240px;
@@ -3130,15 +3147,25 @@ button { font-family: var(--font); }
 /* ---------------- multiplayer ---------------- */
 .home-actions {
   display: flex;
-  flex-wrap: wrap;
+  flex-direction: column;
   gap: 12px;
   margin-top: 4px;
   width: min(100%, 340px); /* match .join-code-form */
 }
-.home-actions .btn {
+.home-actions-primary {
+  display: flex;
+  gap: 12px;
+  width: 100%;
+}
+.home-actions-primary .btn {
   flex: 1;
   justify-content: center;
 }
+.home-actions .btn-play {
+  /* Match .btn-multi's 2px border so row height == play online */
+  border: 2px solid var(--main-color);
+}
+.btn-play-text-short { display: none; }
 .btn-multi {
   background: var(--bg-color);
   color: var(--text-color);
@@ -3150,13 +3177,13 @@ button { font-family: var(--font); }
   color: var(--bg-color);
 }
 .btn-online {
-  flex: 1 1 100%;
+  width: 100%;
   justify-content: center;
   gap: 8px;
   background: var(--sub-alt-color);
   color: var(--text-color);
   font-weight: 600;
-  border: none;
+  border: 2px solid transparent;
 }
 .btn-online:hover {
   filter: brightness(1.08);
@@ -3876,6 +3903,30 @@ button { font-family: var(--font); }
   .btn-spotify {
     max-width: 100%;
   }
+  .home-actions { width: 100%; }
+  /* Same height for solo / host / online — solo square sized to fit icon + label */
+  .home-actions .btn-big {
+    height: 48px;
+    padding-top: 0;
+    padding-bottom: 0;
+  }
+  .home-actions-primary {
+    align-items: stretch;
+  }
+  .home-actions-primary .btn-play {
+    flex: 0 0 auto;
+    width: auto;
+    height: 48px;
+    padding: 0 12px;
+    gap: 8px;
+    justify-content: center;
+  }
+  .btn-play-text-long { display: none; }
+  .btn-play-text-short { display: inline; font-size: 16px; }
+  .home-actions-primary .btn-multi {
+    flex: 1 1 auto;
+    min-width: 0;
+  }
 
   /* Help/feedback: fixed to viewport so panels never clip past x=0 */
   .fab-dock { right: 14px; bottom: 14px; }
@@ -4089,8 +4140,6 @@ button { font-family: var(--font); }
   .theme-btn { max-width: min(120px, 28vw); padding: 8px 10px; }
   .game { padding: 18px; }
   .guess-fields { flex-direction: column; }
-  .home-actions { flex-direction: column; width: 100%; }
-  .home-actions .btn { width: 100%; justify-content: center; }
   .hero-left { padding-right: 80px; }
   .hero-right { width: min(320px, 92vw); }
   .hero-right .demo { transform: translateX(calc(100% - 44px)); }

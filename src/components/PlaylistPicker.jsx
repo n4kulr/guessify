@@ -17,6 +17,17 @@ const PLAYLIST_ORDER = [
   "liked songs",
 ];
 
+/** Owned playlists that stay off the public / shared shelf. */
+const PLAYLIST_HIDDEN = new Set([
+  "nvieifayjrayem",
+  "zeke mone zatch mone",
+  "on loop",
+  "what i dooo",
+  "hi nviedra",
+  "mallu magnet",
+  "uterus",
+]);
+
 const CHART_PACKS = [
   { tag: "pop", label: "Pop", blurb: "chart pop", about: "Catchy, radio-friendly songs with big choruses.", artists: ["Dua Lipa", "Sabrina Carpenter", "Olivia Rodrigo", "The Weeknd", "Taylor Swift", "Harry Styles", "Billie Eilish", "Ariana Grande"] },
   { tag: "2000s", label: "2000s", blurb: "decade pack", about: "Hits and radio staples from the 2000s.", artists: ["Beyoncé", "Linkin Park", "Rihanna", "The Killers", "Eminem", "Coldplay", "Usher", "OutKast"] },
@@ -91,7 +102,11 @@ export default function PlaylistPicker({ onPick, needsLogin = false }) {
         total: data.liked.total,
       });
     }
-    list.push(...(data.playlists || []).filter((p) => p.owned));
+    list.push(
+      ...(data.playlists || []).filter(
+        (p) => p.owned && !PLAYLIST_HIDDEN.has(p.name.trim().toLowerCase())
+      )
+    );
 
     const rank = (p) => {
       const i = PLAYLIST_ORDER.indexOf(p.name.trim().toLowerCase());

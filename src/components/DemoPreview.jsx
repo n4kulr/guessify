@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import CassetteShell from "./CassetteShell.jsx";
 import { resolvePreview } from "../itunes.js";
-import { getVolume, subscribeVolume } from "../volume.js";
+import { attachVolumeControl } from "../audioOutput.js";
 import { TITLE_POINTS, ARTIST_BONUS } from "../multiplayer/constants.js";
 
 // Self-playing fake rounds so people see the vibe before logging in.
@@ -145,6 +145,7 @@ export default function DemoPreview() {
   const [dragX, setDragX] = useState(null);
   const panelRef = useRef(null);
   const audioRef = useRef(null);
+  const outputRef = useRef(null);
   const mutedRef = useRef(true);
   mutedRef.current = muted;
   const drag = useRef({
@@ -198,6 +199,8 @@ export default function DemoPreview() {
     audioRef.current = audio;
     audio.loop = true;
     audio.preload = "auto";
+    audio.playsInline = true;
+    if (!outputRef.current) outputRef.current = attachVolumeControl(audio);
 
     (async () => {
       const url = await resolvePreview({
@@ -211,8 +214,8 @@ export default function DemoPreview() {
         audio.src = url;
       }
       audio.muted = mutedRef.current;
-      audio.volume = getVolume();
       try {
+        await outputRef.current?.resume();
         await audio.play();
       } catch {
         /* muted autoplay usually works; ignore blocks */
@@ -229,15 +232,9 @@ export default function DemoPreview() {
   }, [muted]);
 
   useEffect(() => {
-    const apply = (v) => {
-      if (audioRef.current) audioRef.current.volume = v;
-    };
-    apply(getVolume());
-    return subscribeVolume(apply);
-  }, []);
-
-  useEffect(() => {
     return () => {
+      outputRef.current?.detach();
+      outputRef.current = null;
       const a = audioRef.current;
       if (!a) return;
       a.pause();
@@ -455,7 +452,10 @@ export default function DemoPreview() {
                     const a = audioRef.current;
                     if (a) {
                       a.muted = next;
-                      if (!next) a.play().catch(() => {});
+                      if (!next) {
+                        outputRef.current?.resume();
+                        a.play().catch(() => {});
+                      }
                     }
                     return next;
                   });

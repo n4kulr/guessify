@@ -86,7 +86,10 @@ function useDragScroll(scrollRef, surfaceRef) {
       e.preventDefault();
     }
     function onWheel(e) {
-      const dx = e.deltaX !== 0 ? e.deltaX : e.deltaY;
+      // Mac trackpads often emit a tiny deltaX with a large deltaY on
+      // vertical two-finger scroll — prefer the dominant axis.
+      const dx =
+        Math.abs(e.deltaX) > Math.abs(e.deltaY) ? e.deltaX : e.deltaY;
       if (dx === 0) return;
       const max = el.scrollWidth - el.clientWidth;
       if (max <= 0) return;
@@ -102,7 +105,9 @@ function useDragScroll(scrollRef, surfaceRef) {
     el.addEventListener("pointercancel", onUp);
     el.addEventListener("click", onClickCapture, true);
     el.addEventListener("dragstart", onDragStart);
-    surface.addEventListener("wheel", onWheel, { passive: false });
+    // Capture so we win over page scroll before the gesture is claimed.
+    surface.addEventListener("wheel", onWheel, { passive: false, capture: true });
+    el.addEventListener("wheel", onWheel, { passive: false, capture: true });
     return () => {
       el.removeEventListener("pointerdown", onDown);
       el.removeEventListener("pointermove", onMove);
@@ -110,7 +115,8 @@ function useDragScroll(scrollRef, surfaceRef) {
       el.removeEventListener("pointercancel", onUp);
       el.removeEventListener("click", onClickCapture, true);
       el.removeEventListener("dragstart", onDragStart);
-      surface.removeEventListener("wheel", onWheel);
+      surface.removeEventListener("wheel", onWheel, { capture: true });
+      el.removeEventListener("wheel", onWheel, { capture: true });
     };
   }, [scrollRef, surfaceRef]);
 }

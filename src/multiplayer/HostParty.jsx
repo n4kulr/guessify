@@ -410,10 +410,11 @@ export default function HostParty({ code, playlist, me, onExit }) {
             className={`btn btn-play media-stage-btn ${
               playerId && (state.nextVotes || []).includes(playerId) ? "is-voted" : ""
             }`}
-            onClick={() => {
+            onClick={(e) => {
               if (playerId && (state.nextVotes || []).includes(playerId)) return;
               stopAudio();
               send({ type: "next" });
+              e.currentTarget.blur();
             }}
             disabled={!!(playerId && (state.nextVotes || []).includes(playerId))}
             aria-label={

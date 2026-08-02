@@ -46,13 +46,16 @@ export default function Login({ error, onStartSolo, onStartMulti, onStartOnline 
         )}
 
         <div className="home-actions">
-          <button className="btn btn-big btn-play" onClick={onStartSolo}>
-            <span className="btn-play-icon" aria-hidden="true" />
-            play solo
-          </button>
-          <button className="btn btn-big btn-multi" onClick={onStartMulti}>
-            host a game
-          </button>
+          <div className="home-actions-primary">
+            <button className="btn btn-big btn-play" onClick={onStartSolo}>
+              <span className="btn-play-icon" aria-hidden="true" />
+              <span className="btn-play-text-long">play solo</span>
+              <span className="btn-play-text-short">solo</span>
+            </button>
+            <button className="btn btn-big btn-multi" onClick={onStartMulti}>
+              host a game
+            </button>
+          </div>
           <button className="btn btn-big btn-online" onClick={onStartOnline}>
             <span className="btn-online-dot" aria-hidden="true" />
             play online
