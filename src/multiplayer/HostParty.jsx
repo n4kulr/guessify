@@ -3,7 +3,7 @@ import QRCode from "qrcode";
 import { usePartyRoom } from "./usePartyRoom.js";
 import { usePreviewPlayer } from "../usePreviewPlayer.js";
 import { resolvePreview } from "../itunes.js";
-import { STEPS, TOTAL, randomAvatar, normalizeAvatar, unlockSecondsFor, PLAYER_COLORS, nextVotesNeeded, activePlayerCount, SKIP_PENALTY } from "./constants.js";
+import { STEPS, TOTAL, randomAvatar, normalizeAvatar, unlockSecondsFor, PLAYER_COLORS, nextVotesNeeded, activePlayerCount } from "./constants.js";
 import { fireConfetti, shakeEl } from "../fx.js";
 import GuessMedia from "../components/GuessMedia.jsx";
 import GuessTransport from "../components/GuessTransport.jsx";
@@ -517,7 +517,7 @@ export default function HostParty({ code, playlist, me, profile, onExit }) {
           <div className="guess-actions">
             <button className="btn btn-skip" onClick={skipGuess}>
               <span className="btn-label">skip</span>
-              <span className="btn-hint">+audio · −{SKIP_PENALTY}</span>
+              <span className="btn-hint">+audio</span>
             </button>
             <button
               className="btn btn-guess"

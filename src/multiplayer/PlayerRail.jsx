@@ -32,8 +32,11 @@ export default function PlayerRail({
     for (const p of players) {
       const prev = prevScores.current[p.id];
       const score = p.score ?? 0;
-      if (prev != null && score > prev) {
-        nextFlashes[p.id] = { pts: score - prev, key: `${p.id}-${score}-${Date.now()}` };
+      if (prev != null && score !== prev) {
+        nextFlashes[p.id] = {
+          pts: score - prev,
+          key: `${p.id}-${score}-${Date.now()}`,
+        };
       }
       prevScores.current[p.id] = score;
     }
@@ -91,7 +94,11 @@ export default function PlayerRail({
             className={`mp-player ${showUnlock ? "mp-player--unlock" : ""} ${
               p.left ? "left" : !p.connected ? "offline" : ""
             } ${pulseId === p.id ? "pulse" : ""} ${
-              flash ? "mp-player--gain" : ""
+              flash
+                ? flash.pts < 0
+                  ? "mp-player--loss"
+                  : "mp-player--gain"
+                : ""
             }`}
             style={
               showUnlock
@@ -143,8 +150,13 @@ export default function PlayerRail({
             </div>
             <span className="mp-player-score-wrap">
               {flash && (
-                <span key={flash.key} className="mp-points-flash">
-                  +{flash.pts}
+                <span
+                  key={flash.key}
+                  className={`mp-points-flash${
+                    flash.pts < 0 ? " mp-points-flash--loss" : ""
+                  }`}
+                >
+                  {flash.pts > 0 ? `+${flash.pts}` : `−${Math.abs(flash.pts)}`}
                 </span>
               )}
               <span className="mp-player-score">{p.score ?? 0}</span>

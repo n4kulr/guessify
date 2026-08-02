@@ -11,7 +11,7 @@ export function PlayHowtoSteps({ race = true }) {
         Type the <b>song title</b> for most points. Artist is a small bonus.
       </li>
       <li>
-        <b>Skip</b> when you’re stuck — unlocks more of the track for you.
+        <b>Skip</b> when you’re stuck — more audio, small point trade-off.
       </li>
       {race && (
         <li>

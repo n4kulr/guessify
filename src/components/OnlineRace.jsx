@@ -928,7 +928,7 @@ export default function OnlineRace({ profile, onExit }) {
             <div className="guess-actions">
               <button className="btn btn-skip" onClick={skip}>
                 <span className="btn-label">skip</span>
-                <span className="btn-hint">+audio · −{SKIP_PENALTY}</span>
+                <span className="btn-hint">+audio</span>
               </button>
               <button
                 className="btn btn-guess"
