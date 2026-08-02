@@ -2789,17 +2789,6 @@ button { font-family: var(--font); }
 .turntable { position: relative; width: 200px; height: 200px; margin: 0 auto; }
 .turntable--game { margin: 18px auto 28px; }
 
-.media-stage {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 16px;
-  margin: 0 auto;
-  max-width: 100%;
-}
-.media-stage .turntable--game {
-  flex: none;
-}
 .media-stage-vote {
   display: flex;
   justify-content: center;

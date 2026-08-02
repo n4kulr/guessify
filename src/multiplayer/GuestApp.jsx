@@ -388,21 +388,19 @@ export default function GuestApp({ code }) {
           unlockByPlayer={state.unlockByPlayer || {}}
         />
 
-        <div className="media-stage">
-          <GuessMedia
-            mode="vinyl"
-            revealed={revealed}
-            spinning={spinning}
-            cover={track?.cover}
-            title={track?.name}
-            artist={(track?.artists || []).join(", ")}
-            canControl={canPlay}
-            interactive={canPlay}
-            vinylTitle={canPlay ? "play / pause · drag to scrub" : undefined}
-            onTogglePlay={togglePlay}
-            onScrubStart={stopAudio}
-          />
-        </div>
+        <GuessMedia
+          mode="vinyl"
+          revealed={revealed}
+          spinning={spinning}
+          cover={track?.cover}
+          title={track?.name}
+          artist={(track?.artists || []).join(", ")}
+          canControl={canPlay}
+          interactive={canPlay}
+          vinylTitle={canPlay ? "play / pause · drag to scrub" : undefined}
+          onTogglePlay={togglePlay}
+          onScrubStart={stopAudio}
+        />
         {errorMsg && <div className="error-banner">{errorMsg}</div>}
 
         {state.outcome === "win" && revealed && (

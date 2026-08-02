@@ -913,21 +913,19 @@ export default function OnlineRace({ profile, onExit }) {
           unlockByPlayer={unlockByPlayer}
         />
 
-        <div className="media-stage">
-          <GuessMedia
-            mode="vinyl"
-            revealed={revealed}
-            spinning={spinning}
-            cover={track?.cover}
-            title={track?.name}
-            artist={(track?.artists || []).join(", ")}
-            canControl={!!track}
-            interactive={!!track}
-            vinylTitle="play / pause · drag to scrub"
-            onTogglePlay={togglePlay}
-            onScrubStart={stopAudio}
-          />
-        </div>
+        <GuessMedia
+          mode="vinyl"
+          revealed={revealed}
+          spinning={spinning}
+          cover={track?.cover}
+          title={track?.name}
+          artist={(track?.artists || []).join(", ")}
+          canControl={!!track}
+          interactive={!!track}
+          vinylTitle="play / pause · drag to scrub"
+          onTogglePlay={togglePlay}
+          onScrubStart={stopAudio}
+        />
         {errorMsg && <div className="error-banner">{errorMsg}</div>}
 
         {revealed && outcome === "win" && (
