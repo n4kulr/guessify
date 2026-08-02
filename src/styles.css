@@ -18,16 +18,17 @@ html, body, #root { height: 100%; }
    gestures using <html>'s own background, not <body>'s — without this it
    fell back to a stale color that didn't track theme switches. */
 html { background: var(--bg-color); }
-#root { position: relative; z-index: 1; }
 
-/* Safari 26+ toolbar tint: fixed edge samples (filled by themes.js). */
+/* Safari 26+ toolbar tint: fixed edge samples (filled by themes.js).
+   Keep z-index below the app — never put a z-index on #root or the
+   body-portaled .demo-backdrop will cover the live demo panel. */
 .safari-chrome-tint {
   position: fixed;
   left: 0;
   width: 100%;
   min-height: 3px;
   pointer-events: none;
-  z-index: 0;
+  z-index: -1;
 }
 .safari-chrome-tint--top {
   top: 0;
