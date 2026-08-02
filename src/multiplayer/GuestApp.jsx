@@ -40,6 +40,8 @@ export default function GuestApp({ code }) {
   const lastTrackRef = useRef(null);
   const lastRevealPlayRef = useRef(null);
   const rootRef = useRef(null);
+  const skipWrapRef = useRef(null);
+  const titleFieldRef = useRef(null);
   const lastFxGuess = useRef(-1);
 
   const joined = !!playerId;
@@ -76,6 +78,8 @@ export default function GuestApp({ code }) {
     if (!state?.revealedArtist) setArtistGuess("");
     setTitleHintText("");
     setHintUsed(false);
+    setSkipPop(null);
+    setHintPop(null);
   }, [state?.roundIdx]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
@@ -138,7 +142,7 @@ export default function GuestApp({ code }) {
     setArtistGuess("");
     stopAudio();
     setSkipPop(Date.now());
-    shakeEl(rootRef.current);
+    shakeEl(skipWrapRef.current);
   }
 
   function applyTitleHint() {
@@ -148,7 +152,7 @@ export default function GuestApp({ code }) {
     if (!hintUsed) {
       setHintUsed(true);
       setHintPop(Date.now());
-      shakeEl(rootRef.current);
+      shakeEl(titleFieldRef.current);
     }
   }
 
@@ -360,7 +364,7 @@ export default function GuestApp({ code }) {
           <div className="guess-input-wrap">
             <div className="guess-fields">
               <div className="guess-title-row">
-                <div className="guess-title-field">
+                <div className="guess-title-field" ref={titleFieldRef}>
                   <input
                     className={`guess-input${titleHintText ? " guess-input--hint" : ""}`}
                     placeholder={titleHintText || "song title…"}
@@ -411,7 +415,7 @@ export default function GuestApp({ code }) {
               </div>
             </div>
             <div className="guess-actions">
-              <div className="btn-skip-wrap">
+              <div className="btn-skip-wrap" ref={skipWrapRef}>
                 <button className="btn btn-skip" onClick={skipGuess}>
                   <span className="btn-label">skip</span>
                   <span className="btn-hint">+audio</span>

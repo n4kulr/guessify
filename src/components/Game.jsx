@@ -49,6 +49,8 @@ export default function Game({ playlist, me, onExit, onReplay }) {
   const usedIdsRef = useRef(new Set(rounds.map((t) => t.id).filter(Boolean)));
   const replacingRef = useRef(false);
   const rootRef = useRef(null);
+  const skipWrapRef = useRef(null);
+  const titleFieldRef = useRef(null);
 
   const { soloName, soloAvatar } = useMemo(() => {
     const local = loadLocalProfile();
@@ -115,6 +117,8 @@ export default function Game({ playlist, me, onExit, onReplay }) {
     setArtistGuess("");
     setHintUsed(false);
     setTitleHintText("");
+    setSkipPop(null);
+    setHintPop(null);
     setPhase("play");
   }
 
@@ -295,7 +299,7 @@ export default function Game({ playlist, me, onExit, onReplay }) {
     if (!revealedArtist) setArtistGuess("");
     stopAudio();
     setSkipPop(Date.now());
-    shakeEl(rootRef.current);
+    shakeEl(skipWrapRef.current);
     consumeGuess();
   }
 
@@ -307,7 +311,7 @@ export default function Game({ playlist, me, onExit, onReplay }) {
     setTitleHintText(titleHintMask(track.name));
     if (first) {
       setHintPop(Date.now());
-      shakeEl(rootRef.current);
+      shakeEl(titleFieldRef.current);
     }
   }
 
@@ -457,7 +461,7 @@ export default function Game({ playlist, me, onExit, onReplay }) {
               <div className="guess-input-wrap">
                 <div className="guess-fields">
                   <div className="guess-title-row">
-                    <div className="guess-title-field">
+                    <div className="guess-title-field" ref={titleFieldRef}>
                       <input
                         className={`guess-input${titleHintText ? " guess-input--hint" : ""}`}
                         placeholder={titleHintText || "song title…"}
@@ -508,7 +512,7 @@ export default function Game({ playlist, me, onExit, onReplay }) {
                   </div>
                 </div>
                 <div className="guess-actions">
-                  <div className="btn-skip-wrap">
+                  <div className="btn-skip-wrap" ref={skipWrapRef}>
                     <button className="btn btn-skip" onClick={skip}>
                       <span className="btn-label">skip</span>
                       <span className="btn-hint">+audio</span>

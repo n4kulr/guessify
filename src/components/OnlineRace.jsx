@@ -250,6 +250,8 @@ export default function OnlineRace({ profile, onExit }) {
 
   const { errorMsg, setErrorMsg, play, pause } = usePreviewPlayer();
   const rootRef = useRef(null);
+  const skipWrapRef = useRef(null);
+  const titleFieldRef = useRef(null);
   const phaseRef = useRef(phase);
   const timersRef = useRef([]);
   const artistClaimedRef = useRef(null);
@@ -305,6 +307,8 @@ export default function OnlineRace({ profile, onExit }) {
     setArtistGuess("");
     setHintUsed(false);
     setTitleHintText("");
+    setSkipPop(null);
+    setHintPop(null);
     setPhase("play");
   }
 
@@ -653,7 +657,7 @@ export default function OnlineRace({ profile, onExit }) {
     setTitleGuess("");
     setArtistGuess("");
     setSkipPop(Date.now());
-    shakeEl(rootRef.current);
+    shakeEl(skipWrapRef.current);
     // Grow unlock only — never end the round alone. Loss waits until
     // every active player has fully skipped (see effect below).
     bumpUnlock(youId);
@@ -667,7 +671,7 @@ export default function OnlineRace({ profile, onExit }) {
     setTitleHintText(titleHintMask(track.name));
     if (first) {
       setHintPop(Date.now());
-      shakeEl(rootRef.current);
+      shakeEl(titleFieldRef.current);
     }
   }
 
@@ -703,6 +707,8 @@ export default function OnlineRace({ profile, onExit }) {
     setArtistGuess("");
     setHintUsed(false);
     setTitleHintText("");
+    setSkipPop(null);
+    setHintPop(null);
     setPhase("play");
   }
 
@@ -897,7 +903,7 @@ export default function OnlineRace({ profile, onExit }) {
           <div className="guess-input-wrap">
             <div className="guess-fields">
               <div className="guess-title-row">
-                <div className="guess-title-field">
+                <div className="guess-title-field" ref={titleFieldRef}>
                   <input
                     className={`guess-input${titleHintText ? " guess-input--hint" : ""}`}
                     placeholder={titleHintText || "song title…"}
@@ -948,7 +954,7 @@ export default function OnlineRace({ profile, onExit }) {
               </div>
             </div>
             <div className="guess-actions">
-              <div className="btn-skip-wrap">
+              <div className="btn-skip-wrap" ref={skipWrapRef}>
                 <button className="btn btn-skip" onClick={skip}>
                   <span className="btn-label">skip</span>
                   <span className="btn-hint">+audio</span>

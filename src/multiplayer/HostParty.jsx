@@ -59,6 +59,8 @@ export default function HostParty({ code, playlist, me, profile, onExit }) {
   const lastTrackRef = useRef(null);
   const lastRevealPlayRef = useRef(null);
   const rootRef = useRef(null);
+  const skipWrapRef = useRef(null);
+  const titleFieldRef = useRef(null);
   const lastFxGuess = useRef(-1);
 
   // (host reclaim runs on every socket open — see effect below)
@@ -174,6 +176,8 @@ export default function HostParty({ code, playlist, me, profile, onExit }) {
     if (!state?.revealedArtist) setArtistGuess("");
     setTitleHintText("");
     setHintUsed(false);
+    setSkipPop(null);
+    setHintPop(null);
   }, [state?.roundIdx]); // eslint-disable-line react-hooks/exhaustive-deps
 
   function updateHostProfile({ name, avatar }) {
@@ -375,7 +379,7 @@ export default function HostParty({ code, playlist, me, profile, onExit }) {
     setArtistGuess("");
     stopAudio();
     setSkipPop(Date.now());
-    shakeEl(rootRef.current);
+    shakeEl(skipWrapRef.current);
   }
 
   function applyTitleHint() {
@@ -385,7 +389,7 @@ export default function HostParty({ code, playlist, me, profile, onExit }) {
     if (!hintUsed) {
       setHintUsed(true);
       setHintPop(Date.now());
-      shakeEl(rootRef.current);
+      shakeEl(titleFieldRef.current);
     }
   }
 
@@ -490,7 +494,7 @@ export default function HostParty({ code, playlist, me, profile, onExit }) {
         <div className="guess-input-wrap">
           <div className="guess-fields">
             <div className="guess-title-row">
-              <div className="guess-title-field">
+              <div className="guess-title-field" ref={titleFieldRef}>
                 <input
                   className={`guess-input${titleHintText ? " guess-input--hint" : ""}`}
                   placeholder={titleHintText || "song title…"}
@@ -541,7 +545,7 @@ export default function HostParty({ code, playlist, me, profile, onExit }) {
             </div>
           </div>
           <div className="guess-actions">
-            <div className="btn-skip-wrap">
+            <div className="btn-skip-wrap" ref={skipWrapRef}>
               <button className="btn btn-skip" onClick={skipGuess}>
                 <span className="btn-label">skip</span>
                 <span className="btn-hint">+audio</span>

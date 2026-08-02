@@ -2626,7 +2626,9 @@ button { font-family: var(--font); }
 
 /* ---------------- game ---------------- */
 .game { width: min(560px, 100%); background: var(--sub-alt-color); border-radius: 18px; padding: 26px; }
-.game.is-shaking {
+.game.is-shaking,
+.btn-skip-wrap.is-shaking,
+.guess-title-field.is-shaking {
   animation: game-shake 0.4s ease;
 }
 @keyframes game-shake {
