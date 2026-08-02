@@ -2750,7 +2750,7 @@ button { font-family: var(--font); }
 .media-stage-vote {
   display: flex;
   justify-content: center;
-  margin: 0 0 18px;
+  margin: 0;
 }
 .media-stage-btn {
   display: flex;
@@ -3180,10 +3180,27 @@ button { font-family: var(--font); }
 }
 
 .inline-reveal {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 18px;
   animation: reveal-up 0.4s ease-out both;
   text-align: center;
+  margin-top: 4px;
 }
-.inline-reveal .reveal { margin-bottom: 0; }
+.inline-reveal .reveal {
+  margin-bottom: 0;
+  width: 100%;
+  box-sizing: border-box;
+}
+.inline-reveal > .btn,
+.inline-reveal .media-stage-vote {
+  align-self: center;
+  margin: 0;
+}
+.inline-reveal .media-stage-vote {
+  width: auto;
+}
 @keyframes reveal-up {
   0% { opacity: 0; transform: translateY(14px); }
   100% { opacity: 1; transform: translateY(0); }

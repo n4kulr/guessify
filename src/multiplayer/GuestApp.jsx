@@ -296,35 +296,6 @@ export default function GuestApp({ code }) {
             onScrubStart={stopAudio}
           />
         </div>
-        {revealed && (
-          <div className="media-stage-vote">
-            <button
-              type="button"
-              className={`btn btn-play media-stage-btn ${
-                playerId && (state.nextVotes || []).includes(playerId) ? "is-voted" : ""
-              }`}
-              onClick={(e) => {
-                if (playerId && (state.nextVotes || []).includes(playerId)) return;
-                stopAudio();
-                send({ type: "next" });
-                e.currentTarget.blur();
-              }}
-              disabled={!!(playerId && (state.nextVotes || []).includes(playerId))}
-              aria-label={
-                state.roundIdx + 1 >= state.roundCount ? "Results" : "Next song"
-              }
-            >
-              <span className="btn-label">
-                {state.roundIdx + 1 >= state.roundCount ? "end" : "next"}
-              </span>
-              <span className="vote-tally">
-                {(state.nextVotes || []).length}/
-                {state.nextVotesNeeded ??
-                  nextVotesNeeded(activePlayerCount(state.players))}
-              </span>
-            </button>
-          </div>
-        )}
         {errorMsg && <div className="error-banner">{errorMsg}</div>}
 
         {state.outcome === "win" && revealed && (
@@ -413,6 +384,33 @@ export default function GuestApp({ code }) {
                   <span className="reveal-points">+{state.earnedPts} pts</span>
                 )}
               </div>
+            </div>
+            <div className="media-stage-vote">
+              <button
+                type="button"
+                className={`btn btn-play media-stage-btn ${
+                  playerId && (state.nextVotes || []).includes(playerId) ? "is-voted" : ""
+                }`}
+                onClick={(e) => {
+                  if (playerId && (state.nextVotes || []).includes(playerId)) return;
+                  stopAudio();
+                  send({ type: "next" });
+                  e.currentTarget.blur();
+                }}
+                disabled={!!(playerId && (state.nextVotes || []).includes(playerId))}
+                aria-label={
+                  state.roundIdx + 1 >= state.roundCount ? "Results" : "Next song"
+                }
+              >
+                <span className="btn-label">
+                  {state.roundIdx + 1 >= state.roundCount ? "end" : "next"}
+                </span>
+                <span className="vote-tally">
+                  {(state.nextVotes || []).length}/
+                  {state.nextVotesNeeded ??
+                    nextVotesNeeded(activePlayerCount(state.players))}
+                </span>
+              </button>
             </div>
           </div>
         )}

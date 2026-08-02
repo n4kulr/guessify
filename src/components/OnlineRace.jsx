@@ -754,26 +754,6 @@ export default function OnlineRace({ profile, onExit }) {
             onScrubStart={stopAudio}
           />
         </div>
-        {revealed && (
-          <div className="media-stage-vote">
-            <button
-              type="button"
-              className={`btn btn-play media-stage-btn ${iVotedNext ? "is-voted" : ""}`}
-              onClick={voteNext}
-              disabled={iVotedNext}
-              aria-label={
-                roundIdx + 1 >= rounds.length ? "Results" : "Next song"
-              }
-            >
-              <span className="btn-label">
-                {roundIdx + 1 >= rounds.length ? "end" : "next"}
-              </span>
-              <span className="vote-tally">
-                {voteHave}/{voteNeed}
-              </span>
-            </button>
-          </div>
-        )}
         {errorMsg && <div className="error-banner">{errorMsg}</div>}
 
         {revealed && outcome === "win" && (
@@ -876,6 +856,24 @@ export default function OnlineRace({ profile, onExit }) {
                   </span>
                 )}
               </div>
+            </div>
+            <div className="media-stage-vote">
+              <button
+                type="button"
+                className={`btn btn-play media-stage-btn ${iVotedNext ? "is-voted" : ""}`}
+                onClick={voteNext}
+                disabled={iVotedNext}
+                aria-label={
+                  roundIdx + 1 >= rounds.length ? "Results" : "Next song"
+                }
+              >
+                <span className="btn-label">
+                  {roundIdx + 1 >= rounds.length ? "end" : "next"}
+                </span>
+                <span className="vote-tally">
+                  {voteHave}/{voteNeed}
+                </span>
+              </button>
             </div>
           </div>
         )}
