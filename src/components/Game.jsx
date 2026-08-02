@@ -10,6 +10,7 @@ import { titleHintMask, HINT_AFTER_SKIPS } from "../titleHint.js";
 import GuessMedia from "./GuessMedia.jsx";
 import GuessTransport from "./GuessTransport.jsx";
 import ShareScoreButton from "./ShareScoreButton.jsx";
+import ScrubbableVinyl from "./ScrubbableVinyl.jsx";
 import PenaltyPop from "./PenaltyPop.jsx";
 import AlmostFlash from "./AlmostFlash.jsx";
 import GameOverStats from "./GameOverStats.jsx";
@@ -447,37 +448,6 @@ export default function Game({ playlist, me, onExit, onReplay }) {
 
   useDebugActions("solo", debugActions);
 
-  // ---- wrap (match host / quick play layout) ----
-  if (phase === "over") {
-    return (
-      <div className="mp-over">
-        <h2 className="title">That's a wrap!</h2>
-        {endStats && (
-          <GameOverStats
-            stats={endStats}
-            bests={playlistBests}
-            myId={YOU_ID}
-          />
-        )}
-        <div className="gameover-actions">
-          <ShareScoreButton
-            mode="solo"
-            score={score}
-            maxScore={maxScore}
-            stats={endStats}
-            playlistName={playlist?.name || ""}
-          />
-          <button className="btn btn-big btn-play" onClick={playAgain}>
-            play again
-          </button>
-          <button className="btn btn-big btn-online" onClick={restart}>
-            pick another playlist
-          </button>
-        </div>
-      </div>
-    );
-  }
-
   return (
     <div
       ref={rootRef}
@@ -687,6 +657,43 @@ export default function Game({ playlist, me, onExit, onReplay }) {
               </div>
             )}
           </>
+        )}
+
+        {phase === "over" && (
+          <div className="gameover">
+            <div className="turntable">
+              <ScrubbableVinyl spin="slow" title="drag to scrub">
+                <div className="vinyl-label" aria-hidden="true" />
+              </ScrubbableVinyl>
+            </div>
+            <h2 className="title">That's a wrap!</h2>
+            <p className="subtitle">
+              You scored <strong>{score}</strong> of {maxScore} possible points across{" "}
+              {rounds.length} records.
+            </p>
+            {endStats && (
+              <GameOverStats
+                stats={endStats}
+                bests={playlistBests}
+                myId={YOU_ID}
+              />
+            )}
+            <div className="gameover-actions">
+              <ShareScoreButton
+                mode="solo"
+                score={score}
+                maxScore={maxScore}
+                stats={endStats}
+                playlistName={playlist?.name || ""}
+              />
+              <button className="btn btn-big btn-play" onClick={playAgain}>
+                play again
+              </button>
+              <button className="btn btn-big btn-online" onClick={restart}>
+                pick another playlist
+              </button>
+            </div>
+          </div>
         )}
       </div>
     </div>
