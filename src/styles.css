@@ -2794,11 +2794,10 @@ button { font-family: var(--font); }
   align-items: center;
   justify-content: center;
   gap: 16px;
-  margin: 8px auto 18px;
+  margin: 0 auto;
   max-width: 100%;
 }
 .media-stage .turntable--game {
-  margin: 0;
   flex: none;
 }
 .media-stage-vote {
@@ -2806,30 +2805,12 @@ button { font-family: var(--font); }
   justify-content: center;
   margin: 0;
 }
-.media-stage-btn {
-  display: flex;
-  flex-direction: row;
-  align-items: center;
-  justify-content: center;
-  gap: 10px;
-  padding: 10px 22px;
-  min-width: 140px;
-  width: auto;
-  font-size: 14px;
-  border-radius: 12px;
-}
-.media-stage-btn .btn-label {
-  font-size: 11px;
-  font-weight: 600;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-}
 .media-stage-btn .vote-tally {
-  font-family: "IBM Plex Mono", monospace;
-  font-size: 13px;
+  font: inherit;
   font-weight: 700;
-  color: var(--bg-color);
   letter-spacing: 0.02em;
+  color: inherit;
+  opacity: 0.85;
 }
 /* Voted: keep it readable on mobile (sticky :hover + :disabled was greying it out). */
 .media-stage-btn.is-voted,
@@ -2844,11 +2825,12 @@ button { font-family: var(--font); }
   cursor: default;
   background: color-mix(in srgb, var(--main-color) 22%, var(--bg-color));
   color: var(--main-color);
-  box-shadow: inset 0 0 0 1.5px var(--main-color);
+  box-shadow: inset 0 0 0 2px var(--main-color);
 }
 .media-stage-btn.is-voted .vote-tally,
 .media-stage-btn:disabled.is-voted .vote-tally {
-  color: var(--main-color);
+  color: inherit;
+  opacity: 1;
 }
 .turntable--md {
   width: 240px;
@@ -3405,6 +3387,7 @@ button { font-family: var(--font); }
 
 .gameover { text-align: center; }
 .gameover-actions { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; margin-top: 22px; }
+.gameover-actions .btn-online { width: auto; }
 
 .gos {
   margin: 20px 0 4px;
@@ -4566,11 +4549,7 @@ button { font-family: var(--font); }
   .controls { gap: 10px; }
   .media-mode-btn { width: 38px; height: 38px; }
 
-  /* Keep vinyl centered in the vote row; don't inherit turntable margins. */
-  .media-stage .turntable--game,
-  .media-stage .turntable--md {
-    margin: 0;
-  }
+  /* Keep vinyl centered; leave turntable margins so rail→vinyl matches solo. */
   .guess-transport-switch {
     width: 88px;
     min-width: 88px;

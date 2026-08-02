@@ -671,7 +671,7 @@ export default function HostParty({ code, playlist, me, profile, onExit }) {
           <div className="media-stage-vote">
             <button
               type="button"
-              className={`btn btn-play media-stage-btn ${
+              className={`btn btn-big btn-play media-stage-btn ${
                 playerId && (state.nextVotes || []).includes(playerId) ? "is-voted" : ""
               }`}
               onClick={(e) => {
@@ -685,14 +685,14 @@ export default function HostParty({ code, playlist, me, profile, onExit }) {
                 state.roundIdx + 1 >= state.roundCount ? "Results" : "Next song"
               }
             >
-              <span className="btn-label">
-                {state.roundIdx + 1 >= state.roundCount ? "end" : "next"}
-              </span>
+              <span className="btn-play-icon" aria-hidden="true" />
+              {state.roundIdx + 1 >= state.roundCount ? "see results" : "next song"}
               <span className="vote-tally">
                 {(state.nextVotes || []).length}/
                 {state.nextVotesNeeded ??
                   nextVotesNeeded(activePlayerCount(state.players))}
               </span>
+              <span aria-hidden="true">→</span>
             </button>
           </div>
         </div>

@@ -1082,19 +1082,19 @@ export default function OnlineRace({ profile, onExit }) {
             <div className="media-stage-vote">
               <button
                 type="button"
-                className={`btn btn-play media-stage-btn ${iVotedNext ? "is-voted" : ""}`}
+                className={`btn btn-big btn-play media-stage-btn ${iVotedNext ? "is-voted" : ""}`}
                 onClick={voteNext}
                 disabled={iVotedNext}
                 aria-label={
                   roundIdx + 1 >= rounds.length ? "Results" : "Next song"
                 }
               >
-                <span className="btn-label">
-                  {roundIdx + 1 >= rounds.length ? "end" : "next"}
-                </span>
+                <span className="btn-play-icon" aria-hidden="true" />
+                {roundIdx + 1 >= rounds.length ? "see results" : "next song"}
                 <span className="vote-tally">
                   {voteHave}/{voteNeed}
                 </span>
+                <span aria-hidden="true">→</span>
               </button>
             </div>
           </div>

@@ -630,7 +630,7 @@ export default function Game({ playlist, me, onExit, onReplay }) {
               <button className="btn btn-big btn-play" onClick={playAgain}>
                 play again
               </button>
-              <button className="btn btn-big btn-multi" onClick={restart}>
+              <button className="btn btn-big btn-online" onClick={restart}>
                 pick another playlist
               </button>
             </div>
