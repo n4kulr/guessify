@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { resolvePreview } from "./itunes.js";
 import { attachVolumeControl } from "./audioOutput.js";
+import { pauseGuessifyNowPlaying, setGuessifyNowPlaying } from "./mediaSession.js";
 
 /**
  * Plays iTunes 30s preview MP3s in a plain <audio> element.
@@ -63,6 +64,7 @@ export function usePreviewPlayer() {
         /* ignore */
       }
     }
+    pauseGuessifyNowPlaying();
     const cb = onStopRef.current;
     onStopRef.current = null;
     cb?.();
@@ -119,11 +121,13 @@ export function usePreviewPlayer() {
       setErrorMsg("Couldn't play preview — check autoplay / sound settings.");
       throw e;
     }
+    setGuessifyNowPlaying();
 
     const playFull = seconds == null || seconds === Infinity;
     if (playFull) {
       const onEnded = () => {
         endedHandlerRef.current = null;
+        pauseGuessifyNowPlaying();
         const cb = onStopRef.current;
         onStopRef.current = null;
         cb?.();
@@ -146,6 +150,7 @@ export function usePreviewPlayer() {
           /* ignore */
         }
       }
+      pauseGuessifyNowPlaying();
       const cb = onStopRef.current;
       onStopRef.current = null;
       cb?.();

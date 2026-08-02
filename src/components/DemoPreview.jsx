@@ -3,6 +3,7 @@ import { createPortal } from "react-dom";
 import CassetteShell from "./CassetteShell.jsx";
 import { resolvePreview } from "../itunes.js";
 import { attachVolumeControl } from "../audioOutput.js";
+import { pauseGuessifyNowPlaying, setGuessifyNowPlaying } from "../mediaSession.js";
 import { TITLE_POINTS, ARTIST_BONUS } from "../multiplayer/constants.js";
 
 // Self-playing fake rounds so people see the vibe before logging in.
@@ -454,7 +455,11 @@ export default function DemoPreview() {
                       a.muted = next;
                       if (!next) {
                         outputRef.current?.resume();
-                        a.play().catch(() => {});
+                        a.play()
+                          .then(() => setGuessifyNowPlaying())
+                          .catch(() => {});
+                      } else {
+                        pauseGuessifyNowPlaying();
                       }
                     }
                     return next;
