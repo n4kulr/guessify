@@ -1,10 +1,11 @@
 const LASTFM = "https://ws.audioscrobbler.com/2.0/";
+const UA = { "User-Agent": "Guessify/1.0 (https://guessify.uk)" };
 
-// Tag → top tracks via Last.fm (metadata only). Audio still comes from iTunes.
-// No Spotify session — charts are the open path for logged-out play.
+// Charts via Last.fm (metadata only). Audio still comes from iTunes.
 //
-// ?suggest=malay → tag name autocomplete (what Last.fm actually knows)
-// ?tag=pop → load top tracks for that tag
+// ?suggest=drake → tag + artist autocomplete
+// ?tag=pop → tag top tracks
+// ?artist=Drake → artist top tracks
 export default async function handler(req, res) {
   const key = process.env.LASTFM_API_KEY;
   if (!key) {
@@ -14,102 +15,139 @@ export default async function handler(req, res) {
     return;
   }
 
-  const suggest = String(req.query.suggest ?? "")
-    .trim()
-    .toLowerCase()
-    .slice(0, 64);
   if ("suggest" in req.query) {
+    const suggest = String(req.query.suggest ?? "")
+      .trim()
+      .slice(0, 64);
     if (suggest.length < 1) {
-      res.status(200).json({ tags: [] });
+      res.status(200).json({ tags: [], artists: [] });
       return;
     }
     try {
-      const tags = await searchTags(key, suggest);
-      res.status(200).json({ tags });
+      const [tags, artists] = await Promise.all([
+        searchTags(key, suggest),
+        searchArtists(key, suggest),
+      ]);
+      res.status(200).json({ tags, artists });
     } catch (e) {
-      console.error("lastfm tag.search", e);
-      res.status(500).json({ error: "Failed to suggest tags." });
+      console.error("lastfm suggest", e);
+      res.status(500).json({ error: "Failed to suggest charts." });
     }
     return;
   }
 
+  const artist = String(req.query.artist || "").trim().slice(0, 120);
   const tag = String(req.query.tag || "")
     .trim()
     .toLowerCase()
     .slice(0, 64);
-  if (!tag) {
-    res.status(400).json({ error: "Enter a tag like pop, 90s, or 1995." });
+
+  if (!artist && !tag) {
+    res.status(400).json({ error: "Enter a tag like pop, 90s, or an artist name." });
     return;
   }
 
   const limit = Math.min(50, Math.max(10, Number(req.query.limit) || 30));
 
   try {
-    const url =
-      `${LASTFM}?method=tag.gettoptracks` +
-      `&tag=${encodeURIComponent(tag)}` +
-      `&limit=${limit}` +
-      `&api_key=${encodeURIComponent(key)}` +
-      `&format=json`;
+    const data = artist
+      ? await topTracksForArtist(key, artist, limit)
+      : await topTracksForTag(key, tag, limit);
 
-    const r = await fetch(url, {
-      headers: { "User-Agent": "Guessify/1.0 (https://guessify.uk)" },
-    });
-    if (!r.ok) {
-      res.status(502).json({ error: "Last.fm request failed." });
-      return;
-    }
-    const data = await r.json();
-    if (data?.error) {
-      res.status(400).json({ error: data.message || "Unknown Last.fm tag." });
+    if (data.error) {
+      res.status(400).json({ error: data.error });
       return;
     }
 
-    const raw = data?.tracks?.track;
-    const list = Array.isArray(raw) ? raw : raw ? [raw] : [];
-    const tracks = [];
-    const seen = new Set();
-
-    for (const t of list) {
-      const name = String(t?.name || "").trim();
-      const artist = String(t?.artist?.name || t?.artist || "").trim();
-      if (!name || !artist) continue;
-      const dedupe = `${name.toLowerCase()}|${artist.toLowerCase()}`;
-      if (seen.has(dedupe)) continue;
-      seen.add(dedupe);
-
-      tracks.push({
-        id: `lfm-${slug(tag)}-${tracks.length}-${slug(name)}-${slug(artist)}`.slice(0, 120),
-        name,
-        artists: [artist],
-        cover: largestImage(t?.image) || null,
-        previewUrl: null,
-      });
-    }
-
+    const tracks = data.tracks;
     if (tracks.length < 2) {
+      const label = artist || tag;
       res.status(404).json({
-        error: `Not enough tracks for “${tag}”. Try another tag.`,
+        error: `Not enough tracks for “${label}”. Try another pick.`,
       });
       return;
     }
 
-    const display = formatTagName(tag);
+    const display = artist
+      ? artist
+      : formatTagName(tag);
+    const idKey = artist ? `artist-${slug(artist)}` : slug(tag);
+
     res.status(200).json({
-      id: `lfm-${slug(tag)}`,
-      name: display,
+      id: `lfm-${idKey}`,
+      name: artist ? `${display} essentials` : display,
       owner: "last.fm",
       cover: tracks.find((t) => t.cover)?.cover || null,
       total: tracks.length,
       playableCount: tracks.length,
       tracks,
       source: "lastfm",
-      tag,
+      tag: artist ? null : tag,
+      artist: artist || null,
     });
   } catch (e) {
     console.error("lastfm charts", e);
     res.status(500).json({ error: "Failed to load chart tracks." });
   }
+}
+
+async function topTracksForTag(apiKey, tag, limit) {
+  const url =
+    `${LASTFM}?method=tag.gettoptracks` +
+    `&tag=${encodeURIComponent(tag)}` +
+    `&limit=${limit}` +
+    `&api_key=${encodeURIComponent(apiKey)}` +
+    `&format=json`;
+  const r = await fetch(url, { headers: UA });
+  if (!r.ok) throw new Error(`lastfm ${r.status}`);
+  const data = await r.json();
+  if (data?.error) return { error: data.message || "Unknown Last.fm tag." };
+  return {
+    tracks: normalizeTracks(data?.tracks?.track, `tag-${slug(tag)}`),
+  };
+}
+
+async function topTracksForArtist(apiKey, artist, limit) {
+  const url =
+    `${LASTFM}?method=artist.gettoptracks` +
+    `&artist=${encodeURIComponent(artist)}` +
+    `&limit=${limit}` +
+    `&autocorrect=1` +
+    `&api_key=${encodeURIComponent(apiKey)}` +
+    `&format=json`;
+  const r = await fetch(url, { headers: UA });
+  if (!r.ok) throw new Error(`lastfm ${r.status}`);
+  const data = await r.json();
+  if (data?.error) return { error: data.message || "Unknown artist." };
+  const artistName =
+    String(data?.toptracks?.["@attr"]?.artist || artist).trim() || artist;
+  return {
+    tracks: normalizeTracks(data?.toptracks?.track, `artist-${slug(artistName)}`, artistName),
+  };
+}
+
+function normalizeTracks(raw, idPrefix, fallbackArtist = "") {
+  const list = Array.isArray(raw) ? raw : raw ? [raw] : [];
+  const tracks = [];
+  const seen = new Set();
+  for (const t of list) {
+    const name = String(t?.name || "").trim();
+    const artist = String(
+      t?.artist?.name || t?.artist || fallbackArtist || ""
+    ).trim();
+    if (!name || !artist) continue;
+    const dedupe = `${name.toLowerCase()}|${artist.toLowerCase()}`;
+    if (seen.has(dedupe)) continue;
+    seen.add(dedupe);
+    tracks.push({
+      id: `lfm-${idPrefix}-${tracks.length}-${slug(name)}-${slug(artist)}`.slice(0, 120),
+      name,
+      artists: [artist],
+      cover: largestImage(t?.image) || null,
+      previewUrl: null,
+    });
+  }
+  return tracks;
 }
 
 async function searchTags(apiKey, q) {
@@ -119,9 +157,7 @@ async function searchTags(apiKey, q) {
     `&limit=8` +
     `&api_key=${encodeURIComponent(apiKey)}` +
     `&format=json`;
-  const r = await fetch(url, {
-    headers: { "User-Agent": "Guessify/1.0 (https://guessify.uk)" },
-  });
+  const r = await fetch(url, { headers: UA });
   if (!r.ok) throw new Error(`lastfm ${r.status}`);
   const data = await r.json();
   if (data?.error) throw new Error(data.message || "tag.search failed");
@@ -136,9 +172,35 @@ async function searchTags(apiKey, q) {
       .slice(0, 64);
     if (!name || seen.has(name)) continue;
     seen.add(name);
+    out.push({ name, count: Number(t?.count) || 0 });
+  }
+  return out;
+}
+
+async function searchArtists(apiKey, q) {
+  const url =
+    `${LASTFM}?method=artist.search` +
+    `&artist=${encodeURIComponent(q)}` +
+    `&limit=8` +
+    `&api_key=${encodeURIComponent(apiKey)}` +
+    `&format=json`;
+  const r = await fetch(url, { headers: UA });
+  if (!r.ok) throw new Error(`lastfm ${r.status}`);
+  const data = await r.json();
+  if (data?.error) throw new Error(data.message || "artist.search failed");
+  const raw = data?.results?.artistmatches?.artist;
+  const list = Array.isArray(raw) ? raw : raw ? [raw] : [];
+  const out = [];
+  const seen = new Set();
+  for (const a of list) {
+    const name = String(a?.name || "").trim().slice(0, 120);
+    if (!name) continue;
+    const key = name.toLowerCase();
+    if (seen.has(key)) continue;
+    seen.add(key);
     out.push({
       name,
-      count: Number(t?.count) || 0,
+      listeners: Number(a?.listeners) || 0,
     });
   }
   return out;
@@ -165,7 +227,6 @@ function slug(s) {
 }
 
 function formatTagName(tag) {
-  // "90s" / "1995" / "hip-hop" → nicer playlist title
   if (/^\d{4}$/.test(tag)) return `${tag} hits`;
   if (/^\d{2}s$/.test(tag)) return `${tag} hits`;
   return tag

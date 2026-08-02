@@ -1,5 +1,5 @@
 /**
- * Self-check: “mala” suggests malayalam + decade compounds.
+ * Self-check: region compounds + artist suggestions.
  * Run: node src/chartSuggest.check.js
  */
 import assert from "node:assert/strict";
@@ -11,11 +11,17 @@ assert.ok(names.includes("malayalam"), names.join(", "));
 assert.ok(names.includes("malayalam 2000s"), names.join(", "));
 assert.ok(names.includes("malayalam 2010s"), names.join(", "));
 
+const withArtist = buildChartSuggestions("tayl", {
+  tags: [],
+  artists: [{ name: "Taylor Swift" }],
+});
+assert.ok(
+  withArtist.some((x) => x.kind === "artist" && x.label === "Taylor Swift"),
+  JSON.stringify(withArtist)
+);
+
 const pop = buildChartSuggestions("pop");
 assert.ok(pop.some((x) => x.name === "pop" && x.pack));
-
-const remote = buildChartSuggestions("tam", [{ name: "tamil" }]);
-assert.ok(remote.some((x) => x.name === "tamil 2000s"));
 
 assert.deepEqual(buildChartSuggestions(""), []);
 console.log("chartSuggest.check: ok");

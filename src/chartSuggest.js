@@ -59,20 +59,21 @@ function norm(s) {
 
 function matchesPrefix(name, q) {
   if (!q) return false;
-  if (name.startsWith(q)) return true;
-  // “mala” → “malayalam”, also match after spaces: “k pop” vs “k-pop”
-  const compact = name.replace(/[\s-]+/g, "");
+  const n = name.toLowerCase();
+  if (n.startsWith(q)) return true;
+  const compact = n.replace(/[\s-]+/g, "");
   const qCompact = q.replace(/[\s-]+/g, "");
-  return compact.startsWith(qCompact) || name.includes(q);
+  return compact.startsWith(qCompact) || n.includes(q);
 }
 
 /**
- * Build chart tag suggestions for a typed query.
  * @param {string} query
- * @param {{ name: string }[]} [remote] Last.fm tag.search hits
- * @returns {{ name: string, pack: boolean }[]}
+ * @param {{ tags?: { name: string }[], artists?: { name: string }[] }} [remote]
+ * @returns {{ name: string, label: string, pack: boolean, kind: "tag"|"artist" }[]}
  */
-export function buildChartSuggestions(query, remote = []) {
+export function buildChartSuggestions(query, remote = {}) {
+  const tags = remote.tags || (Array.isArray(remote) ? remote : []);
+  const artists = remote.artists || [];
   const q = norm(query);
   if (q.length < 1) return [];
 
@@ -80,45 +81,56 @@ export function buildChartSuggestions(query, remote = []) {
   const out = [];
   const seen = new Set();
 
-  function add(raw, { pack = false } = {}) {
-    const name = norm(raw);
-    if (!name || seen.has(name)) return;
-    seen.add(name);
-    out.push({ name, pack: pack || packSet.has(name) });
+  function add(raw, { pack = false, kind = "tag", label } = {}) {
+    const name = kind === "artist" ? String(raw || "").trim().slice(0, 120) : norm(raw);
+    if (!name) return;
+    const key = name.toLowerCase();
+    if (seen.has(key)) return;
+    seen.add(key);
+    out.push({
+      name: key,
+      label: label || (kind === "artist" ? name : key),
+      pack: pack || packSet.has(key),
+      kind,
+    });
   }
 
-  // 1) CD packs that match
   for (const tag of CHART_PACK_TAGS) {
-    if (matchesPrefix(tag, q)) add(tag, { pack: true });
+    if (matchesPrefix(tag, q)) add(tag, { pack: true, kind: "tag" });
   }
 
-  // 2) Regional / extra seeds that match, plus decade compounds
   for (const seed of CHART_REGION_SEEDS) {
     if (!matchesPrefix(seed, q)) continue;
-    add(seed);
-    // Only expand single-token bases (not “city pop”) into “seed 2000s”
+    add(seed, { kind: "tag" });
     if (!seed.includes(" ")) {
-      for (const era of CHART_ERA_SUFFIXES) add(`${seed} ${era}`);
+      for (const era of CHART_ERA_SUFFIXES) add(`${seed} ${era}`, { kind: "tag" });
     }
   }
 
-  // 3) Last.fm hits (and expand single-word ones the same way)
-  for (const hit of remote) {
+  for (const hit of tags) {
     const name = norm(hit?.name);
     if (!name || !matchesPrefix(name, q)) continue;
-    add(name);
+    add(name, { kind: "tag" });
     if (!name.includes(" ")) {
-      for (const era of CHART_ERA_SUFFIXES) add(`${name} ${era}`);
+      for (const era of CHART_ERA_SUFFIXES) add(`${name} ${era}`, { kind: "tag" });
     }
   }
 
-  // Prefer tags that start with the query, then shorter names.
+  // Artists: keep display casing; don't invent “Drake 2000s” tags.
+  for (const hit of artists) {
+    const label = String(hit?.name || "").trim();
+    if (!label || !matchesPrefix(label, q)) continue;
+    add(label, { kind: "artist", label });
+  }
+
   out.sort((a, b) => {
-    const aStart = a.name.startsWith(q) ? 0 : 1;
-    const bStart = b.name.startsWith(q) ? 0 : 1;
+    // Artists float up when the query looks like a name (has space or capital intent)
+    const aStart = a.label.toLowerCase().startsWith(q) ? 0 : 1;
+    const bStart = b.label.toLowerCase().startsWith(q) ? 0 : 1;
     if (aStart !== bStart) return aStart - bStart;
+    if (a.kind !== b.kind) return a.kind === "artist" ? -1 : 1;
     if (a.pack !== b.pack) return a.pack ? -1 : 1;
-    return a.name.length - b.name.length || a.name.localeCompare(b.name);
+    return a.label.length - b.label.length || a.label.localeCompare(b.label);
   });
 
   return out.slice(0, 10);

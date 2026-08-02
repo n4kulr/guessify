@@ -105,7 +105,10 @@ export default function PlaylistPicker({ onPick, needsLogin = false }) {
         );
         if (!r.ok) return;
         const d = await r.json();
-        const merged = buildChartSuggestions(q, d.tags || []);
+        const merged = buildChartSuggestions(q, {
+          tags: d.tags || [],
+          artists: d.artists || [],
+        });
         if (!ac.signal.aborted) {
           setChartSuggestions(merged);
           setSuggestOpen(merged.length > 0);
@@ -198,27 +201,36 @@ export default function PlaylistPicker({ onPick, needsLogin = false }) {
     }
   }
 
-  async function chooseChart(tag) {
+  async function chooseChart(tag, { artist = false } = {}) {
     const clean = String(tag || "").trim();
     if (!clean) return;
-    const id = `chart:${clean.toLowerCase()}`;
+    const id = `chart:${artist ? "a:" : ""}${clean.toLowerCase()}`;
     setLoadingId(id);
     setNote(null);
     try {
-      const res = await fetch(
-        `/api/charts?tag=${encodeURIComponent(clean)}&limit=30`,
-        { credentials: "include" }
-      );
+      const qs = artist
+        ? `artist=${encodeURIComponent(clean)}`
+        : `tag=${encodeURIComponent(clean)}`;
+      const res = await fetch(`/api/charts?${qs}&limit=30`, {
+        credentials: "include",
+      });
       const d = await res.json();
-      if (!res.ok) throw new Error(d.error || "failed");
+      if (!res.ok) {
+        // Free-typed name: tag miss → try as artist once.
+        if (!artist && res.status === 404) {
+          return chooseChart(clean, { artist: true });
+        }
+        throw new Error(d.error || "failed");
+      }
       if (d.playableCount < 2) {
-        setNote(`“${clean}” needs at least 2 tracks. Try another tag.`);
+        if (!artist) return chooseChart(clean, { artist: true });
+        setNote(`“${clean}” needs at least 2 tracks. Try another pick.`);
         setLoadingId(null);
         return;
       }
       onPick(d);
     } catch (err) {
-      setNote(err.message || "Couldn't load that chart. Try another tag.");
+      setNote(err.message || "Couldn't load that chart. Try another pick.");
       setLoadingId(null);
     }
   }
@@ -227,17 +239,19 @@ export default function PlaylistPicker({ onPick, needsLogin = false }) {
     e.preventDefault();
     setSuggestOpen(false);
     if (suggestHi >= 0 && chartSuggestions[suggestHi]) {
-      pickSuggestion(chartSuggestions[suggestHi].name);
+      pickSuggestion(chartSuggestions[suggestHi]);
       return;
     }
+    // Free text: try as tag; if that fails chooseChart already surfaces the error.
     chooseChart(chartQuery);
   }
 
-  function pickSuggestion(tag) {
-    setChartQuery(tag);
+  function pickSuggestion(s) {
+    const label = s.label || s.name;
+    setChartQuery(label);
     setSuggestOpen(false);
     setSuggestHi(-1);
-    chooseChart(tag);
+    chooseChart(label, { artist: s.kind === "artist" });
   }
 
   function onChartKeyDown(e) {
@@ -406,7 +420,7 @@ export default function PlaylistPicker({ onPick, needsLogin = false }) {
                   role="listbox"
                 >
                   {chartSuggestions.map((s, i) => (
-                    <li key={s.name} role="presentation">
+                    <li key={`${s.kind}-${s.name}`} role="presentation">
                       <button
                         type="button"
                         id={`chart-suggest-${i}`}
@@ -414,12 +428,14 @@ export default function PlaylistPicker({ onPick, needsLogin = false }) {
                         aria-selected={suggestHi === i}
                         className={`chart-suggest-item${suggestHi === i ? " is-active" : ""}`}
                         onMouseEnter={() => setSuggestHi(i)}
-                        onClick={() => pickSuggestion(s.name)}
+                        onClick={() => pickSuggestion(s)}
                       >
-                        <span className="chart-suggest-name">{s.name}</span>
-                        {s.pack && (
+                        <span className="chart-suggest-name">{s.label || s.name}</span>
+                        {s.kind === "artist" ? (
+                          <span className="chart-suggest-badge">artist</span>
+                        ) : s.pack ? (
                           <span className="chart-suggest-badge">pack</span>
-                        )}
+                        ) : null}
                       </button>
                     </li>
                   ))}
