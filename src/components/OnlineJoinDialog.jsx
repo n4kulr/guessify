@@ -9,9 +9,16 @@ import { normalizeAvatar, randomAvatar, PLAYER_COLORS } from "../multiplayer/con
 import { accentMatchingTheme } from "../themes.js";
 
 /**
- * Spotlight-style join sheet: nickname + peep + accent before an online race.
+ * Spotlight-style profile sheet: nickname + peep + accent (online join / host).
  */
-export default function OnlineJoinDialog({ me, onJoin, onCancel }) {
+export default function OnlineJoinDialog({
+  me,
+  onJoin,
+  onCancel,
+  title = "join race",
+  hint = "pick a name - and customize!",
+  submitLabel = "find a room",
+}) {
   const titleId = useId();
   const local = loadLocalProfile();
   const [draft, setDraft] = useState(() => {
@@ -51,7 +58,7 @@ export default function OnlineJoinDialog({ me, onJoin, onCancel }) {
   function submit(e) {
     e?.preventDefault?.();
     if (!canJoin) return;
-    const saved = saveLocalProfile(draft);
+    const saved = saveLocalProfile(draft, { customized: true });
     onJoin?.(saved);
   }
 
@@ -73,9 +80,9 @@ export default function OnlineJoinDialog({ me, onJoin, onCancel }) {
       >
         <div className="spotlight-head">
           <h2 id={titleId} className="spotlight-title">
-            join race
+            {title}
           </h2>
-          <p className="spotlight-hint">pick a name - and customize!</p>
+          <p className="spotlight-hint">{hint}</p>
         </div>
         <ProfileEditor
           name={draft.name}
@@ -92,7 +99,7 @@ export default function OnlineJoinDialog({ me, onJoin, onCancel }) {
             disabled={!canJoin}
           >
             <span className="btn-play-icon" aria-hidden="true" />
-            find a room
+            {submitLabel}
           </button>
         </div>
       </form>

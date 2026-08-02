@@ -16,7 +16,7 @@ import PlayHowto, {
   markPlayHowtoSeen,
 } from "./components/PlayHowto.jsx";
 import { makeRoomCode } from "./multiplayer/constants.js";
-import { loadLocalProfile, saveLocalProfile } from "./localProfile.js";
+import { loadLocalProfile, saveLocalProfile, hasSavedLocalProfile } from "./localProfile.js";
 import { loadTheme, DEFAULT_THEME } from "./themes.js";
 import { attachKeyboardSounds } from "./keyboardSounds.js";
 
@@ -47,14 +47,18 @@ export default function App() {
   const [homeNonce, setHomeNonce] = useState(0);
   const [onlinePrompt, setOnlinePrompt] = useState(false);
   const [onlineProfile, setOnlineProfile] = useState(null);
+  const [hostPrompt, setHostPrompt] = useState(false);
+  const [hostProfile, setHostProfile] = useState(null);
   const [howtoMode, setHowtoMode] = useState(null); // null | solo | multi | online
 
   const howtoRef = useRef(howtoMode);
   const onlinePromptRef = useRef(onlinePrompt);
+  const hostPromptRef = useRef(hostPrompt);
   const playlistRef = useRef(playlist);
   const onlineProfileRef = useRef(onlineProfile);
   howtoRef.current = howtoMode;
   onlinePromptRef.current = onlinePrompt;
+  hostPromptRef.current = hostPrompt;
   playlistRef.current = playlist;
   onlineProfileRef.current = onlineProfile;
 
@@ -81,6 +85,8 @@ export default function App() {
     setMode("solo");
     setOnlinePrompt(false);
     setOnlineProfile(null);
+    setHostPrompt(false);
+    setHostProfile(null);
     setHowtoMode(null);
     setHomeNonce((n) => n + 1);
   }
@@ -91,6 +97,7 @@ export default function App() {
 
     setHowtoMode(null);
     setOnlinePrompt(false);
+    setHostPrompt(false);
 
     if (step === "howto") {
       setHowtoMode(nextMode);
@@ -110,6 +117,7 @@ export default function App() {
       setPicking(true);
       setRoomCode(null);
       setOnlineProfile(null);
+      setHostProfile(null);
       setMode(nextMode === "multi" ? "multi" : "solo");
       setHomeNonce((n) => n + 1);
       return;
@@ -137,6 +145,7 @@ export default function App() {
         setPlaylist(null);
         setRoomCode(null);
         setOnlineProfile(null);
+        setHostProfile(null);
         replaceNav("pick", "multi");
         return;
       }
@@ -144,6 +153,9 @@ export default function App() {
       setMode("multi");
       setOnlineProfile(null);
       if (entry?.roomCode) setRoomCode(entry.roomCode);
+      if (!hostProfile && hasSavedLocalProfile()) {
+        setHostProfile(loadLocalProfile());
+      }
       return;
     }
     if (step === "online") {
@@ -255,6 +267,8 @@ export default function App() {
     setRoomCode(null);
     setOnlinePrompt(false);
     setOnlineProfile(null);
+    setHostPrompt(false);
+    setHostProfile(null);
     setHomeNonce((n) => n + 1);
     // Replace /play so Back from picker returns home, not an empty game.
     replaceNav("pick", "solo");
@@ -266,6 +280,8 @@ export default function App() {
     setPlaylist(null);
     setRoomCode(null);
     setOnlineProfile(null);
+    setHostPrompt(false);
+    setHostProfile(null);
     pushNav("pick", "solo");
   }
 
@@ -275,6 +291,8 @@ export default function App() {
     setPlaylist(null);
     setRoomCode(null);
     setOnlineProfile(null);
+    setHostPrompt(false);
+    setHostProfile(null);
     pushNav("pick", "multi");
   }
 
@@ -346,13 +364,36 @@ export default function App() {
     replaceNav("home");
   }
 
+  function confirmHostProfile(profile) {
+    setHostProfile(profile);
+    setHostPrompt(false);
+    pushNav("host", "multi", roomCode);
+  }
+
+  function cancelHostPrompt() {
+    setHostPrompt(false);
+    setHostProfile(null);
+    setPlaylist(null);
+    setRoomCode(null);
+    setPicking(true);
+    replaceNav("pick", "multi");
+  }
+
   function onPlaylistPicked(pl) {
     setPlaylist(pl);
     setPicking(false);
     if (mode === "multi") {
       const code = makeRoomCode();
       setRoomCode(code);
-      pushNav("host", "multi", code);
+      // Same customize sheet as quickplay — skip if they already saved one.
+      if (hasSavedLocalProfile()) {
+        setHostProfile(loadLocalProfile());
+        setHostPrompt(false);
+        pushNav("host", "multi", code);
+      } else {
+        setHostProfile(null);
+        setHostPrompt(true);
+      }
     } else {
       setRoomCode(null);
       pushNav("play", "solo");
@@ -427,8 +468,15 @@ export default function App() {
         {(status === "loggedIn" || status === "loggedOut") &&
           mode === "multi" &&
           playlist &&
-          roomCode && (
-            <HostParty code={roomCode} playlist={playlist} me={me} onExit={goHome} />
+          roomCode &&
+          !hostPrompt && (
+            <HostParty
+              code={roomCode}
+              playlist={playlist}
+              me={me}
+              profile={hostProfile}
+              onExit={goHome}
+            />
           )}
 
         {(status === "loggedIn" || status === "loggedOut") &&
@@ -445,6 +493,17 @@ export default function App() {
           me={me}
           onJoin={confirmOnline}
           onCancel={cancelOnlinePrompt}
+        />
+      )}
+
+      {hostPrompt && (
+        <OnlineJoinDialog
+          me={me}
+          title="host party"
+          hint="pick a name - and customize!"
+          submitLabel="open lobby"
+          onJoin={confirmHostProfile}
+          onCancel={cancelHostPrompt}
         />
       )}
 

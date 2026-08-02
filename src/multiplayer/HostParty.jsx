@@ -10,14 +10,14 @@ import GuessTransport from "../components/GuessTransport.jsx";
 import PlayerRail from "./PlayerRail.jsx";
 import ProfileEditor from "./ProfileEditor.jsx";
 import GuessPopups from "./GuessPopups.jsx";
-import { accentMatchingTheme } from "../themes.js";
-import { loadLocalProfile } from "../localProfile.js";
+import { loadLocalProfile, saveLocalProfile } from "../localProfile.js";
+import { applyThemeForAccent, accentMatchingTheme } from "../themes.js";
 
 /**
  * Host multiplayer session — picks playlist / starts game; audio plays locally
  * on each device (no shared DJ).
  */
-export default function HostParty({ code, playlist, me, onExit }) {
+export default function HostParty({ code, playlist, me, profile, onExit }) {
   const { state, status, error, send, playerId: socketPlayerId } = usePartyRoom(code);
   // Prefer roster host id — handshake/sessionStorage can lag or go stale, which
   // leaves unlockByPlayer lookups stuck at 1s while skip popups still show.
@@ -27,11 +27,17 @@ export default function HostParty({ code, playlist, me, onExit }) {
   const [copied, setCopied] = useState(false);
   const [titleGuess, setTitleGuess] = useState("");
   const [artistGuess, setArtistGuess] = useState("");
-  const [hostName, setHostName] = useState(
-    () => me?.displayName?.split(" ")[0] || "host"
-  );
+  const [hostName, setHostName] = useState(() => {
+    const fromProfile = profile?.name?.trim();
+    if (fromProfile) return fromProfile.slice(0, 16);
+    const local = loadLocalProfile().name;
+    if (local) return local;
+    return me?.displayName?.split(" ")[0] || "host";
+  });
   const [hostAvatar, setHostAvatar] = useState(() => {
+    if (profile?.avatar) return normalizeAvatar(profile.avatar);
     const local = loadLocalProfile();
+    if (local.name && local.avatar) return normalizeAvatar(local.avatar);
     const base = normalizeAvatar(local.avatar || randomAvatar());
     return normalizeAvatar({
       ...base,
@@ -162,8 +168,15 @@ export default function HostParty({ code, playlist, me, onExit }) {
   function updateHostProfile({ name, avatar }) {
     setHostName(name);
     setHostAvatar(avatar);
+    saveLocalProfile({ name, avatar }, { customized: true });
     if (playerId) send({ type: "profile", name, avatar });
   }
+
+  useEffect(() => {
+    if (hostAvatar?.color) applyThemeForAccent(hostAvatar.color, { persist: false });
+    // once on mount so a saved quickplay accent paints the lobby
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   useEffect(() => {
     return () => {
