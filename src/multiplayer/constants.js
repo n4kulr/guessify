@@ -1,5 +1,5 @@
 // Shared game constants (imported by PartyKit room + React clients).
-export const STEPS = [1, 2, 4, 7, 11, 16];
+export const STEPS = [2, 4, 7, 11, 16, 20];
 export const MAX_GUESSES = STEPS.length;
 export const TOTAL = STEPS[STEPS.length - 1];
 export const ROUND_COUNT = 5;

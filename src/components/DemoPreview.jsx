@@ -134,7 +134,7 @@ const ROUNDS = [
   },
 ];
 
-const STEPS = [1, 2, 4, 7, 11, 16];
+const STEPS = [2, 4, 7, 11, 16, 20];
 
 export default function DemoPreview() {
   const [roundIdx, setRoundIdx] = useState(0);
@@ -473,7 +473,7 @@ export default function DemoPreview() {
             <div className="progress-track demo-track">
               <div
                 className="progress-fill"
-                style={{ width: `${(unlocked / 16) * 100}%` }}
+                style={{ width: `${(unlocked / 20) * 100}%` }}
               />
             </div>
             <span className="demo-time">{unlocked}s unlocked</span>

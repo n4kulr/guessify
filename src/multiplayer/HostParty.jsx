@@ -22,7 +22,7 @@ import { isNoPreviewError } from "../shareScore.js";
 export default function HostParty({ code, playlist, me, profile, onExit }) {
   const { state, status, error, send, playerId: socketPlayerId } = usePartyRoom(code);
   // Prefer roster host id — handshake/sessionStorage can lag or go stale, which
-  // leaves unlockByPlayer lookups stuck at 1s while skip popups still show.
+  // leaves unlockByPlayer lookups stuck at 2s while skip popups still show.
   const playerId =
     state?.players?.find((p) => p.isHost)?.id || socketPlayerId || null;
   const [qr, setQr] = useState(null);

@@ -13,7 +13,7 @@ Play solo, or **host a game** so friends can join from their phones (nickname on
 ### Solo
 - Log in with Spotify (any account)
 - Pick **Liked Songs** or a playlist you own (others’ playlists show locked)
-- Hear unlocking snippets (1 → 2 → 4 → 7 → 11 → 16 seconds) from iTunes previews
+- Hear unlocking snippets (2 → 4 → 7 → 11 → 16 → 20 seconds) from iTunes previews
 - Type **title** and **artist** (fuzzy match); correct title wins the round
 - Correct artist adds a bonus
 - Scrub / play / pause on the vinyl; skip unlocks more audio
@@ -61,7 +61,7 @@ Avatars: 105 Open Peeps busts in `public/peeps/` (from Flat Assets); lobby is ni
 
 ## Scoring
 
-Skip unlocks more of the snippet (solo / your device in party): **1 → 2 → 4 → 7 → 11 → 16** seconds.
+Skip unlocks more of the snippet (solo / your device in party): **2 → 4 → 7 → 11 → 16 → 20** seconds.
 
 | What you get right | Points |
 | --- | --- |
