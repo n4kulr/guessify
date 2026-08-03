@@ -77,11 +77,17 @@ export default function PlaylistPicker({ onPick, needsLogin = false }) {
   const [chartQuery, setChartQuery] = useState("");
   const [chartPh, setChartPh] = useState("");
   const [chartFieldError, setChartFieldError] = useState(false);
+  const [chartFieldFading, setChartFieldFading] = useState(false);
   const [chartPreview, setChartPreview] = useState(null);
   const [yoursView, setYoursView] = useState("cds"); // cds | list
   const [showLoginModal, setShowLoginModal] = useState(false);
   const loginModalTitleId = useId();
   const chartFieldRef = useRef(null);
+  const chartErrorTimer = useRef(0);
+
+  useEffect(() => {
+    return () => clearTimeout(chartErrorTimer.current);
+  }, []);
 
   useEffect(() => {
     if (!showLoginModal) return;
@@ -254,12 +260,27 @@ export default function PlaylistPicker({ onPick, needsLogin = false }) {
     }
   }
 
-  /** Wipe query, put a short error in the field, shake. */
+  function resetChartField() {
+    clearTimeout(chartErrorTimer.current);
+    setChartFieldError(false);
+    setChartFieldFading(false);
+    setChartQuery("");
+  }
+
+  /** Wipe query, put a short error in the field, shake, then fade back. */
   function failChartSearch() {
+    clearTimeout(chartErrorTimer.current);
     setLoadingId(null);
+    setChartFieldFading(false);
     setChartFieldError(true);
     setChartQuery("try another :(");
     requestAnimationFrame(() => shakeEl(chartFieldRef.current));
+    chartErrorTimer.current = window.setTimeout(() => {
+      setChartFieldFading(true);
+      chartErrorTimer.current = window.setTimeout(() => {
+        resetChartField();
+      }, 380);
+    }, 1400);
   }
 
   /** Free-text “describe it” → load chart, show paper preview, then play. */
@@ -269,7 +290,9 @@ export default function PlaylistPicker({ onPick, needsLogin = false }) {
     const id = `chart:${clean.toLowerCase()}`;
     setLoadingId(id);
     setNote(null);
+    clearTimeout(chartErrorTimer.current);
     setChartFieldError(false);
+    setChartFieldFading(false);
     try {
       const res = await fetch(
         `/api/charts?tag=${encodeURIComponent(clean)}&limit=30`,
@@ -427,18 +450,22 @@ export default function PlaylistPicker({ onPick, needsLogin = false }) {
                 <input
                   className={
                     "guess-input join-code-input chart-search-input" +
-                    (chartFieldError ? " chart-search-input--error" : "")
+                    (chartFieldError ? " chart-search-input--error" : "") +
+                    (chartFieldFading ? " chart-search-input--fading" : "")
                   }
                   placeholder=""
                   value={chartQuery}
                   onChange={(e) => {
-                    if (chartFieldError) setChartFieldError(false);
+                    if (chartFieldError) {
+                      clearTimeout(chartErrorTimer.current);
+                      setChartFieldError(false);
+                      setChartFieldFading(false);
+                    }
                     setChartQuery(e.target.value);
                   }}
                   onFocus={() => {
                     if (!chartFieldError) return;
-                    setChartFieldError(false);
-                    setChartQuery("");
+                    resetChartField();
                   }}
                   disabled={loadingId !== null}
                   autoCorrect="off"

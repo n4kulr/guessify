@@ -1661,6 +1661,18 @@ button { font-family: var(--font); }
 .chart-search-input.chart-search-input--error {
   color: var(--error-color);
   border-color: color-mix(in srgb, var(--error-color) 55%, transparent);
+  transition:
+    color 0.35s ease,
+    opacity 0.35s ease,
+    border-color 0.35s ease;
+}
+.chart-search-input.chart-search-input--fading {
+  opacity: 0;
+}
+@media (prefers-reduced-motion: reduce) {
+  .chart-search-input.chart-search-input--error {
+    transition: none;
+  }
 }
 .chart-search-input::placeholder {
   color: transparent;
