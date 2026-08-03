@@ -1,7 +1,7 @@
-import { useEffect, useId, useMemo, useRef, useState } from "react";
+import { useEffect, useId, useMemo, useState } from "react";
 import ChartCdSpindle from "./ChartCdSpindle.jsx";
+import ChartPreviewDialog from "./ChartPreviewDialog.jsx";
 import PlaylistCdShelf from "./PlaylistCdShelf.jsx";
-import { buildChartSuggestions } from "../chartSuggest.js";
 
 const YOURS_PREVIEW = 6;
 
@@ -63,6 +63,7 @@ const CHART_PH_EXAMPLES = [
   "malayalam 2000s",
   "indie",
   "billboard hot 100",
+  "gemini rights",
 ];
 
 export default function PlaylistPicker({ onPick, needsLogin = false }) {
@@ -74,10 +75,7 @@ export default function PlaylistPicker({ onPick, needsLogin = false }) {
   const [showAllYours, setShowAllYours] = useState(false);
   const [chartQuery, setChartQuery] = useState("");
   const [chartPh, setChartPh] = useState("");
-  const [chartSuggestions, setChartSuggestions] = useState([]);
-  const [suggestOpen, setSuggestOpen] = useState(false);
-  const [suggestHi, setSuggestHi] = useState(-1);
-  const suggestBoxRef = useRef(null);
+  const [chartPreview, setChartPreview] = useState(null);
   const [yoursView, setYoursView] = useState("cds"); // cds | list
   const [showLoginModal, setShowLoginModal] = useState(false);
   const loginModalTitleId = useId();
@@ -157,60 +155,6 @@ export default function PlaylistPicker({ onPick, needsLogin = false }) {
       clearTimeout(timer);
     };
   }, [chartQuery]);
-
-  // Instant seeds (malayalam 2000s etc.) + Last.fm tag.search when available.
-  useEffect(() => {
-    const q = chartQuery.trim().toLowerCase();
-    if (q.length < 1) {
-      setChartSuggestions([]);
-      setSuggestOpen(false);
-      setSuggestHi(-1);
-      return;
-    }
-
-    const local = buildChartSuggestions(q);
-    setChartSuggestions(local);
-    setSuggestOpen(local.length > 0);
-    setSuggestHi(-1);
-
-    const ac = new AbortController();
-    const t = window.setTimeout(async () => {
-      try {
-        const r = await fetch(
-          `/api/charts?suggest=${encodeURIComponent(q)}`,
-          { signal: ac.signal, credentials: "include" }
-        );
-        if (!r.ok) return;
-        const d = await r.json();
-        const merged = buildChartSuggestions(q, {
-          tags: d.tags || [],
-          artists: d.artists || [],
-        });
-        if (!ac.signal.aborted) {
-          setChartSuggestions(merged);
-          setSuggestOpen(merged.length > 0);
-        }
-      } catch (e) {
-        if (e?.name === "AbortError") return;
-      }
-    }, 220);
-
-    return () => {
-      clearTimeout(t);
-      ac.abort();
-    };
-  }, [chartQuery]);
-
-  useEffect(() => {
-    if (!suggestOpen) return;
-    function onDoc(e) {
-      if (suggestBoxRef.current?.contains(e.target)) return;
-      setSuggestOpen(false);
-      setSuggestHi(-1);
-    }
-    document.addEventListener("pointerdown", onDoc);
-    return () => document.removeEventListener("pointerdown", onDoc);
-  }, [suggestOpen]);
 
   useEffect(() => {
     // Logged out: the API falls back to the site owner's shared library.
@@ -293,15 +237,10 @@ export default function PlaylistPicker({ onPick, needsLogin = false }) {
       });
       const d = await res.json();
       if (!res.ok) {
-        // Free-typed name: tag miss → try as artist once.
-        if (!artist && res.status === 404) {
-          return chooseChart(clean, { artist: true });
-        }
-        throw new Error(d.error || "failed");
+        throw new Error(d.error || "Couldn't find a chart for that. Try another pick.");
       }
       if (d.playableCount < 2) {
-        if (!artist) return chooseChart(clean, { artist: true });
-        setNote(`“${clean}” needs at least 2 tracks. Try another pick.`);
+        setNote(`“${d.name || clean}” needs at least 2 tracks. Try another pick.`);
         setLoadingId(null);
         return;
       }
@@ -312,40 +251,45 @@ export default function PlaylistPicker({ onPick, needsLogin = false }) {
     }
   }
 
+  /** Free-text “describe it” → load chart, show paper preview, then play. */
+  async function previewChartSearch(query) {
+    const clean = String(query || "").trim();
+    if (!clean) return;
+    const id = `chart:${clean.toLowerCase()}`;
+    setLoadingId(id);
+    setNote(null);
+    try {
+      const res = await fetch(
+        `/api/charts?tag=${encodeURIComponent(clean)}&limit=30`,
+        { credentials: "include" }
+      );
+      const d = await res.json();
+      if (!res.ok) {
+        throw new Error(d.error || "Couldn't find a chart for that. Try another pick.");
+      }
+      if (d.playableCount < 2) {
+        setNote(`“${d.name || clean}” needs at least 2 tracks. Try another pick.`);
+        setLoadingId(null);
+        return;
+      }
+      setChartPreview(d);
+      setLoadingId(null);
+    } catch (err) {
+      setNote(err.message || "Couldn't load that chart. Try another pick.");
+      setLoadingId(null);
+    }
+  }
+
   function submitChartSearch(e) {
     e.preventDefault();
-    setSuggestOpen(false);
-    if (suggestHi >= 0 && chartSuggestions[suggestHi]) {
-      pickSuggestion(chartSuggestions[suggestHi]);
-      return;
-    }
-    // Free text: try as tag; if that fails chooseChart already surfaces the error.
-    chooseChart(chartQuery);
+    previewChartSearch(chartQuery);
   }
 
-  function pickSuggestion(s) {
-    const label = s.label || s.name;
-    setChartQuery(label);
-    setSuggestOpen(false);
-    setSuggestHi(-1);
-    chooseChart(label, { artist: s.kind === "artist" });
-  }
-
-  function onChartKeyDown(e) {
-    if (!suggestOpen || chartSuggestions.length === 0) {
-      if (e.key === "Escape") setSuggestOpen(false);
-      return;
-    }
-    if (e.key === "ArrowDown") {
-      e.preventDefault();
-      setSuggestHi((i) => (i + 1) % chartSuggestions.length);
-    } else if (e.key === "ArrowUp") {
-      e.preventDefault();
-      setSuggestHi((i) => (i <= 0 ? chartSuggestions.length - 1 : i - 1));
-    } else if (e.key === "Escape") {
-      setSuggestOpen(false);
-      setSuggestHi(-1);
-    }
+  function confirmChartPreview() {
+    if (!chartPreview) return;
+    const d = chartPreview;
+    setChartPreview(null);
+    onPick(d);
   }
 
   function toggleYoursView() {
@@ -461,7 +405,7 @@ export default function PlaylistPicker({ onPick, needsLogin = false }) {
         <p className="section-sub chart-search-sub">(artist/era/album)</p>
         <form className="chart-search" onSubmit={submitChartSearch}>
           <div className="join-code-row">
-            <div className="chart-search-field" ref={suggestBoxRef}>
+            <div className="chart-search-field">
               <label className="chart-search-label">
                 {!chartQuery && (
                   <span className="chart-search-ph" aria-hidden="true">
@@ -474,51 +418,12 @@ export default function PlaylistPicker({ onPick, needsLogin = false }) {
                   placeholder=""
                   value={chartQuery}
                   onChange={(e) => setChartQuery(e.target.value)}
-                  onFocus={() => {
-                    if (chartSuggestions.length) setSuggestOpen(true);
-                  }}
-                  onKeyDown={onChartKeyDown}
                   disabled={loadingId !== null}
                   autoCorrect="off"
                   spellCheck={false}
-                  role="combobox"
-                  aria-expanded={suggestOpen}
-                  aria-autocomplete="list"
-                  aria-controls="chart-suggest-list"
-                  aria-activedescendant={
-                    suggestHi >= 0 ? `chart-suggest-${suggestHi}` : undefined
-                  }
                   aria-label="type your pick, artist, era, or album"
                 />
               </label>
-              {suggestOpen && chartSuggestions.length > 0 && (
-                <ul
-                  id="chart-suggest-list"
-                  className="chart-suggest"
-                  role="listbox"
-                >
-                  {chartSuggestions.map((s, i) => (
-                    <li key={`${s.kind}-${s.name}`} role="presentation">
-                      <button
-                        type="button"
-                        id={`chart-suggest-${i}`}
-                        role="option"
-                        aria-selected={suggestHi === i}
-                        className={`chart-suggest-item${suggestHi === i ? " is-active" : ""}`}
-                        onMouseEnter={() => setSuggestHi(i)}
-                        onClick={() => pickSuggestion(s)}
-                      >
-                        <span className="chart-suggest-name">{s.label || s.name}</span>
-                        {s.kind === "artist" ? (
-                          <span className="chart-suggest-badge">artist</span>
-                        ) : s.pack ? (
-                          <span className="chart-suggest-badge">pack</span>
-                        ) : null}
-                      </button>
-                    </li>
-                  ))}
-                </ul>
-              )}
             </div>
             <button
               type="submit"
@@ -536,6 +441,14 @@ export default function PlaylistPicker({ onPick, needsLogin = false }) {
         loadingId={loadingId}
         onChoose={chooseChart}
       />
+
+      {chartPreview && (
+        <ChartPreviewDialog
+          playlist={chartPreview}
+          onConfirm={confirmChartPreview}
+          onCancel={() => setChartPreview(null)}
+        />
+      )}
 
       {showLoginModal && (
         <div

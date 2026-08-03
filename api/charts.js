@@ -4,8 +4,8 @@ const UA = { "User-Agent": "Guessify/1.0 (https://guessify.uk)" };
 // Charts via Last.fm (metadata only). Audio still comes from iTunes.
 //
 // ?suggest=drake → tag + artist autocomplete
-// ?tag=pop → tag top tracks
-// ?artist=Drake → artist top tracks
+// ?tag=pop → tag top tracks (fuzzy near-match on miss)
+// ?artist=Drake → artist top tracks (fuzzy near-match on miss)
 export default async function handler(req, res) {
   const key = process.env.LASTFM_API_KEY;
   if (!key) {
@@ -48,47 +48,123 @@ export default async function handler(req, res) {
   }
 
   const limit = Math.min(50, Math.max(10, Number(req.query.limit) || 30));
+  const query = artist || tag;
 
   try {
-    const data = artist
-      ? await topTracksForArtist(key, artist, limit)
-      : await topTracksForTag(key, tag, limit);
-
-    if (data.error) {
-      res.status(400).json({ error: data.error });
-      return;
-    }
-
-    const tracks = data.tracks;
-    if (tracks.length < 2) {
-      const label = artist || tag;
+    const hit = await resolveChart(key, { tag, artist, limit });
+    if (!hit) {
       res.status(404).json({
-        error: `Not enough tracks for “${label}”. Try another pick.`,
+        error: `Couldn't find a chart for “${query}”. Try another pick.`,
       });
       return;
     }
 
-    const display = artist
-      ? artist
-      : formatTagName(tag);
-    const idKey = artist ? `artist-${slug(artist)}` : slug(tag);
+    const { kind, name, tracks, fuzzy } = hit;
+    const idKey = kind === "artist" ? `artist-${slug(name)}` : slug(name);
 
     res.status(200).json({
       id: `lfm-${idKey}`,
-      name: artist ? `${display} essentials` : display,
+      name: kind === "artist" ? `${name} essentials` : formatTagName(name),
       owner: "last.fm",
       cover: tracks.find((t) => t.cover)?.cover || null,
       total: tracks.length,
       playableCount: tracks.length,
       tracks,
       source: "lastfm",
-      tag: artist ? null : tag,
-      artist: artist || null,
+      tag: kind === "tag" ? name : null,
+      artist: kind === "artist" ? name : null,
+      fuzzy: !!fuzzy,
+      query: fuzzy ? query : undefined,
     });
   } catch (e) {
     console.error("lastfm charts", e);
     res.status(500).json({ error: "Failed to load chart tracks." });
   }
+}
+
+/**
+ * Exact tag/artist first; on miss walk tag.search / artist.search near-matches
+ * (and query fragments) until one has enough tracks.
+ */
+async function resolveChart(apiKey, { tag, artist, limit }) {
+  if (artist) {
+    const exact = await tryArtist(apiKey, artist, limit);
+    if (exact) return exact;
+    return fuzzyFromQuery(apiKey, artist, limit, { preferArtists: true });
+  }
+
+  const exact = await tryTag(apiKey, tag, limit);
+  if (exact) return exact;
+  return fuzzyFromQuery(apiKey, tag, limit, { preferArtists: false });
+}
+
+async function tryTag(apiKey, tag, limit, fuzzy = false, query) {
+  const data = await topTracksForTag(apiKey, tag, limit);
+  if (data.error || data.tracks.length < 2) return null;
+  return { kind: "tag", name: tag, tracks: data.tracks, fuzzy, query };
+}
+
+async function tryArtist(apiKey, artist, limit, fuzzy = false, query) {
+  const data = await topTracksForArtist(apiKey, artist, limit);
+  if (data.error || data.tracks.length < 2) return null;
+  const name =
+    String(data.artistName || artist).trim() || artist;
+  return { kind: "artist", name, tracks: data.tracks, fuzzy, query };
+}
+
+async function fuzzyFromQuery(apiKey, raw, limit, { preferArtists }) {
+  const variants = queryVariants(raw);
+  for (const q of variants) {
+    const [tags, artists] = await Promise.all([
+      searchTags(apiKey, q),
+      searchArtists(apiKey, q),
+    ]);
+
+    const tagTries = tags.slice(0, 6);
+    const artistTries = artists.slice(0, 4);
+    const order = preferArtists
+      ? [
+          ...artistTries.map((a) => ({ kind: "artist", name: a.name })),
+          ...tagTries.map((t) => ({ kind: "tag", name: t.name })),
+        ]
+      : [
+          ...tagTries.map((t) => ({ kind: "tag", name: t.name })),
+          ...artistTries.map((a) => ({ kind: "artist", name: a.name })),
+        ];
+
+    const seen = new Set();
+    for (const c of order) {
+      const key = `${c.kind}:${c.name.toLowerCase()}`;
+      if (seen.has(key)) continue;
+      seen.add(key);
+      // Skip exact query we already failed.
+      if (c.name.toLowerCase() === String(raw).trim().toLowerCase()) continue;
+
+      const hit =
+        c.kind === "tag"
+          ? await tryTag(apiKey, c.name, limit, true, raw)
+          : await tryArtist(apiKey, c.name, limit, true, raw);
+      if (hit) return hit;
+    }
+  }
+  return null;
+}
+
+/** Full query, then space-separated tokens (for “malayalam 90s”). */
+function queryVariants(raw) {
+  const q = String(raw || "").trim();
+  if (!q) return [];
+  const out = [];
+  const seen = new Set();
+  function push(s) {
+    const t = s.trim().toLowerCase();
+    if (t.length < 2 || seen.has(t)) return;
+    seen.add(t);
+    out.push(t);
+  }
+  push(q);
+  for (const part of q.split(/[\s,/|_-]+/)) push(part);
+  return out.slice(0, 4);
 }
 
 async function topTracksForTag(apiKey, tag, limit) {
@@ -122,7 +198,12 @@ async function topTracksForArtist(apiKey, artist, limit) {
   const artistName =
     String(data?.toptracks?.["@attr"]?.artist || artist).trim() || artist;
   return {
-    tracks: normalizeTracks(data?.toptracks?.track, `artist-${slug(artistName)}`, artistName),
+    artistName,
+    tracks: normalizeTracks(
+      data?.toptracks?.track,
+      `artist-${slug(artistName)}`,
+      artistName
+    ),
   };
 }
 

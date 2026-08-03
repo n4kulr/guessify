@@ -4208,6 +4208,45 @@ button { font-family: var(--font); }
   padding: 10px 16px;
   font-size: 14px;
 }
+
+/* Free-text chart preview: customizer shell + CD paper insert */
+.chart-preview-card {
+  width: min(380px, 100%);
+  max-height: min(86vh, 640px);
+  padding: 16px;
+  gap: 14px;
+}
+.chart-preview-insert {
+  height: auto;
+  max-height: min(62vh, 480px);
+  min-height: 220px;
+  border-radius: 4px;
+}
+.chart-preview-body {
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  padding-right: 4px;
+}
+.chart-preview-track {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+  white-space: normal; /* override cd-insert-tracks li span:last-child nowrap */
+}
+.chart-preview-track-title {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.chart-preview-track-artist {
+  font-size: 11px;
+  opacity: 0.7;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 @keyframes spotlight-in {
   from { opacity: 0; }
   to { opacity: 1; }
