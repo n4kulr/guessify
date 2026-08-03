@@ -645,7 +645,15 @@ export default function App() {
       )}
 
       <footer className="footer">
-        made with <span className="footer-heart" aria-hidden="true">♥</span> by nakul
+        made with <span className="footer-heart" aria-hidden="true">♥</span> by{" "}
+        <a
+          className="footer-credit"
+          href="https://devpage-one.vercel.app/"
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          nakul
+        </a>
       </footer>
 
       <FabDock />

@@ -291,6 +291,14 @@ button { font-family: var(--font); }
   color: var(--sub-color);
 }
 .footer-heart { color: var(--main-color); margin: 0 2px; }
+.footer-credit {
+  color: inherit;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+.footer-credit:hover {
+  color: var(--main-color);
+}
 .loader { color: var(--sub-color); font-size: 15px; }
 .cue-loader {
   margin: 48px auto 24px;
