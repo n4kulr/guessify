@@ -1,7 +1,8 @@
-import { useEffect, useId, useMemo, useState } from "react";
+import { useEffect, useId, useMemo, useRef, useState } from "react";
 import ChartCdSpindle from "./ChartCdSpindle.jsx";
 import ChartPreviewDialog from "./ChartPreviewDialog.jsx";
 import PlaylistCdShelf from "./PlaylistCdShelf.jsx";
+import { shakeEl } from "../fx.js";
 
 const YOURS_PREVIEW = 6;
 
@@ -75,10 +76,12 @@ export default function PlaylistPicker({ onPick, needsLogin = false }) {
   const [showAllYours, setShowAllYours] = useState(false);
   const [chartQuery, setChartQuery] = useState("");
   const [chartPh, setChartPh] = useState("");
+  const [chartFieldError, setChartFieldError] = useState(false);
   const [chartPreview, setChartPreview] = useState(null);
   const [yoursView, setYoursView] = useState("cds"); // cds | list
   const [showLoginModal, setShowLoginModal] = useState(false);
   const loginModalTitleId = useId();
+  const chartFieldRef = useRef(null);
 
   useEffect(() => {
     if (!showLoginModal) return;
@@ -251,13 +254,23 @@ export default function PlaylistPicker({ onPick, needsLogin = false }) {
     }
   }
 
+  /** Wipe query, put the error in the field, shake. */
+  function failChartSearch(message) {
+    const msg = message || "Couldn't load that chart. Try another pick.";
+    setLoadingId(null);
+    setChartFieldError(true);
+    setChartQuery(msg);
+    requestAnimationFrame(() => shakeEl(chartFieldRef.current));
+  }
+
   /** Free-text “describe it” → load chart, show paper preview, then play. */
   async function previewChartSearch(query) {
     const clean = String(query || "").trim();
-    if (!clean) return;
+    if (!clean || chartFieldError) return;
     const id = `chart:${clean.toLowerCase()}`;
     setLoadingId(id);
     setNote(null);
+    setChartFieldError(false);
     try {
       const res = await fetch(
         `/api/charts?tag=${encodeURIComponent(clean)}&limit=30`,
@@ -268,20 +281,21 @@ export default function PlaylistPicker({ onPick, needsLogin = false }) {
         throw new Error(d.error || "Couldn't find a chart for that. Try another pick.");
       }
       if (d.playableCount < 2) {
-        setNote(`“${d.name || clean}” needs at least 2 tracks. Try another pick.`);
-        setLoadingId(null);
+        failChartSearch(
+          `“${d.name || clean}” needs at least 2 tracks. Try another pick.`
+        );
         return;
       }
       setChartPreview(d);
       setLoadingId(null);
     } catch (err) {
-      setNote(err.message || "Couldn't load that chart. Try another pick.");
-      setLoadingId(null);
+      failChartSearch(err.message || "Couldn't load that chart. Try another pick.");
     }
   }
 
   function submitChartSearch(e) {
     e.preventDefault();
+    if (chartFieldError) return;
     previewChartSearch(chartQuery);
   }
 
@@ -405,7 +419,7 @@ export default function PlaylistPicker({ onPick, needsLogin = false }) {
         <p className="section-sub chart-search-sub">(artist/era/album)</p>
         <form className="chart-search" onSubmit={submitChartSearch}>
           <div className="join-code-row">
-            <div className="chart-search-field">
+            <div className="chart-search-field" ref={chartFieldRef}>
               <label className="chart-search-label">
                 {!chartQuery && (
                   <span className="chart-search-ph" aria-hidden="true">
@@ -414,13 +428,25 @@ export default function PlaylistPicker({ onPick, needsLogin = false }) {
                   </span>
                 )}
                 <input
-                  className="guess-input join-code-input chart-search-input"
+                  className={
+                    "guess-input join-code-input chart-search-input" +
+                    (chartFieldError ? " chart-search-input--error" : "")
+                  }
                   placeholder=""
                   value={chartQuery}
-                  onChange={(e) => setChartQuery(e.target.value)}
+                  onChange={(e) => {
+                    if (chartFieldError) setChartFieldError(false);
+                    setChartQuery(e.target.value);
+                  }}
+                  onFocus={() => {
+                    if (!chartFieldError) return;
+                    setChartFieldError(false);
+                    setChartQuery("");
+                  }}
                   disabled={loadingId !== null}
                   autoCorrect="off"
                   spellCheck={false}
+                  aria-invalid={chartFieldError || undefined}
                   aria-label="type your pick, artist, era, or album"
                 />
               </label>
@@ -428,7 +454,9 @@ export default function PlaylistPicker({ onPick, needsLogin = false }) {
             <button
               type="submit"
               className="btn btn-play"
-              disabled={loadingId !== null || !chartQuery.trim()}
+              disabled={
+                loadingId !== null || chartFieldError || !chartQuery.trim()
+              }
             >
               {loadingId?.startsWith("chart:") ? "…" : "play"}
             </button>

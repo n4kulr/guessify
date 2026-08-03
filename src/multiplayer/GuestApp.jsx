@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { usePartyRoom } from "./usePartyRoom.js";
 import { usePreviewPlayer } from "../usePreviewPlayer.js";
+import { isAudioWarm, warmAudioUrl } from "../previewWarm.js";
 import { STEPS, TOTAL, MAX_GUESSES, randomAvatar, normalizeAvatar, unlockSecondsFor, PLAYER_COLORS, nextVotesNeeded, activePlayerCount, SKIP_PENALTY, HINT_PENALTY } from "./constants.js";
 import { accentMatchingTheme } from "../themes.js";
 import { fireConfetti, shakeEl } from "../fx.js";
@@ -46,6 +47,7 @@ export default function GuestApp({ code }) {
   const [roundLog, setRoundLog] = useState([]);
   const [playlistBests, setPlaylistBests] = useState(null);
   const [fastEnd, setFastEnd] = useState(null);
+  const [cueReady, setCueReady] = useState(false);
   const { errorMsg, setErrorMsg, play, pause } = usePreviewPlayer();
   const [playBusy, setPlayBusy] = useState(false);
   const [localPlaying, setLocalPlaying] = useState(false);
@@ -70,6 +72,28 @@ export default function GuestApp({ code }) {
     : null;
   // Guests rely on the room's previewUrl (host publishes if the worker lookup fails).
   const canPlay = !!playTrack?.previewUrl;
+
+  useEffect(() => {
+    const roundPhase = state?.phase;
+    if (roundPhase !== "play" && roundPhase !== "reveal") {
+      setCueReady(true);
+      return;
+    }
+    const url = playTrack?.previewUrl;
+    if (!url) {
+      setCueReady(false);
+      return;
+    }
+    let cancelled = false;
+    if (!isAudioWarm(url)) setCueReady(false);
+    (async () => {
+      await warmAudioUrl(url);
+      if (!cancelled) setCueReady(true);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [state?.phase, state?.trackId, playTrack?.previewUrl, state?.roundIdx]);
 
   useEffect(() => {
     if (status !== "connected") return;
@@ -275,11 +299,11 @@ export default function GuestApp({ code }) {
   const phase = state?.phase;
   const revealPlayKey = `${state?.roundIdx ?? ""}-${phase}`;
   useEffect(() => {
-    if (phase !== "reveal" || !canPlay) return;
+    if (phase !== "reveal" || !canPlay || !cueReady) return;
     if (lastRevealPlayRef.current === revealPlayKey) return;
     lastRevealPlayRef.current = revealPlayKey;
     playSnippet(null);
-  }, [phase, revealPlayKey, canPlay]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [phase, revealPlayKey, canPlay, cueReady]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const fast = isFastTest();
   function endFast(alone) {
@@ -477,6 +501,10 @@ export default function GuestApp({ code }) {
           unlockByPlayer={state.unlockByPlayer || {}}
         />
 
+        {!cueReady ? (
+          <div className="loader cue-loader">cueing the record…</div>
+        ) : (
+          <>
         <GuessMedia
           mode="vinyl"
           revealed={revealed}
@@ -655,6 +683,8 @@ export default function GuestApp({ code }) {
               </button>
             </div>
           </div>
+        )}
+          </>
         )}
 
         {error && <div className="error-banner">{error}</div>}

@@ -7,6 +7,7 @@ import { getThemePalette } from "./themes.js";
  */
 
 const SHARE_URL = "https://guessify.uk";
+const FONT = '"Lexend Deca", system-ui, -apple-system, sans-serif';
 
 export function scoreSharePayload({
   mode = "solo",
@@ -45,6 +46,10 @@ function grabTheme() {
   };
 }
 
+// ---------------------------------------------------------------------------
+// Small drawing helpers
+// ---------------------------------------------------------------------------
+
 function roundRect(ctx, x, y, w, h, r) {
   const rr = Math.min(r, w / 2, h / 2);
   ctx.beginPath();
@@ -55,6 +60,97 @@ function roundRect(ctx, x, y, w, h, r) {
   ctx.arcTo(x, y, x + w, y, rr);
   ctx.closePath();
 }
+
+// Set fill colour + font + letter spacing in one call, so the section code below
+// stays readable. `spacing` is a number of pixels (0 for normal text).
+function setType(ctx, weight, size, color, spacing) {
+  ctx.fillStyle = color;
+  ctx.font = `${weight} ${size}px ${FONT}`;
+  ctx.letterSpacing = `${spacing || 0}px`;
+}
+
+// Format a whole number with thousands separators, e.g. 2140 -> "2,140".
+function commas(n) {
+  return Number(n).toLocaleString("en-US");
+}
+
+// A faint concentric-groove disc — the "record" motif for the record-shop theme.
+function drawVinyl(ctx, cx, cy, rMin, rMax, rings, color, alpha) {
+  ctx.save();
+  ctx.globalAlpha = alpha;
+  ctx.strokeStyle = color;
+  ctx.lineWidth = 2;
+  const step = (rMax - rMin) / rings;
+  let r = rMin;
+  while (r <= rMax) {
+    ctx.beginPath();
+    ctx.arc(cx, cy, r, 0, Math.PI * 2);
+    ctx.stroke();
+    r = r + step;
+  }
+  // Centre label of the record.
+  ctx.globalAlpha = alpha * 2;
+  ctx.fillStyle = color;
+  ctx.beginPath();
+  ctx.arc(cx, cy, rMin * 0.55, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.restore();
+}
+
+// A hairline divider drawn faintly so sections read as separate bands.
+function divider(ctx, x, w, y, color) {
+  ctx.save();
+  ctx.globalAlpha = 0.18;
+  ctx.fillStyle = color;
+  ctx.fillRect(x, y, w, 2);
+  ctx.restore();
+}
+
+// ---------------------------------------------------------------------------
+// Replay data prep — bar length is speed RELATIVE to the player's own fastest
+// win, so a full bar always means "your best round" and shorter bars read as
+// "slower than that". Self-normalising: no magic round-length constant needed.
+// ---------------------------------------------------------------------------
+
+function prepReplayRows(timeline) {
+  const rows = (Array.isArray(timeline) ? timeline : []).slice(0, 5);
+
+  // Find the fastest winning wall time in the set.
+  let fastestWon = Infinity;
+  for (const row of rows) {
+    if (row.won && row.wallMs > 0 && row.wallMs < fastestWon) {
+      fastestWon = row.wallMs;
+    }
+  }
+
+  return rows.map((row) => {
+    let frac = 0;
+    let isFastest = false;
+    if (row.won && row.wallMs > 0 && fastestWon !== Infinity) {
+      frac = fastestWon / row.wallMs; // 1.0 for the best round, less for slower ones
+      if (frac > 1) {
+        frac = 1;
+      }
+      if (frac < 0.06) {
+        frac = 0.06; // keep a sliver visible even for very slow wins
+      }
+      if (row.wallMs === fastestWon) {
+        isFastest = true;
+      }
+    }
+    return {
+      round: row.round,
+      won: row.won,
+      wallMs: row.wallMs,
+      frac,
+      isFastest,
+    };
+  });
+}
+
+// ---------------------------------------------------------------------------
+// Main card
+// ---------------------------------------------------------------------------
 
 /**
  * Spotify Wrapped–style story card (1080×1920).
@@ -78,129 +174,232 @@ export function renderShareCard(opts = {}) {
 
   const W = 1080;
   const H = 1920;
+  const M = 100; // page margin — everything hangs off this left edge
+  const contentW = W - M * 2;
+
   const canvas = document.createElement("canvas");
   canvas.width = W;
   canvas.height = H;
   const ctx = canvas.getContext("2d");
   const c = grabTheme();
-  const font = '"Lexend Deca", system-ui, -apple-system, sans-serif';
 
-  // Atmosphere
-  const grad = ctx.createLinearGradient(0, 0, W * 0.2, H);
+  // --- Background: vertical gradient + two soft warm blobs ------------------
+  const grad = ctx.createLinearGradient(0, 0, 0, H);
   grad.addColorStop(0, c.subAlt);
-  grad.addColorStop(0.4, c.bg);
+  grad.addColorStop(0.45, c.bg);
   grad.addColorStop(1, c.subAlt);
   ctx.fillStyle = grad;
   ctx.fillRect(0, 0, W, H);
 
+  ctx.save();
+  ctx.globalAlpha = 0.08;
   ctx.fillStyle = c.main;
-  ctx.globalAlpha = 0.12;
   ctx.beginPath();
-  ctx.arc(W * 0.85, H * 0.12, 420, 0, Math.PI * 2);
+  ctx.arc(W * 0.95, H * 0.08, 460, 0, Math.PI * 2);
   ctx.fill();
-  ctx.beginPath();
-  ctx.arc(W * 0.1, H * 0.78, 360, 0, Math.PI * 2);
-  ctx.fill();
-  ctx.globalAlpha = 1;
+  ctx.restore();
 
-  // Brand
+  // Vinyl record bleeding off the bottom-right — the signature graphic.
+  drawVinyl(ctx, W * 0.9, H * 0.92, 70, 430, 14, c.main, 0.05);
+
+  // --- Header: wordmark + accent underline, subtitle, playlist pill ---------
+  setType(ctx, 700, 68, c.main, 0);
+  ctx.fillText("guessify", M, 175);
+  const wordW = ctx.measureText("guessify").width;
   ctx.fillStyle = c.main;
-  ctx.font = `700 64px ${font}`;
-  ctx.fillText("guessify", 88, 160);
+  roundRect(ctx, M, 198, wordW, 8, 4);
+  ctx.fill();
 
   let subtitle = "solo wrap";
-  if (mode === "online") subtitle = place ? `#${place} online` : "online race";
-  if (mode === "party") subtitle = name ? `party · ${name}` : "party wrap";
-  ctx.fillStyle = c.sub;
-  ctx.font = `600 36px ${font}`;
-  ctx.fillText(subtitle, 88, 220);
+  if (mode === "online") {
+    if (place) {
+      subtitle = `#${place} online`;
+    } else {
+      subtitle = "online race";
+    }
+  }
+  if (mode === "party") {
+    if (name) {
+      subtitle = `party · ${name}`;
+    } else {
+      subtitle = "party wrap";
+    }
+  }
+  setType(ctx, 600, 34, c.sub, 0);
+  ctx.fillText(subtitle, M, 262);
 
   if (playlistName) {
-    ctx.fillStyle = c.text;
-    ctx.font = `500 32px ${font}`;
-    const pl =
-      playlistName.length > 36 ? `${playlistName.slice(0, 34)}…` : playlistName;
-    ctx.fillText(pl, 88, 280);
+    let pl = playlistName;
+    if (pl.length > 28) {
+      pl = `${pl.slice(0, 26)}…`;
+    }
+    setType(ctx, 500, 30, c.text, 0);
+    const textW = ctx.measureText(pl).width;
+    const pillH = 60;
+    const pillW = textW + 56 + 40; // text + side padding + room for the dot
+    const pillX = W - M - pillW;
+    const pillY = 128;
+    ctx.fillStyle = c.subAlt;
+    roundRect(ctx, pillX, pillY, pillW, pillH, pillH / 2);
+    ctx.fill();
+    ctx.fillStyle = c.main;
+    ctx.beginPath();
+    ctx.arc(pillX + 34, pillY + pillH / 2, 9, 0, Math.PI * 2);
+    ctx.fill();
+    setType(ctx, 500, 30, c.text, 0);
+    ctx.fillText(pl, pillX + 62, pillY + 40);
   }
 
-  // Hero score
-  ctx.fillStyle = c.text;
-  ctx.font = `800 240px ${font}`;
-  ctx.fillText(String(score), 88, 560);
-  ctx.fillStyle = c.sub;
-  ctx.font = `600 44px ${font}`;
-  ctx.fillText(maxScore ? `of ${maxScore} pts` : "pts", 88, 630);
+  divider(ctx, M, contentW, 320, c.sub);
 
-  // Stat chips
+  // --- Hero score ----------------------------------------------------------
+  setType(ctx, 600, 30, c.main, 3);
+  ctx.fillText("YOUR SCORE", M, 440);
+
+  setType(ctx, 800, 260, c.text, 0);
+  ctx.fillText(commas(score), M, 700);
+
+  setType(ctx, 600, 42, c.sub, 0);
+  if (maxScore) {
+    ctx.fillText(`of ${commas(maxScore)} pts`, M, 762);
+  } else {
+    ctx.fillText("pts", M, 762);
+  }
+
+  divider(ctx, M, contentW, 820, c.sub);
+
+  // --- Stat chips (2×2) ----------------------------------------------------
   const chips = [];
-  if (accuracy != null) chips.push({ k: "accuracy", v: `${Math.round(accuracy * 100)}%` });
-  if (fastestMs != null) chips.push({ k: "fastest", v: formatSolveSec(fastestMs) });
-  if (bestStreak != null) chips.push({ k: "streak", v: String(bestStreak) });
+  if (accuracy != null) {
+    chips.push({ k: "accuracy", v: `${Math.round(accuracy * 100)}%` });
+  }
+  if (fastestMs != null) {
+    chips.push({ k: "fastest", v: formatSolveSec(fastestMs) });
+  }
+  if (bestStreak != null) {
+    chips.push({ k: "streak", v: String(bestStreak) });
+  }
   if (artistsClaimed != null && artistsTotal != null) {
     chips.push({ k: "artists", v: `${artistsClaimed}/${artistsTotal}` });
   }
 
-  let chipY = 740;
-  const chipW = (W - 88 * 2 - 24) / 2;
+  const chipGap = 24;
+  const chipW = (contentW - chipGap) / 2;
+  const chipH = 150;
+  const chipY = 900;
   chips.slice(0, 4).forEach((chip, i) => {
     const col = i % 2;
     const row = Math.floor(i / 2);
-    const x = 88 + col * (chipW + 24);
-    const y = chipY + row * 140;
+    const x = M + col * (chipW + chipGap);
+    const y = chipY + row * (chipH + chipGap);
+
     ctx.fillStyle = c.subAlt;
-    roundRect(ctx, x, y, chipW, 112, 20);
+    roundRect(ctx, x, y, chipW, chipH, 24);
     ctx.fill();
-    ctx.fillStyle = c.sub;
-    ctx.font = `600 28px ${font}`;
-    ctx.fillText(chip.k.toUpperCase(), x + 32, y + 42);
-    ctx.fillStyle = c.text;
-    ctx.font = `700 48px ${font}`;
-    ctx.fillText(chip.v, x + 32, y + 92);
+
+    // accent tick — the little mark that anchors the chip
+    ctx.fillStyle = c.main;
+    roundRect(ctx, x + 40, y + 36, 44, 6, 3);
+    ctx.fill();
+
+    setType(ctx, 600, 26, c.sub, 2);
+    ctx.fillText(chip.k.toUpperCase(), x + 40, y + 86);
+
+    setType(ctx, 700, 54, c.text, 0);
+    ctx.fillText(chip.v, x + 40, y + 132);
   });
 
-  // Mini replay (caller decides wins-only vs full)
-  const rows = (Array.isArray(timeline) ? timeline : []).slice(0, 5);
+  divider(ctx, M, contentW, 1280, c.sub);
+
+  // --- Mini replay ---------------------------------------------------------
+  const rows = prepReplayRows(timeline);
   if (rows.length) {
-    const baseY = chipY + Math.ceil(Math.min(chips.length, 4) / 2) * 140 + 80;
-    ctx.fillStyle = c.sub;
-    ctx.font = `600 28px ${font}`;
-    ctx.fillText("REPLAY", 88, baseY);
+    setType(ctx, 600, 30, c.main, 3);
+    ctx.fillText("REPLAY", M, 1350);
+
+    setType(ctx, 500, 26, c.sub, 0);
+    const note = "bar = speed vs your best";
+    const noteW = ctx.measureText(note).width;
+    ctx.fillText(note, W - M - noteW, 1350);
+
+    const trackX = M + 150;
+    const trackRight = W - M - 170;
+    const trackW = trackRight - trackX;
+    const rowTop0 = 1400;
+    const rowH = 74;
+
     rows.forEach((row, i) => {
-      const y = baseY + 40 + i * 72;
-      ctx.fillStyle = c.sub;
-      ctx.font = `500 28px ${font}`;
-      ctx.fillText(`R${row.round}`, 88, y + 28);
-      const trackX = 180;
-      const trackW = W - trackX - 200;
-      ctx.fillStyle = c.subAlt;
-      roundRect(ctx, trackX, y, trackW, 22, 6);
-      ctx.fill();
+      const top = rowTop0 + i * rowH;
+      const mid = top + 11; // track is 22px tall
+
+      // win / miss indicator dot
       if (row.won) {
-        const pct = Math.max(0.08, Math.min(1, (row.barPct || 0) / 100));
         ctx.fillStyle = c.main;
-        roundRect(ctx, trackX, y, trackW * pct, 22, 6);
+        ctx.beginPath();
+        ctx.arc(M + 8, mid, 8, 0, Math.PI * 2);
         ctx.fill();
-        ctx.fillStyle = c.text;
-        ctx.font = `600 28px ${font}`;
-        ctx.fillText(formatSolveSec(row.wallMs), trackX + trackW + 24, y + 22);
       } else {
-        ctx.fillStyle = c.sub;
-        ctx.font = `500 28px ${font}`;
-        ctx.fillText("miss", trackX + trackW + 24, y + 22);
+        ctx.strokeStyle = c.sub;
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        ctx.arc(M + 8, mid, 7, 0, Math.PI * 2);
+        ctx.stroke();
+      }
+
+      setType(ctx, 500, 30, c.sub, 0);
+      ctx.fillText(`R${row.round}`, M + 34, mid + 10);
+
+      // full track = the 100% reference (your fastest round)
+      ctx.fillStyle = c.subAlt;
+      roundRect(ctx, trackX, top, trackW, 22, 6);
+      ctx.fill();
+
+      // faint cap marker at the 100% end
+      ctx.save();
+      ctx.globalAlpha = 0.35;
+      ctx.fillStyle = c.main;
+      roundRect(ctx, trackRight - 4, top, 4, 22, 2);
+      ctx.fill();
+      ctx.restore();
+
+      if (row.won) {
+        ctx.fillStyle = c.main;
+        roundRect(ctx, trackX, top, trackW * row.frac, 22, 6);
+        ctx.fill();
+
+        // highlight the best round by colouring its time in the accent
+        let timeColor = c.text;
+        if (row.isFastest) {
+          timeColor = c.main;
+        }
+        setType(ctx, 600, 30, timeColor, 0);
+        ctx.fillText(formatSolveSec(row.wallMs), trackRight + 24, mid + 10);
+      } else {
+        setType(ctx, 500, 30, c.sub, 0);
+        ctx.fillText("missed", trackRight + 24, mid + 10);
       }
     });
   }
 
-  // Footer
-  ctx.fillStyle = c.main;
-  ctx.font = `700 40px ${font}`;
-  ctx.fillText("guessify.uk", 88, H - 100);
-  ctx.fillStyle = c.sub;
-  ctx.font = `500 28px ${font}`;
-  ctx.fillText("name that song", 88, H - 52);
+  // --- Footer (anchored to the bottom) -------------------------------------
+  divider(ctx, M, contentW, 1800, c.sub);
 
+  const footY = 1868;
+  setType(ctx, 700, 44, c.main, 0);
+  ctx.fillText("guessify.uk", M, footY);
+
+  setType(ctx, 500, 30, c.sub, 0);
+  const tag = "name that song";
+  const tagW = ctx.measureText(tag).width;
+  ctx.fillText(tag, W - M - tagW, footY);
+
+  ctx.letterSpacing = "0px"; // leave the context clean
   return canvas;
 }
+
+// ---------------------------------------------------------------------------
+// Share / download (unchanged)
+// ---------------------------------------------------------------------------
 
 function downloadBlob(blob, filename) {
   const url = URL.createObjectURL(blob);

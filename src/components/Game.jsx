@@ -1,7 +1,12 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { isCorrect, matchesAnyArtist, isAlmost, isAlmostAnyArtist } from "../match.js";
 import { usePreviewPlayer } from "../usePreviewPlayer.js";
-import { resolvePreview } from "../itunes.js";
+import {
+  isAudioWarm,
+  warmAudioUrl,
+  warmTrackPreview,
+  patchRoundsPreview,
+} from "../previewWarm.js";
 import { fireConfetti, shakeEl } from "../fx.js";
 import { loadLocalProfile } from "../localProfile.js";
 import { isNoPreviewError } from "../shareScore.js";
@@ -54,6 +59,8 @@ export default function Game({ playlist, me, onExit, onReplay }) {
   );
   const usedIdsRef = useRef(new Set(rounds.map((t) => t.id).filter(Boolean)));
   const replacingRef = useRef(false);
+  const roundsRef = useRef(rounds);
+  roundsRef.current = rounds;
   const rootRef = useRef(null);
   const skipWrapRef = useRef(null);
   const titleFieldRef = useRef(null);
@@ -91,6 +98,7 @@ export default function Game({ playlist, me, onExit, onReplay }) {
   const [almostArtist, setAlmostArtist] = useState(null);
   const [roundLog, setRoundLog] = useState([]);
   const [playlistBests, setPlaylistBests] = useState(null);
+  const [cueReady, setCueReady] = useState(false);
 
   const { errorMsg, setErrorMsg, play, pause } = usePreviewPlayer();
   const roundStartedAt = useRef(Date.now());
@@ -170,7 +178,7 @@ export default function Game({ playlist, me, onExit, onReplay }) {
           return false;
         }
         used.add(spare.id);
-        const url = await resolvePreview(spare);
+        const url = await warmTrackPreview(spare);
         if (!url) continue;
         const patched = { ...spare, previewUrl: url };
         setRounds((rs) => {
@@ -187,6 +195,51 @@ export default function Game({ playlist, me, onExit, onReplay }) {
     }
   }
 
+  // Cue current track (hold UI if cold) and keep one ahead warm.
+  useEffect(() => {
+    if (phase !== "play" || !track?.id) return;
+    let cancelled = false;
+    (async () => {
+      const hot =
+        track.previewUrl && isAudioWarm(track.previewUrl);
+      if (!hot) setCueReady(false);
+
+      let url = track.previewUrl || null;
+      if (url) {
+        await warmAudioUrl(url);
+      } else {
+        url = await warmTrackPreview(track);
+      }
+      if (cancelled) return;
+
+      if (!url) {
+        const ok = await replaceDeadTrack(track);
+        if (!cancelled && !ok) {
+          setCueReady(true);
+          window.setTimeout(() => {
+            if (!cancelled) nextRound();
+          }, 700);
+        }
+        return;
+      }
+
+      setRounds((rs) => patchRoundsPreview(rs, roundIdx, url));
+      if (!cancelled) setCueReady(true);
+
+      const nextIdx = roundIdx + 1;
+      const next = roundsRef.current[nextIdx];
+      if (!next || cancelled) return;
+      const nurl = await warmTrackPreview(next);
+      if (!cancelled && nurl) {
+        setRounds((rs) => patchRoundsPreview(rs, nextIdx, nurl));
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [track?.id, roundIdx, phase]);
+
   // Stop playback whenever the track changes (and on unmount).
   useEffect(() => {
     stopAudio();
@@ -195,27 +248,6 @@ export default function Game({ playlist, me, onExit, onReplay }) {
     return stopAudio;
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [roundIdx, track?.id]);
-
-  // Before the player hits play: if this track has no preview, swap in-place.
-  useEffect(() => {
-    if (phase !== "play" || outcome !== null || !track?.id) return;
-    let cancelled = false;
-    (async () => {
-      const url = await resolvePreview(track);
-      if (cancelled || url) return;
-      const ok = await replaceDeadTrack(track);
-      if (!cancelled && !ok) {
-        // Pool exhausted — burn the round so the game can finish.
-        window.setTimeout(() => {
-          if (!cancelled) nextRound();
-        }, 700);
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [track?.id, roundIdx, phase, outcome]);
 
   function stopAudio() {
     pause();
@@ -473,7 +505,11 @@ export default function Game({ playlist, me, onExit, onReplay }) {
           </div>
         )}
 
-        {phase === "play" && (
+        {phase === "play" && !cueReady && (
+          <div className="loader cue-loader">cueing the record…</div>
+        )}
+
+        {phase === "play" && cueReady && (
           <>
             <PlayerRail
               players={players}

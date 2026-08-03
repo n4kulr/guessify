@@ -3,7 +3,8 @@ import QRCode from "qrcode";
 import { usePartyRoom } from "./usePartyRoom.js";
 import { usePreviewPlayer } from "../usePreviewPlayer.js";
 import { resolvePreview } from "../itunes.js";
-import { STEPS, TOTAL, MAX_GUESSES, randomAvatar, normalizeAvatar, unlockSecondsFor, PLAYER_COLORS, nextVotesNeeded, activePlayerCount, SKIP_PENALTY, HINT_PENALTY } from "./constants.js";
+import { isAudioWarm, warmAudioUrl, primePlaylistPreviews } from "../previewWarm.js";
+import { STEPS, TOTAL, MAX_GUESSES, randomAvatar, normalizeAvatar, unlockSecondsFor, PLAYER_COLORS, nextVotesNeeded, activePlayerCount, SKIP_PENALTY, HINT_PENALTY, ROUND_COUNT } from "./constants.js";
 import { fireConfetti, shakeEl } from "../fx.js";
 import GuessMedia from "../components/GuessMedia.jsx";
 import GuessTransport from "../components/GuessTransport.jsx";
@@ -47,6 +48,7 @@ export default function HostParty({ code, playlist, me, profile, onExit }) {
   const [almostArtist, setAlmostArtist] = useState(null);
   const [roundLog, setRoundLog] = useState([]);
   const [playlistBests, setPlaylistBests] = useState(null);
+  const [cueReady, setCueReady] = useState(false);
   /** Dev-only fake wrap: bypasses the Worker and paints end screen locally. */
   const [fastEnd, setFastEnd] = useState(null);
   const [hostName, setHostName] = useState(() => {
@@ -113,6 +115,7 @@ export default function HostParty({ code, playlist, me, profile, onExit }) {
           artists: hostMeta.artists,
         });
         if (!cancelled && url) {
+          void warmAudioUrl(url);
           send({
             type: "setPreview",
             trackId: state.trackId,
@@ -127,6 +130,29 @@ export default function HostParty({ code, playlist, me, profile, onExit }) {
       cancelled = true;
     };
   }, [status, state?.phase, state?.trackId, state?.track?.previewUrl, hostMeta?.name]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Hold the board until the current preview MP3 is buffered.
+  useEffect(() => {
+    const roundPhase = state?.phase;
+    if (roundPhase !== "play" && roundPhase !== "reveal") {
+      setCueReady(true);
+      return;
+    }
+    const url = state?.track?.previewUrl;
+    if (!url) {
+      setCueReady(false);
+      return;
+    }
+    let cancelled = false;
+    if (!isAudioWarm(url)) setCueReady(false);
+    (async () => {
+      await warmAudioUrl(url);
+      if (!cancelled) setCueReady(true);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [state?.phase, state?.trackId, state?.track?.previewUrl, state?.roundIdx]);
 
   useEffect(() => {
     let cancelled = false;
@@ -347,11 +373,11 @@ export default function HostParty({ code, playlist, me, profile, onExit }) {
   // After a round resolves, play the full preview until next song (or end).
   const revealPlayKey = `${state?.roundIdx ?? ""}-${phase}`;
   useEffect(() => {
-    if (phase !== "reveal" || !canPlay) return;
+    if (phase !== "reveal" || !canPlay || !cueReady) return;
     if (lastRevealPlayRef.current === revealPlayKey) return;
     lastRevealPlayRef.current = revealPlayKey;
     playSnippet(null);
-  }, [phase, revealPlayKey, canPlay]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [phase, revealPlayKey, canPlay, cueReady]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     if (!titleHint) return;
@@ -541,7 +567,10 @@ export default function HostParty({ code, playlist, me, profile, onExit }) {
             <button
               className="btn btn-big btn-play"
               disabled={!canStart}
-              onClick={() => send({ type: "start" })}
+              onClick={() => {
+                void primePlaylistPreviews(playlist?.tracks, ROUND_COUNT + 2);
+                send({ type: "start" });
+              }}
             >
               <span className="btn-play-icon" aria-hidden="true" />
               {canStart ? "start game" : "waiting for players…"}
@@ -613,6 +642,10 @@ export default function HostParty({ code, playlist, me, profile, onExit }) {
         unlockByPlayer={state.unlockByPlayer || {}}
       />
 
+      {!cueReady ? (
+        <div className="loader cue-loader">cueing the record…</div>
+      ) : (
+        <>
       <GuessMedia
         mode="vinyl"
         revealed={revealed}
@@ -795,6 +828,8 @@ export default function HostParty({ code, playlist, me, profile, onExit }) {
             </button>
           </div>
         </div>
+      )}
+        </>
       )}
 
       {error && <div className="error-banner">{error}</div>}

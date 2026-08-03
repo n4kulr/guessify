@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { resolvePreview } from "./itunes.js";
 import { attachVolumeControl } from "./audioOutput.js";
 import { pauseGuessifyNowPlaying, setGuessifyNowPlaying } from "./mediaSession.js";
+import { markAudioWarm } from "./previewWarm.js";
 
 /**
  * Plays iTunes 30s preview MP3s in a plain <audio> element.
@@ -112,6 +113,7 @@ export function usePreviewPlayer() {
       });
     }
 
+    markAudioWarm(url);
     audio.currentTime = 0;
     await outputRef.current?.resume();
     try {

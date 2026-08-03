@@ -24,6 +24,8 @@ import { loadLocalProfile, saveLocalProfile, hasSavedLocalProfile } from "./loca
 import { loadTheme, DEFAULT_THEME } from "./themes.js";
 import { attachKeyboardSounds } from "./keyboardSounds.js";
 import { attachButtonSounds } from "./buttonSounds.js";
+import { primePlaylistPreviews } from "./previewWarm.js";
+import { ROUND_COUNT } from "./multiplayer/constants.js";
 
 function joinCodeFromPath() {
   const m = window.location.pathname.match(/^\/join\/([A-Za-z0-9]+)/i);
@@ -404,6 +406,9 @@ export default function App() {
   }
 
   function onPlaylistPicked(pl) {
+    // Warm iTunes + MP3 cache while we navigate; Game still gates until its
+    // shuffled round-1 track is actually ready.
+    void primePlaylistPreviews(pl?.tracks, ROUND_COUNT + 4);
     setPlaylist(pl);
     setPicking(false);
     if (mode === "multi") {

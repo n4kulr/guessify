@@ -292,6 +292,10 @@ button { font-family: var(--font); }
 }
 .footer-heart { color: var(--main-color); margin: 0 2px; }
 .loader { color: var(--sub-color); font-size: 15px; }
+.cue-loader {
+  margin: 48px auto 24px;
+  text-align: center;
+}
 
 /* ---------------- buttons ---------------- */
 .btn {
@@ -1654,6 +1658,10 @@ button { font-family: var(--font); }
   font-weight: 500;
   text-transform: none;
 }
+.chart-search-input.chart-search-input--error {
+  color: var(--error-color);
+  border-color: color-mix(in srgb, var(--error-color) 55%, transparent);
+}
 .chart-search-input::placeholder {
   color: transparent;
 }
@@ -2697,7 +2705,8 @@ button { font-family: var(--font); }
 .game { width: min(560px, 100%); background: var(--sub-alt-color); border-radius: 18px; padding: 26px; }
 .game.is-shaking,
 .btn-skip-wrap.is-shaking,
-.guess-title-field.is-shaking {
+.guess-title-field.is-shaking,
+.chart-search-field.is-shaking {
   animation: game-shake 0.4s ease;
 }
 @keyframes game-shake {

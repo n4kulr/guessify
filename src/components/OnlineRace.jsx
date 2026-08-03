@@ -12,8 +12,13 @@ import GameOverStats from "./GameOverStats.jsx";
 import PlayerRail from "../multiplayer/PlayerRail.jsx";
 import GuessPopups from "../multiplayer/GuessPopups.jsx";
 import { isNoPreviewError } from "../shareScore.js";
-import { resolvePreview } from "../itunes.js";
 import { nextSpareTrack } from "../deadPreview.js";
+import {
+  isAudioWarm,
+  warmAudioUrl,
+  warmTrackPreview,
+  patchRoundsPreview,
+} from "../previewWarm.js";
 import { titleHintMask, HINT_AFTER_SKIPS } from "../titleHint.js";
 import { computeGameStats } from "../gameStats.js";
 import { recordPlaylistScore } from "../playlistBests.js";
@@ -272,6 +277,7 @@ export default function OnlineRace({ profile, onExit }) {
   const [roundResults, setRoundResults] = useState([]);
   const [playlistBests, setPlaylistBests] = useState(null);
   const [chartKey, setChartKey] = useState(null);
+  const [cueReady, setCueReady] = useState(false);
 
   const { errorMsg, setErrorMsg, play, pause } = usePreviewPlayer();
   const rootRef = useRef(null);
@@ -284,6 +290,8 @@ export default function OnlineRace({ profile, onExit }) {
   const advancingRef = useRef(false);
   const roundStartedAt = useRef(Date.now());
   const loggedRoundRef = useRef(-1);
+  const roundsRef = useRef(rounds);
+  roundsRef.current = rounds;
 
   phaseRef.current = phase;
   artistClaimedRef.current = artistClaimedBy;
@@ -355,7 +363,7 @@ export default function OnlineRace({ profile, onExit }) {
           return false;
         }
         used.add(spare.id);
-        const url = await resolvePreview(spare);
+        const url = await warmTrackPreview(spare);
         if (!url) continue;
         const patched = { ...spare, previewUrl: url };
         setRounds((rs) => {
@@ -408,15 +416,35 @@ export default function OnlineRace({ profile, onExit }) {
     playSnippet(unlocked);
   }
 
-  // Swap dead chart tracks before anyone has to hit play.
+  // Cue current + keep one ahead (same as solo).
   useEffect(() => {
     if (phase !== "play" || !track?.id) return;
     let cancelled = false;
     (async () => {
-      const url = await resolvePreview(track);
-      if (cancelled || url) return;
-      const ok = await replaceDeadTrack(track);
-      if (!cancelled && !ok) endRoundLose();
+      const hot = track.previewUrl && isAudioWarm(track.previewUrl);
+      if (!hot) setCueReady(false);
+
+      let url = track.previewUrl || null;
+      if (url) await warmAudioUrl(url);
+      else url = await warmTrackPreview(track);
+      if (cancelled) return;
+
+      if (!url) {
+        const ok = await replaceDeadTrack(track);
+        if (!cancelled && !ok) endRoundLose();
+        return;
+      }
+
+      setRounds((rs) => patchRoundsPreview(rs, roundIdx, url));
+      if (!cancelled) setCueReady(true);
+
+      const nextIdx = roundIdx + 1;
+      const next = roundsRef.current[nextIdx];
+      if (!next || cancelled) return;
+      const nurl = await warmTrackPreview(next);
+      if (!cancelled && nurl) {
+        setRounds((rs) => patchRoundsPreview(rs, nextIdx, nurl));
+      }
     })();
     return () => {
       cancelled = true;
@@ -442,11 +470,23 @@ export default function OnlineRace({ profile, onExit }) {
         if (tracks.length < 2) throw new Error("short");
         poolRef.current = all;
         usedIdsRef.current = new Set(tracks.map((t) => t.id).filter(Boolean));
+
+        // Prefetch while the lobby fake-fills so round 1 isn’t cold.
+        setMatchStatus("cueing tracks…");
+        const url0 = await warmTrackPreview(tracks[0]);
+        if (url0) tracks[0] = { ...tracks[0], previewUrl: url0 };
+        if (tracks[1]) {
+          const url1 = await warmTrackPreview(tracks[1]);
+          if (url1) tracks[1] = { ...tracks[1], previewUrl: url1 };
+        }
+        if (cancelled) return;
+
         setRounds(tracks);
         setPlaylistName(data.name || "today’s charts");
         setChartKey(`online:${tag}`);
 
         // Pause before anyone else shows up — feels less instant.
+        setMatchStatus("finding a room…");
         await new Promise((res) => setTimeout(res, 900 + Math.random() * 700));
         if (cancelled) return;
 
@@ -464,6 +504,7 @@ export default function OnlineRace({ profile, onExit }) {
         if (cancelled) return;
         roundStartedAt.current = Date.now();
         loggedRoundRef.current = -1;
+        setCueReady(Boolean(tracks[0]?.previewUrl && isAudioWarm(tracks[0].previewUrl)));
         setPhase("play");
       } catch {
         if (!cancelled) {
@@ -482,10 +523,10 @@ export default function OnlineRace({ profile, onExit }) {
 
   // Auto full preview on reveal
   useEffect(() => {
-    if (phase !== "reveal" || !track) return;
+    if (phase !== "reveal" || !track || !cueReady) return;
     playSnippet(null);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [phase, roundIdx]);
+  }, [phase, roundIdx, cueReady]);
 
   function bumpScore(playerId, pts) {
     if (!pts) return;
@@ -1064,6 +1105,10 @@ export default function OnlineRace({ profile, onExit }) {
           unlockByPlayer={unlockByPlayer}
         />
 
+        {phase === "play" && !cueReady ? (
+          <div className="loader cue-loader">cueing the record…</div>
+        ) : (
+          <>
         <GuessMedia
           mode="vinyl"
           revealed={revealed}
@@ -1247,6 +1292,8 @@ export default function OnlineRace({ profile, onExit }) {
               </button>
             </div>
           </div>
+        )}
+          </>
         )}
       </div>
 

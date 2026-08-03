@@ -699,18 +699,38 @@ export class Room extends Server {
     if (t.previewUrl) {
       this.state.previewUrl = t.previewUrl;
       this.state.previewArt = t.previewArt || null;
-      return;
+    } else {
+      try {
+        const pick = await resolveItunesPreview(t.name, (t.artists || [])[0] || "");
+        if (pick) {
+          this.state.previewUrl = pick.previewUrl;
+          this.state.previewArt = pick.artworkUrl;
+          t.previewUrl = pick.previewUrl;
+          t.previewArt = pick.artworkUrl;
+        }
+      } catch (e) {
+        console.error("preview resolve failed", e);
+      }
     }
+    // Warm the next round's URL on the track object so advance is instant.
+    void this.prefetchNextPreview();
+  }
+
+  async prefetchNextPreview() {
+    if (!this.state) return;
+    const next = this.state.tracks[this.state.roundIdx + 1];
+    if (!next?.name || next.previewUrl) return;
     try {
-      const pick = await resolveItunesPreview(t.name, (t.artists || [])[0] || "");
+      const pick = await resolveItunesPreview(
+        next.name,
+        (next.artists || [])[0] || ""
+      );
       if (pick) {
-        this.state.previewUrl = pick.previewUrl;
-        this.state.previewArt = pick.artworkUrl;
-        t.previewUrl = pick.previewUrl;
-        t.previewArt = pick.artworkUrl;
+        next.previewUrl = pick.previewUrl;
+        next.previewArt = pick.artworkUrl;
       }
     } catch (e) {
-      console.error("preview resolve failed", e);
+      console.error("preview prefetch failed", e);
     }
   }
 
