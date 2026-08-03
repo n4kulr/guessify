@@ -254,12 +254,11 @@ export default function PlaylistPicker({ onPick, needsLogin = false }) {
     }
   }
 
-  /** Wipe query, put the error in the field, shake. */
-  function failChartSearch(message) {
-    const msg = message || "Couldn't load that chart. Try another pick.";
+  /** Wipe query, put a short error in the field, shake. */
+  function failChartSearch() {
     setLoadingId(null);
     setChartFieldError(true);
-    setChartQuery(msg);
+    setChartQuery("try another :(");
     requestAnimationFrame(() => shakeEl(chartFieldRef.current));
   }
 
@@ -278,18 +277,16 @@ export default function PlaylistPicker({ onPick, needsLogin = false }) {
       );
       const d = await res.json();
       if (!res.ok) {
-        throw new Error(d.error || "Couldn't find a chart for that. Try another pick.");
+        throw new Error(d.error || "chart miss");
       }
       if (d.playableCount < 2) {
-        failChartSearch(
-          `“${d.name || clean}” needs at least 2 tracks. Try another pick.`
-        );
+        failChartSearch();
         return;
       }
       setChartPreview(d);
       setLoadingId(null);
-    } catch (err) {
-      failChartSearch(err.message || "Couldn't load that chart. Try another pick.");
+    } catch {
+      failChartSearch();
     }
   }
 
