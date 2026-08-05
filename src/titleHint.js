@@ -60,4 +60,4 @@ export function titleHintMask(title) {
 }
 
 /** Skips before the hint control appears (0-based step index). */
-export const HINT_AFTER_SKIPS = 4;
+export const HINT_AFTER_SKIPS = 3;

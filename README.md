@@ -63,7 +63,7 @@ When the round ends you hear the full preview, see the cover, and move on (solo 
 
 ### Skip & hint
 - **Skip** → more audio; red **−40** pops above the skip button only (cuts this round’s title).
-- **Hint** (after 4 skips, at the 16s step) → masked placeholder like `d▢▢s▢e▢` (word gaps use ` · `); the hint label swaps to a red **−100** flash and stays gone for the round; title field shakes.
+- **Hint** (after 3 skips, at the 11s step) → masked placeholder like `d▢▢s▢e▢` (word gaps use ` · `); the hint label swaps to a red **−100** flash and stays gone for the round; title field shakes.
 - Neither digs into points you’ve already banked.
 
 ### Vinyl & audio
@@ -279,7 +279,7 @@ Then use the **debug** FAB for screen-specific shortcuts.
 | **skip** | Unlock more preview audio (−40 title payout) |
 | **guess** / Enter | Submit title and/or artist |
 | **transport** | Play / pause the snippet |
-| **hint** | After 4 skips — masked title (−100 once) |
+| **hint** | After 3 skips — masked title (−100 once) |
 | **next song** / vote | Advance after reveal |
 | **play again** | Rematch same playlist (solo) |
 | **pick another playlist** | Back to picker |
