@@ -795,6 +795,27 @@ button.footer-privacy:hover {
   100% { opacity: 0; }
 }
 
+/* Curved "spin me!" on the outside of the in-game vinyl (top-left). */
+.spin-nudge {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 5;
+  overflow: visible;
+  opacity: 0;
+  animation: drag-nudge-presence 12s ease-in-out infinite;
+}
+.spin-nudge-text {
+  fill: var(--main-color);
+  font-family: inherit;
+  font-size: 5.4px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-shadow: 0 1px 0 color-mix(in srgb, var(--bg-color) 75%, transparent);
+}
+
 .steps { list-style: none; padding: 0; margin: 0 0 26px; display: flex; flex-direction: column; gap: 10px; font-size: 15px; }
 .steps li { display: flex; align-items: center; gap: 12px; color: var(--sub-color); }
 .steps b {
@@ -2905,7 +2926,7 @@ button.footer-privacy:hover {
 .np-playlist { color: var(--text-color); font-weight: 500; }
 
 .turntable { position: relative; width: 200px; height: 200px; margin: 0 auto; }
-.turntable--game { margin: 18px auto 28px; }
+.turntable--game { margin: 18px auto 28px; overflow: visible; }
 
 .media-stage-vote {
   display: flex;
@@ -4038,23 +4059,37 @@ button.footer-privacy:hover {
   min-width: 3.5ch;
 }
 .mp-player-score-wrap--timed {
-  min-width: 16ch;
+  min-width: 7ch;
 }
 .mp-player-time {
   font-size: 13px;
   font-weight: 800;
-  color: var(--main-color);
   font-variant-numeric: tabular-nums;
   letter-spacing: 0.01em;
   white-space: nowrap;
-  padding: 2px 6px;
+  padding: 3px 8px;
   border-radius: 6px;
-  background: color-mix(in srgb, var(--main-color) 16%, var(--bg-color));
+  color: #1a1a1a;
+  background: color-mix(in srgb, var(--text-color) 18%, var(--bg-color));
 }
-.mp-player-time--best {
-  color: var(--bg-color);
-  background: var(--main-color);
-  font-weight: 800;
+.mp-player-time--1 {
+  background: #f0c14a;
+  box-shadow: 0 0 0 1px color-mix(in srgb, #c9a227 70%, transparent);
+  color: #1a1a1a;
+}
+.mp-player-time--2 {
+  background: #c0c6ce;
+  box-shadow: 0 0 0 1px color-mix(in srgb, #8e959e 70%, transparent);
+  color: #1a1a1a;
+}
+.mp-player-time--3 {
+  background: #c47a4a;
+  box-shadow: 0 0 0 1px color-mix(in srgb, #8f5530 70%, transparent);
+  color: #1f1410;
+}
+.mp-player-time--artist {
+  background: color-mix(in srgb, var(--main-color) 22%, var(--bg-color));
+  color: var(--main-color);
 }
 .mp-player-score {
   font-size: 14px;

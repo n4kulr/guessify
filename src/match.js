@@ -13,6 +13,15 @@ export function normalize(str = "") {
     .replace(/^(the|a|an)\s+/, "");
 }
 
+/** Words sorted — so "rex county orange" ≈ "rex orange county". */
+export function tokenSortKey(str = "") {
+  return normalize(str)
+    .split(/\s+/)
+    .filter(Boolean)
+    .sort()
+    .join(" ");
+}
+
 // Levenshtein distance (small strings, fine to do inline).
 function editDistance(a, b) {
   const m = a.length;
@@ -44,14 +53,32 @@ export function titleParts(answer = "") {
     .filter(Boolean);
 }
 
-/** 0–1 similarity after normalize (1 = identical). */
-export function similarity(guess, answer) {
-  const g = normalize(guess);
-  const t = normalize(answer);
+function pairSimilarity(g, t) {
   if (!g || !t) return 0;
   if (g === t) return 1;
   const d = editDistance(g, t);
   return 1 - d / Math.max(g.length, t.length, 1);
+}
+
+/** True when edit distance is a tiny absolute miss on a long enough string. */
+function closeEnoughEdit(g, t) {
+  if (!g || !t) return false;
+  const d = editDistance(g, t);
+  const len = Math.min(g.length, t.length);
+  // ceaser→caesar is d=3; avoid short collisions (drake/brake).
+  if (d <= 3 && len >= 12) return true;
+  if (d <= 2 && len >= 10) return true;
+  if (d <= 1 && len >= 6) return true;
+  return false;
+}
+
+/** 0–1 similarity after normalize (1 = identical). Uses word-order-insensitive key too. */
+export function similarity(guess, answer) {
+  const g = normalize(guess);
+  const t = normalize(answer);
+  if (!g || !t) return 0;
+  const sorted = pairSimilarity(tokenSortKey(guess), tokenSortKey(answer));
+  return Math.max(pairSimilarity(g, t), sorted);
 }
 
 function bestSimilarity(guess, answer) {
@@ -64,11 +91,29 @@ function bestSimilarity(guess, answer) {
   return best;
 }
 
+function bestCloseEdit(guess, answer) {
+  const g = normalize(guess);
+  const t = normalize(answer);
+  if (closeEnoughEdit(g, t)) return true;
+  if (closeEnoughEdit(tokenSortKey(guess), tokenSortKey(answer))) return true;
+  for (const part of titleParts(answer)) {
+    if (closeEnoughEdit(g, normalize(part))) return true;
+    if (closeEnoughEdit(tokenSortKey(guess), tokenSortKey(part))) return true;
+  }
+  return false;
+}
+
 /** Exact/≥80% on the full title, or on either side of a slash compound. */
 export function isCorrect(guess, answer) {
   const g = normalize(guess);
-  if (!g || !normalize(answer)) return false;
-  return bestSimilarity(guess, answer) >= CORRECT_SIM;
+  const t = normalize(answer);
+  if (!g || !t) return false;
+  const sim = bestSimilarity(guess, answer);
+  // Short names need a higher bar — "brake"/"drake" is exactly 0.8.
+  const short = Math.min(g.length, t.length) < 8;
+  if (sim >= CORRECT_SIM && (!short || sim >= 0.9)) return true;
+  // Small absolute typos on longer names (daniel ceaser → daniel caesar).
+  return bestCloseEdit(guess, answer);
 }
 
 /**

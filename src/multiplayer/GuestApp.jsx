@@ -511,6 +511,7 @@ export default function GuestApp({ code }) {
           unlockByPlayer={state.unlockByPlayer || {}}
           solveTimes={revealed ? state.solveTimes : null}
           artistClaimedBy={revealed ? state.artistClaimedBy : null}
+          timed={timed}
         />
 
         {!cueReady ? (

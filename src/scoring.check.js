@@ -22,4 +22,7 @@ assert.equal(titlePointsForGuess(20, true), 0);
 assert.equal(timedTitlePoints(500, 0), 500);
 assert.equal(timedTitlePoints(500, 1), 500 - TIMED_PLACE_STEP);
 assert.equal(timedTitlePoints(100, 2), 0);
+// Timed payouts: faster place always beats a slower one when both use TITLE_POINTS.
+assert.equal(timedTitlePoints(TITLE_POINTS, 0) > timedTitlePoints(TITLE_POINTS, 1), true);
+assert.equal(timedTitlePoints(TITLE_POINTS, 1), 420);
 console.log("scoring.check: ok");

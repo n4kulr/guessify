@@ -47,4 +47,18 @@ assert.equal(isAlmost("house of baloons // glass animasl", hob), true);
 assert.equal(matchesAnyArtist("weeknd", ["The Weeknd", "Future"]), true);
 assert.equal(isAlmostAnyArtist("weeknd", ["The Weeknd"]), false);
 
+// Word-order shuffle (artists / multi-word names)
+assert.equal(isCorrect("rex county orange", "Rex Orange County"), true);
+assert.equal(isCorrect("orange county rex", "Rex Orange County"), true);
+assert.equal(matchesAnyArtist("rex county orange", ["Rex Orange County"]), true);
+
+// Common near-miss spelling on longer names (ceaser → caesar)
+assert.equal(isCorrect("daniel ceaser", "Daniel Caesar"), true);
+assert.equal(isCorrect("Daniel Ceaser", "Daniel Caesar"), true);
+assert.equal(matchesAnyArtist("daniel ceaser", ["Daniel Caesar"]), true);
+
+// Still reject short near-misses / garbage
+assert.equal(isCorrect("brake", "Drake"), false);
+assert.equal(isCorrect("zzzzzzzzzz", "Daniel Caesar"), false);
+
 console.log("match.check: ok");

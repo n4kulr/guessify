@@ -54,9 +54,8 @@ export const TIMED_ROUND_MS = 45_000;
 export const TIMED_PLACE_STEP = 80;
 
 /**
- * Timed scoreboard: place 0 (fastest) keeps full titlePts; each later place −80.
- * @param {number} titlePts
- * @param {number} placeIndex 0-based rank by solve speed
+ * Timed scoreboard: place 0 (fastest) gets full titlePts; each later place −80.
+ * Timed rounds pass TITLE_POINTS here so speed — not skip count — decides rank pay.
  */
 export function timedTitlePoints(titlePts, placeIndex = 0) {
   const place = Math.max(0, Math.floor(Number(placeIndex) || 0));

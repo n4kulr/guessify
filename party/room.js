@@ -14,6 +14,7 @@ import {
   randomAvatar,
   titlePointsForGuess,
   timedTitlePoints,
+  TITLE_POINTS,
   ARTIST_BONUS,
   nextVotesNeeded,
   activePlayerCount,
@@ -667,7 +668,9 @@ export class Room extends Server {
     ranked.forEach((row, place) => {
       const player = this.state.players.find((p) => p.id === row.playerId);
       if (!player) return;
-      const titlePts = timedTitlePoints(row.baseTitlePts, place);
+      // Timed title payout is by speed only — skips still unlock audio, but
+      // don't let a slow no-skip beat a fast skipper on points.
+      const titlePts = timedTitlePoints(TITLE_POINTS, place);
       player.score += titlePts;
       if (place === 0) player.wins += 1;
       places.push({

@@ -1,5 +1,6 @@
 import ScrubbableVinyl from "./ScrubbableVinyl.jsx";
 import CassetteShell from "./CassetteShell.jsx";
+import SpinMeNudge from "./SpinMeNudge.jsx";
 
 /**
  * In-round media stage: vinyl turntable (default) or shared cassette shell.
@@ -79,6 +80,7 @@ export default function GuessMedia({
         )}
       </ScrubbableVinyl>
       <div className={`tonearm ${spinning ? "tonearm--on" : ""}`} />
+      {!revealed && interactive && <SpinMeNudge />}
     </div>
   );
 }

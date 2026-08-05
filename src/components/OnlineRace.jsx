@@ -31,6 +31,7 @@ import {
   ROUND_COUNT,
   titlePointsForGuess,
   timedTitlePoints,
+  TITLE_POINTS,
   TIMED_ROUND_MS,
   ARTIST_BONUS,
   SKIP_PENALTY,
@@ -757,7 +758,8 @@ export default function OnlineRace({ profile, onExit, raceMode: raceModeProp }) 
     ranked.forEach((row, place) => {
       const player = (playersRef.current || []).find((p) => p.id === row.playerId);
       if (!player) return;
-      const titlePts = timedTitlePoints(row.baseTitlePts, place);
+      // Timed: speed rank only (skips unlock audio, don't cut this payout).
+      const titlePts = timedTitlePoints(TITLE_POINTS, place);
       bumpScore(player.id, titlePts);
       if (place === 0) bumpWins(player.id);
       places.push({
@@ -1245,6 +1247,7 @@ export default function OnlineRace({ profile, onExit, raceMode: raceModeProp }) 
           unlockByPlayer={unlockByPlayer}
           solveTimes={revealed ? solveTimes : null}
           artistClaimedBy={revealed ? artistClaimedBy : null}
+          timed={timed}
         />
 
         {phase === "play" && !cueReady ? (

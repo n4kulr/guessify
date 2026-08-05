@@ -15,9 +15,8 @@ function CrownIcon() {
 }
 
 /**
- * Ranked player chips. When `unlockByPlayer` is set, a light full-chip fill
- * (+ step ticks) shows how much of the track that player has unlocked via skip.
- * On reveal, `solveTimes` + `artistClaimedBy` paint e.g. [2.4s! + 100 (artist)].
+ * Ranked player chips. On reveal, `solveTimes` shows speed badges (1.5s! / 2.3s)
+ * with gold/silver/bronze by solve order. Timed mode hides the artist bonus chip.
  */
 export default function PlayerRail({
   players = [],
@@ -26,6 +25,7 @@ export default function PlayerRail({
   unlockByPlayer = null,
   solveTimes = null,
   artistClaimedBy = null,
+  timed = false,
 }) {
   const prevScores = useRef({});
   const [flashes, setFlashes] = useState({}); // id -> { pts, key }
@@ -61,7 +61,6 @@ export default function PlayerRail({
     return [...players].sort((a, b) => {
       const ds = (b.score ?? 0) - (a.score ?? 0);
       if (ds !== 0) return ds;
-      // Stable-ish tie-break: host first, then name
       if (a.isHost !== b.isHost) return a.isHost ? -1 : 1;
       return String(a.name || "").localeCompare(String(b.name || ""));
     });
@@ -77,18 +76,17 @@ export default function PlayerRail({
     return map;
   }, [ranked]);
 
-  const fastestId = useMemo(() => {
-    if (!solveTimes || typeof solveTimes !== "object") return null;
-    let bestId = null;
-    let bestMs = Infinity;
-    for (const [id, ms] of Object.entries(solveTimes)) {
-      if (ms == null || !Number.isFinite(ms) || ms < 0) continue;
-      if (ms < bestMs) {
-        bestMs = ms;
-        bestId = id;
-      }
-    }
-    return bestId;
+  /** 1 = fastest title this round, 2 = next, … */
+  const speedPlaceById = useMemo(() => {
+    if (!solveTimes || typeof solveTimes !== "object") return {};
+    const rows = Object.entries(solveTimes)
+      .filter(([, ms]) => ms != null && Number.isFinite(ms) && ms >= 0)
+      .sort((a, b) => a[1] - b[1]);
+    const map = {};
+    rows.forEach(([id], i) => {
+      map[id] = i + 1;
+    });
+    return map;
   }, [solveTimes]);
 
   if (!players.length) {
@@ -108,17 +106,21 @@ export default function PlayerRail({
         const accent = p.avatar?.color || p.color || "var(--main-color)";
         const solveMs = solveTimes?.[p.id];
         const showTime = solveMs != null && Number.isFinite(solveMs);
-        const gotArtist = artistClaimedBy != null && p.id === artistClaimedBy;
-        const isFastest = showTime && p.id === fastestId;
+        const speedPlace = speedPlaceById[p.id] || 0;
+        const isFastest = speedPlace === 1;
+        // Timed: time only. Classic: time, and artist bonus if they claimed it.
+        const gotArtist =
+          !timed && artistClaimedBy != null && p.id === artistClaimedBy;
         const showRoundBadge = showTime || gotArtist;
+        const timeMedal = speedPlace >= 1 && speedPlace <= 3 ? speedPlace : 0;
         let roundBadge = null;
         if (showRoundBadge) {
           const bits = [];
           if (showTime) {
             bits.push(`${formatSolveSec(solveMs)}${isFastest ? "!" : ""}`);
           }
-          if (gotArtist) bits.push(`+ ${ARTIST_BONUS} (artist)`);
-          roundBadge = `[${bits.join(" ")}]`;
+          if (gotArtist) bits.push(`+${ARTIST_BONUS} artist`);
+          roundBadge = bits.join(" ");
         }
         return (
           <div
@@ -198,18 +200,18 @@ export default function PlayerRail({
               {showRoundBadge && (
                 <span
                   className={`mp-player-time${
-                    isFastest || (gotArtist && !showTime)
-                      ? " mp-player-time--best"
-                      : ""
+                    timeMedal
+                      ? ` mp-player-time--${timeMedal}`
+                      : gotArtist && !showTime
+                        ? " mp-player-time--artist"
+                        : ""
                   }`}
                   title={
-                    gotArtist && showTime
-                      ? "title time · artist bonus"
-                      : gotArtist
-                        ? "artist bonus"
-                        : isFastest
-                          ? "fastest title this round"
-                          : "title solve time"
+                    isFastest
+                      ? "fastest title this round"
+                      : showTime
+                        ? "title solve time"
+                        : "artist bonus"
                   }
                 >
                   {roundBadge}
