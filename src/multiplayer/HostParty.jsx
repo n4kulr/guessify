@@ -17,6 +17,7 @@ import PlayerRail from "./PlayerRail.jsx";
 import ProfileEditor from "./ProfileEditor.jsx";
 import GuessPopups from "./GuessPopups.jsx";
 import { TimedCountdown, TimedPlacesList } from "./TimedHud.jsx";
+import { ClassicModeIcon, TimedModeIcon } from "./RaceModeIcons.jsx";
 import { loadLocalProfile, saveLocalProfile } from "../localProfile.js";
 import { applyThemeForAccent, accentMatchingTheme } from "../themes.js";
 import { isNoPreviewError } from "../shareScore.js";
@@ -60,6 +61,9 @@ export default function HostParty({
   const [cueReady, setCueReady] = useState(false);
   /** Dev-only fake wrap: bypasses the Worker and paints end screen locally. */
   const [fastEnd, setFastEnd] = useState(null);
+  const [lobbyRaceMode, setLobbyRaceMode] = useState(() =>
+    normalizeRaceMode(raceMode)
+  );
   const [hostName, setHostName] = useState(() => {
     const fromProfile = profile?.name?.trim();
     if (fromProfile) return fromProfile.slice(0, 16);
@@ -206,7 +210,7 @@ export default function HostParty({
       hostName,
       avatar: hostAvatar,
       playlistName: playlist.name,
-      raceMode: normalizeRaceMode(raceMode),
+      raceMode: normalizeRaceMode(lobbyRaceMode),
       tracks: playlist.tracks.map((t) => ({
         id: t.id,
         name: t.name,
@@ -222,6 +226,10 @@ export default function HostParty({
     setHostName(mePlayer.name || hostName);
     if (mePlayer.avatar) setHostAvatar(normalizeAvatar(mePlayer.avatar));
   }, [mePlayer?.id, mePlayer?.name, mePlayer?.avatar?.peep, mePlayer?.avatar?.color]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  useEffect(() => {
+    if (state?.raceMode) setLobbyRaceMode(normalizeRaceMode(state.raceMode));
+  }, [state?.raceMode]);
 
   useEffect(() => {
     if (!state?.revealedArtist) setArtistGuess("");
@@ -532,10 +540,11 @@ export default function HostParty({
   if (!state || phase === "lobby" || phase === "empty") {
     const players = state?.players || [];
     const canStart = players.some((p) => p.connected);
-    const lobbyMode = normalizeRaceMode(state?.raceMode || raceMode);
+    const lobbyMode = lobbyRaceMode;
     function pickLobbyMode(next) {
       const mode = normalizeRaceMode(next);
       if (mode === lobbyMode) return;
+      setLobbyRaceMode(mode);
       send({ type: "raceMode", raceMode: mode });
     }
     return (
@@ -581,18 +590,30 @@ export default function HostParty({
               <button
                 type="button"
                 className={`lobby-race-mode-btn${lobbyMode === "classic" ? " is-active" : ""}`}
+                aria-pressed={lobbyMode === "classic"}
                 onClick={() => pickLobbyMode("classic")}
               >
-                <span className="lobby-race-mode-title">Classic</span>
-                <span className="lobby-race-mode-blurb">first to nail it</span>
+                <ClassicModeIcon size={22} />
+                <span className="lobby-race-mode-copy">
+                  <span className="lobby-race-mode-title">Classic</span>
+                  <span className="lobby-race-mode-blurb">
+                    first to guess wins the round
+                  </span>
+                </span>
               </button>
               <button
                 type="button"
                 className={`lobby-race-mode-btn${lobbyMode === "timed" ? " is-active" : ""}`}
+                aria-pressed={lobbyMode === "timed"}
                 onClick={() => pickLobbyMode("timed")}
               >
-                <span className="lobby-race-mode-title">Timed</span>
-                <span className="lobby-race-mode-blurb">45s · score by speed</span>
+                <TimedModeIcon size={22} />
+                <span className="lobby-race-mode-copy">
+                  <span className="lobby-race-mode-title">Timed</span>
+                  <span className="lobby-race-mode-blurb">
+                    45 seconds · guess times revealed at end of round · faster → more points
+                  </span>
+                </span>
               </button>
             </div>
             <h3 className="mp-side-title">players</h3>
@@ -623,7 +644,7 @@ export default function HostParty({
   }
 
   function submitGuess() {
-    // Title locks after a correct timed solve; artist bonus stays open.
+    // Title locks after a correct timed solve; artist bonus still scores live.
     const title = lockedIn ? "" : titleGuess.trim();
     const artist = artistGuess.trim();
     if (!title && !artist) return;
@@ -682,6 +703,8 @@ export default function HostParty({
         players={state.players}
         pulseId={lastGuesser?.playerId}
         unlockByPlayer={state.unlockByPlayer || {}}
+        solveTimes={revealed ? state.solveTimes : null}
+        artistClaimedBy={revealed ? state.artistClaimedBy : null}
       />
 
       {!cueReady ? (

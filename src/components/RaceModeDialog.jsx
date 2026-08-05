@@ -1,7 +1,8 @@
 import { useEffect, useId } from "react";
+import { ClassicModeIcon, TimedModeIcon } from "../multiplayer/RaceModeIcons.jsx";
 
 /**
- * Pick classic (first-to-nail) vs timed (45s scoreboard) before online customize.
+ * Pick classic vs timed before online customize.
  */
 export default function RaceModeDialog({ onPick, onCancel }) {
   const titleId = useId();
@@ -41,9 +42,12 @@ export default function RaceModeDialog({ onPick, onCancel }) {
             className="btn btn-big btn-play race-mode-choice"
             onClick={() => onPick?.("classic")}
           >
-            <span className="race-mode-choice-title">Classic</span>
-            <span className="race-mode-choice-blurb">
-              first to nail the title wins the round
+            <ClassicModeIcon size={26} />
+            <span className="race-mode-choice-copy">
+              <span className="race-mode-choice-title">Classic</span>
+              <span className="race-mode-choice-blurb">
+                first to guess wins the round
+              </span>
             </span>
           </button>
           <button
@@ -51,9 +55,12 @@ export default function RaceModeDialog({ onPick, onCancel }) {
             className="btn btn-big btn-multi race-mode-choice"
             onClick={() => onPick?.("timed")}
           >
-            <span className="race-mode-choice-title">Timed</span>
-            <span className="race-mode-choice-blurb">
-              45 seconds · everyone who gets it scores by speed
+            <TimedModeIcon size={26} />
+            <span className="race-mode-choice-copy">
+              <span className="race-mode-choice-title">Timed</span>
+              <span className="race-mode-choice-blurb">
+                45 seconds · guess times revealed at end of round · faster → more points
+              </span>
             </span>
           </button>
         </div>

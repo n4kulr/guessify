@@ -486,7 +486,7 @@ export default function GuestApp({ code }) {
   );
 
   function submitGuess() {
-    // Title locks after a correct timed solve; artist bonus stays open.
+    // Title locks after a correct timed solve; artist bonus still scores live.
     const title = lockedIn ? "" : titleGuess.trim();
     const artist = artistGuess.trim();
     if (!title && !artist) return;
@@ -509,6 +509,8 @@ export default function GuestApp({ code }) {
           players={state.players}
           pulseId={state.guesses?.[state.guesses.length - 1]?.playerId}
           unlockByPlayer={state.unlockByPlayer || {}}
+          solveTimes={revealed ? state.solveTimes : null}
+          artistClaimedBy={revealed ? state.artistClaimedBy : null}
         />
 
         {!cueReady ? (

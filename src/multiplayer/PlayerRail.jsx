@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import PlayerAvatar from "./PlayerAvatar.jsx";
-import { STEPS, TOTAL, unlockSecondsFor } from "./constants.js";
+import { ARTIST_BONUS, STEPS, TOTAL, unlockSecondsFor } from "./constants.js";
+import { formatSolveSec } from "../gameStats.js";
 
 function CrownIcon() {
   return (
@@ -16,12 +17,15 @@ function CrownIcon() {
 /**
  * Ranked player chips. When `unlockByPlayer` is set, a light full-chip fill
  * (+ step ticks) shows how much of the track that player has unlocked via skip.
+ * On reveal, `solveTimes` + `artistClaimedBy` paint e.g. [2.4s! + 100 (artist)].
  */
 export default function PlayerRail({
   players = [],
   winnerId,
   pulseId,
   unlockByPlayer = null,
+  solveTimes = null,
+  artistClaimedBy = null,
 }) {
   const prevScores = useRef({});
   const [flashes, setFlashes] = useState({}); // id -> { pts, key }
@@ -73,6 +77,20 @@ export default function PlayerRail({
     return map;
   }, [ranked]);
 
+  const fastestId = useMemo(() => {
+    if (!solveTimes || typeof solveTimes !== "object") return null;
+    let bestId = null;
+    let bestMs = Infinity;
+    for (const [id, ms] of Object.entries(solveTimes)) {
+      if (ms == null || !Number.isFinite(ms) || ms < 0) continue;
+      if (ms < bestMs) {
+        bestMs = ms;
+        bestId = id;
+      }
+    }
+    return bestId;
+  }, [solveTimes]);
+
   if (!players.length) {
     return <p className="mp-empty">waiting for players to scan in…</p>;
   }
@@ -88,6 +106,20 @@ export default function PlayerRail({
           : null;
         const pct = secs != null ? (secs / TOTAL) * 100 : 0;
         const accent = p.avatar?.color || p.color || "var(--main-color)";
+        const solveMs = solveTimes?.[p.id];
+        const showTime = solveMs != null && Number.isFinite(solveMs);
+        const gotArtist = artistClaimedBy != null && p.id === artistClaimedBy;
+        const isFastest = showTime && p.id === fastestId;
+        const showRoundBadge = showTime || gotArtist;
+        let roundBadge = null;
+        if (showRoundBadge) {
+          const bits = [];
+          if (showTime) {
+            bits.push(`${formatSolveSec(solveMs)}${isFastest ? "!" : ""}`);
+          }
+          if (gotArtist) bits.push(`+ ${ARTIST_BONUS} (artist)`);
+          roundBadge = `[${bits.join(" ")}]`;
+        }
         return (
           <div
             key={p.id}
@@ -148,7 +180,11 @@ export default function PlayerRail({
                 )}
               </span>
             </div>
-            <span className="mp-player-score-wrap">
+            <span
+              className={`mp-player-score-wrap${
+                showRoundBadge ? " mp-player-score-wrap--timed" : ""
+              }`}
+            >
               {flash && (
                 <span
                   key={flash.key}
@@ -157,6 +193,26 @@ export default function PlayerRail({
                   }`}
                 >
                   {flash.pts > 0 ? `+${flash.pts}` : `−${Math.abs(flash.pts)}`}
+                </span>
+              )}
+              {showRoundBadge && (
+                <span
+                  className={`mp-player-time${
+                    isFastest || (gotArtist && !showTime)
+                      ? " mp-player-time--best"
+                      : ""
+                  }`}
+                  title={
+                    gotArtist && showTime
+                      ? "title time · artist bonus"
+                      : gotArtist
+                        ? "artist bonus"
+                        : isFastest
+                          ? "fastest title this round"
+                          : "title solve time"
+                  }
+                >
+                  {roundBadge}
                 </span>
               )}
               <span className="mp-player-score">{p.score ?? 0}</span>

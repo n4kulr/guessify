@@ -286,6 +286,7 @@ export default function OnlineRace({ profile, onExit, raceMode: raceModeProp }) 
   const [roundEndsAt, setRoundEndsAt] = useState(null);
   const [lockedInIds, setLockedInIds] = useState([]);
   const [timedPlaces, setTimedPlaces] = useState(null);
+  const [solveTimes, setSolveTimes] = useState(null);
 
   const { errorMsg, setErrorMsg, play, pause } = usePreviewPlayer();
   const rootRef = useRef(null);
@@ -321,6 +322,7 @@ export default function OnlineRace({ profile, onExit, raceMode: raceModeProp }) 
     roundSolvesRef.current = {};
     setLockedInIds([]);
     setTimedPlaces(null);
+    setSolveTimes(null);
     setRoundEndsAt(null);
   }
 
@@ -582,6 +584,7 @@ export default function OnlineRace({ profile, onExit, raceMode: raceModeProp }) 
     setWinnerId(null);
     setEarnedPts(0);
     setBonus(0);
+    setSolveTimes(null);
     setPhase("reveal");
   }
 
@@ -595,6 +598,12 @@ export default function OnlineRace({ profile, onExit, raceMode: raceModeProp }) 
     setWinnerId(player.id);
     setEarnedPts(titlePts + artistPts);
     setBonus(artistPts);
+    setSolveTimes({
+      [player.id]: Math.max(
+        0,
+        Date.now() - (roundStartedAt.current || Date.now())
+      ),
+    });
     setPhase("reveal");
     if (player.id === youId) fireConfetti("title");
   }
@@ -763,6 +772,11 @@ export default function OnlineRace({ profile, onExit, raceMode: raceModeProp }) 
     });
 
     setTimedPlaces(places);
+    setSolveTimes(
+      places.length
+        ? Object.fromEntries(places.map((p) => [p.playerId, p.wallMs]))
+        : null
+    );
     if (places.length) {
       setOutcome("win");
       setWinnerId(places[0].playerId);
@@ -1135,8 +1149,8 @@ export default function OnlineRace({ profile, onExit, raceMode: raceModeProp }) 
         <PlayerRail players={players} />
         <p className="fineprint">
           {timed
-            ? "today’s charts · 45s rounds · fastest title ranks"
-            : "today’s charts · first to name it wins"}
+            ? "today’s charts · 45s · faster → more points"
+            : "today’s charts · first to guess wins"}
         </p>
       </div>
     );
@@ -1229,6 +1243,8 @@ export default function OnlineRace({ profile, onExit, raceMode: raceModeProp }) 
           pulseId={lastGuesser?.playerId}
           winnerId={winnerId}
           unlockByPlayer={unlockByPlayer}
+          solveTimes={revealed ? solveTimes : null}
+          artistClaimedBy={revealed ? artistClaimedBy : null}
         />
 
         {phase === "play" && !cueReady ? (

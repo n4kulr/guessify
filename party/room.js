@@ -241,8 +241,7 @@ export class Room extends Server {
   /** Host can flip classic/timed while waiting in lobby. */
   handleRaceMode(msg, sender) {
     if (!this.state || this.state.phase !== "lobby") return;
-    const player = this.playerFor(sender);
-    if (!player?.isHost) return;
+    if (!this.isHost(sender)) return;
     this.state.raceMode = normalizeRaceMode(msg.raceMode);
     this.broadcastState();
     void this.persist();
@@ -320,6 +319,7 @@ export class Room extends Server {
         roundStartedAt: null,
         roundEndsAt: null,
         timedPlaces: null,
+        solveTimes: null,
         colorIdx: 1,
         updatedAt: Date.now(),
       };
@@ -510,6 +510,7 @@ export class Room extends Server {
     this.state.roundResults = [];
     this.state.roundSolves = {};
     this.state.timedPlaces = null;
+    this.state.solveTimes = null;
     this.state.roundStartedAt = Date.now();
     this.state.roundEndsAt =
       this.state.raceMode === "timed"
@@ -601,6 +602,10 @@ export class Room extends Server {
       const skips = this.state.unlockByPlayer?.[player.id] ?? 0;
       const hinted = !!this.state.hintByPlayer?.[player.id];
       const titlePts = titlePointsForGuess(skips, hinted);
+      const wallMs = Math.max(
+        0,
+        Date.now() - (this.state.roundStartedAt || Date.now())
+      );
       this.state.bonus = artistPts;
       this.state.earnedPts = titlePts + artistPts;
       this.state.winnerId = player.id;
@@ -608,6 +613,7 @@ export class Room extends Server {
       this.state.phase = "reveal";
       this.state.nextVotes = {};
       this.state.roundEndsAt = null;
+      this.state.solveTimes = { [player.id]: wallMs };
       this.clearTimedRoundTimer();
       player.score += titlePts;
       player.wins += 1;
@@ -665,6 +671,9 @@ export class Room extends Server {
     });
 
     this.state.timedPlaces = places;
+    this.state.solveTimes = Object.fromEntries(
+      places.map((p) => [p.playerId, p.wallMs])
+    );
     this.state.roundEndsAt = null;
     this.state.nextVotes = {};
     if (places.length) {
@@ -722,6 +731,7 @@ export class Room extends Server {
       this.state.bonus = 0;
       this.state.phase = "reveal";
       this.state.nextVotes = {};
+      this.state.solveTimes = null;
       // Miss — omit from roundResults (stats ignore songs nobody got).
     }
 
@@ -811,6 +821,7 @@ export class Room extends Server {
     this.state.artistClaimedBy = null;
     this.state.roundSolves = {};
     this.state.timedPlaces = null;
+    this.state.solveTimes = null;
     this.state.phase = "play";
     this.state.roundStartedAt = Date.now();
     this.state.roundEndsAt =
@@ -968,6 +979,7 @@ export class Room extends Server {
       roundEndsAt: this.state.roundEndsAt || null,
       roundStartedAt: this.state.roundStartedAt || null,
       timedPlaces: this.state.timedPlaces || null,
+      solveTimes: this.state.solveTimes || null,
       lockedInIds: Object.keys(this.state.roundSolves || {}),
       track: this.publicTrack(),
       trackId: this.state.tracks[this.state.roundIdx]?.id || null,
