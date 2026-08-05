@@ -22,7 +22,8 @@ import { useDebugActions } from "../debugRegistry.js";
 import PlayerRail from "./PlayerRail.jsx";
 import ProfileEditor from "./ProfileEditor.jsx";
 import GuessPopups from "./GuessPopups.jsx";
-import { TimedCountdown, TimedPlacesList } from "./TimedHud.jsx";
+import { TimedCountdown } from "./TimedHud.jsx";
+import LobbyRaceModePicker from "./LobbyRaceModePicker.jsx";
 
 export default function GuestApp({ code }) {
   const upper = code.toUpperCase();
@@ -452,7 +453,6 @@ export default function GuestApp({ code }) {
   if (!state) return <div className="loader">loading…</div>;
 
   if (state.phase === "lobby") {
-    const modeLabel = state.raceMode === "timed" ? "Timed · 45s" : "Classic";
     return (
       <div className="mp-guest">
         <h2 className="section-title">you're in</h2>
@@ -460,7 +460,7 @@ export default function GuestApp({ code }) {
           Waiting for {state.hostName} to start — tweak your look anytime.
         </p>
         <div className="mp-lobby-side">
-          <p className="fineprint lobby-mode-label">mode · {modeLabel}</p>
+          <LobbyRaceModePicker mode={state.raceMode} canEdit={false} />
           <div className="mp-lobby-edit">
             <p className="profile-label">your look</p>
             <ProfileEditor name={name} avatar={avatar} onChange={updateProfile} />
@@ -686,7 +686,6 @@ export default function GuestApp({ code }) {
                 )}
               </div>
             </div>
-            {timed && <TimedPlacesList places={state.timedPlaces} />}
             <div className="media-stage-vote">
               <button
                 type="button"

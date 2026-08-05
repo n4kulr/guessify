@@ -43,7 +43,7 @@ import {
   allPlayersMaxUnlocked,
   normalizeRaceMode,
 } from "../multiplayer/constants.js";
-import { TimedCountdown, TimedPlacesList } from "../multiplayer/TimedHud.jsx";
+import { TimedCountdown } from "../multiplayer/TimedHud.jsx";
 
 const HOT_TAGS = ["pop", "hip-hop", "rnb", "2010s", "k-pop", "afrobeats", "latin", "indie"];
 
@@ -1431,7 +1431,6 @@ export default function OnlineRace({ profile, onExit, raceMode: raceModeProp }) 
                 )}
               </div>
             </div>
-            {timed && <TimedPlacesList places={timedPlaces} />}
             <div className="media-stage-vote">
               <button
                 type="button"

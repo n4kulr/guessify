@@ -16,8 +16,8 @@ import GameOverStats from "../components/GameOverStats.jsx";
 import PlayerRail from "./PlayerRail.jsx";
 import ProfileEditor from "./ProfileEditor.jsx";
 import GuessPopups from "./GuessPopups.jsx";
-import { TimedCountdown, TimedPlacesList } from "./TimedHud.jsx";
-import { ClassicModeIcon, TimedModeIcon } from "./RaceModeIcons.jsx";
+import { TimedCountdown } from "./TimedHud.jsx";
+import LobbyRaceModePicker from "./LobbyRaceModePicker.jsx";
 import { loadLocalProfile, saveLocalProfile } from "../localProfile.js";
 import { applyThemeForAccent, accentMatchingTheme } from "../themes.js";
 import { isNoPreviewError } from "../shareScore.js";
@@ -230,6 +230,15 @@ export default function HostParty({
   useEffect(() => {
     if (state?.raceMode) setLobbyRaceMode(normalizeRaceMode(state.raceMode));
   }, [state?.raceMode]);
+
+  // Keep the Worker in sync whenever the host flips mode in the lobby.
+  useEffect(() => {
+    if (status !== "connected") return;
+    const p = state?.phase || "lobby";
+    if (p !== "lobby" && p !== "empty") return;
+    send({ type: "raceMode", raceMode: normalizeRaceMode(lobbyRaceMode) });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [lobbyRaceMode, status]);
 
   useEffect(() => {
     if (!state?.revealedArtist) setArtistGuess("");
@@ -541,12 +550,6 @@ export default function HostParty({
     const players = state?.players || [];
     const canStart = players.some((p) => p.connected);
     const lobbyMode = lobbyRaceMode;
-    function pickLobbyMode(next) {
-      const mode = normalizeRaceMode(next);
-      if (mode === lobbyMode) return;
-      setLobbyRaceMode(mode);
-      send({ type: "raceMode", raceMode: mode });
-    }
     return (
       <div className="mp-lobby">
         <button className="btn btn-mini mp-back" onClick={onExit}>
@@ -585,37 +588,11 @@ export default function HostParty({
           </div>
           <div className="mp-lobby-side">
             <h3 className="mp-side-title mp-side-accent">{playlist.name}</h3>
-            <h3 className="mp-side-title">mode</h3>
-            <div className="lobby-race-mode" role="group" aria-label="Game mode">
-              <button
-                type="button"
-                className={`lobby-race-mode-btn${lobbyMode === "classic" ? " is-active" : ""}`}
-                aria-pressed={lobbyMode === "classic"}
-                onClick={() => pickLobbyMode("classic")}
-              >
-                <ClassicModeIcon size={22} />
-                <span className="lobby-race-mode-copy">
-                  <span className="lobby-race-mode-title">Classic</span>
-                  <span className="lobby-race-mode-blurb">
-                    first to guess wins the round
-                  </span>
-                </span>
-              </button>
-              <button
-                type="button"
-                className={`lobby-race-mode-btn${lobbyMode === "timed" ? " is-active" : ""}`}
-                aria-pressed={lobbyMode === "timed"}
-                onClick={() => pickLobbyMode("timed")}
-              >
-                <TimedModeIcon size={22} />
-                <span className="lobby-race-mode-copy">
-                  <span className="lobby-race-mode-title">Timed</span>
-                  <span className="lobby-race-mode-blurb">
-                    45 seconds · guess times revealed at end of round · faster → more points
-                  </span>
-                </span>
-              </button>
-            </div>
+            <LobbyRaceModePicker
+              mode={lobbyMode}
+              canEdit
+              onPick={setLobbyRaceMode}
+            />
             <h3 className="mp-side-title">players</h3>
             <PlayerRail players={players} />
             {error && <div className="error-banner">{error}</div>}
@@ -631,7 +608,10 @@ export default function HostParty({
               disabled={!canStart}
               onClick={() => {
                 void primePlaylistPreviews(playlist?.tracks, ROUND_COUNT + 2);
-                send({ type: "start" });
+                send({
+                  type: "start",
+                  raceMode: normalizeRaceMode(lobbyMode),
+                });
               }}
             >
               <span className="btn-play-icon" aria-hidden="true" />
@@ -882,7 +862,6 @@ export default function HostParty({
               )}
             </div>
           </div>
-          {timed && <TimedPlacesList places={state.timedPlaces} />}
           <div className="media-stage-vote">
             <button
               type="button"

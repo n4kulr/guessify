@@ -4038,18 +4038,22 @@ button.footer-privacy:hover {
   min-width: 3.5ch;
 }
 .mp-player-score-wrap--timed {
-  min-width: 14ch;
+  min-width: 16ch;
 }
 .mp-player-time {
-  font-size: 11px;
-  font-weight: 600;
-  color: var(--sub-color);
+  font-size: 13px;
+  font-weight: 800;
+  color: var(--main-color);
   font-variant-numeric: tabular-nums;
   letter-spacing: 0.01em;
   white-space: nowrap;
+  padding: 2px 6px;
+  border-radius: 6px;
+  background: color-mix(in srgb, var(--main-color) 16%, var(--bg-color));
 }
 .mp-player-time--best {
-  color: var(--main-color);
+  color: var(--bg-color);
+  background: var(--main-color);
   font-weight: 800;
 }
 .mp-player-score {
@@ -4461,6 +4465,16 @@ button.footer-privacy:hover {
   border-color: var(--main-color);
   background: color-mix(in srgb, var(--main-color) 22%, var(--bg-color));
 }
+.lobby-race-mode-btn:disabled {
+  cursor: default;
+  opacity: 1;
+}
+.lobby-race-mode-btn:disabled:hover {
+  background: var(--sub-alt-color);
+}
+.lobby-race-mode-btn:disabled.is-active:hover {
+  background: color-mix(in srgb, var(--main-color) 22%, var(--bg-color));
+}
 .lobby-race-mode-btn .race-mode-icon {
   color: var(--main-color);
 }
@@ -4482,6 +4496,9 @@ button.footer-privacy:hover {
   font-size: 12px;
   color: var(--sub-color);
   line-height: 1.3;
+}
+.lobby-mode-host-hint {
+  margin: -4px 0 8px;
 }
 .lobby-mode-label {
   margin: 0 0 12px;

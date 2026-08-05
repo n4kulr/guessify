@@ -207,7 +207,7 @@ export class Room extends Server {
         this.handleJoin(msg, sender);
         break;
       case "start":
-        await this.handleStart(sender);
+        await this.handleStart(msg, sender);
         break;
       case "guess":
         this.handleGuess(msg, sender);
@@ -241,7 +241,14 @@ export class Room extends Server {
   /** Host can flip classic/timed while waiting in lobby. */
   handleRaceMode(msg, sender) {
     if (!this.state || this.state.phase !== "lobby") return;
-    if (!this.isHost(sender)) return;
+    const player = this.playerFor(sender);
+    // Prefer conn-id host seat; fall back to roster flag (reconnect lag).
+    if (!this.isHost(sender) && !player?.isHost) return;
+    if (player?.isHost) {
+      this.state.hostConnId = sender.id;
+      this.state.hostConnected = true;
+      player.connId = sender.id;
+    }
     this.state.raceMode = normalizeRaceMode(msg.raceMode);
     this.broadcastState();
     void this.persist();
@@ -488,12 +495,16 @@ export class Room extends Server {
     void this.persist();
   }
 
-  async handleStart(sender) {
-    if (!this.isHost(sender)) return;
+  async handleStart(msg, sender) {
+    if (!this.isHost(sender) && !this.playerFor(sender)?.isHost) return;
     if (!this.state || this.state.phase !== "lobby") return;
     if (this.state.players.filter((p) => p.connected).length < 1) {
       sender.send(JSON.stringify({ type: "error", error: "Need at least one player." }));
       return;
+    }
+    // Mode from the start payload wins — covers raceMode msgs that never landed.
+    if (msg?.raceMode != null) {
+      this.state.raceMode = normalizeRaceMode(msg.raceMode);
     }
     this.state.phase = "play";
     this.state.roundIdx = 0;
