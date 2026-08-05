@@ -1,7 +1,7 @@
 import { useEffect, useId, useRef } from "react";
 import { PlayHowtoSteps } from "./PlayHowto.jsx";
 
-export default function HowToPlay({ open, onOpen, onClose }) {
+export default function HowToPlay({ open, onOpen, onClose, onPrivacy }) {
   const titleId = useId();
   const closeRef = useRef(null);
 
@@ -65,6 +65,18 @@ export default function HowToPlay({ open, onOpen, onClose }) {
           </p>
           <PlayHowtoSteps race />
         </div>
+
+        {onPrivacy && (
+          <p className="help-panel-foot">
+            <button
+              type="button"
+              className="footer-credit footer-privacy"
+              onClick={onPrivacy}
+            >
+              privacy
+            </button>
+          </p>
+        )}
       </div>
     </div>
   );

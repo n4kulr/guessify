@@ -541,7 +541,7 @@ export default function App() {
   );
 
   return (
-    <div className={`app${onLanding ? " app--landing" : ""}`}>
+    <div className="app">
       <header className={`topbar${onLanding ? " topbar--landing" : ""}`}>
         <button className="logo" onClick={goHome} title="home">
           <span className="logo-disc" aria-hidden="true" />
@@ -624,7 +624,11 @@ export default function App() {
       </main>
 
       {howtoMode && (
-        <PlayHowto mode={howtoMode} onDone={finishHowto} />
+        <PlayHowto
+          mode={howtoMode}
+          onDone={finishHowto}
+          onPrivacy={() => setPrivacyOpen(true)}
+        />
       )}
 
       {onlinePrompt && (
@@ -655,23 +659,14 @@ export default function App() {
           rel="noopener noreferrer"
         >
           nakul
-        </a>{" "}
-        <span className="footer-copy">© Guessify, LLC</span>
-        {" / "}
-        <button
-          type="button"
-          className="footer-credit footer-privacy"
-          onClick={() => setPrivacyOpen(true)}
-        >
-          privacy
-        </button>
+        </a>
       </footer>
 
       {privacyOpen && (
         <PrivacyDialog onClose={() => setPrivacyOpen(false)} />
       )}
 
-      <FabDock />
+      <FabDock onPrivacy={() => setPrivacyOpen(true)} />
       <DebugPanel />
     </div>
   );

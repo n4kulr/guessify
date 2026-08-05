@@ -25,7 +25,7 @@ export function PlayHowtoSteps({ race = true }) {
 /**
  * First-run tips shown once before solo / host / online starts.
  */
-export default function PlayHowto({ mode, onDone }) {
+export default function PlayHowto({ mode, onDone, onPrivacy }) {
   const titleId = useId();
   const okRef = useRef(null);
 
@@ -38,12 +38,12 @@ export default function PlayHowto({ mode, onDone }) {
     return () => window.removeEventListener("keydown", onKey);
   }, [onDone]);
 
-  const modeLine =
-    mode === "solo"
-      ? "You’re playing alone on this phone."
-      : mode === "multi"
-        ? "You’ll pick a playlist, then friends join with a code."
-        : "You’ll race others on today’s charts.";
+  let modeLine = "You’ll race others on today’s charts.";
+  if (mode === "solo") {
+    modeLine = "You’re playing alone on this phone.";
+  } else if (mode === "multi") {
+    modeLine = "You’ll pick a playlist, then friends join with a code.";
+  }
 
   return (
     <div
@@ -79,6 +79,18 @@ export default function PlayHowto({ mode, onDone }) {
             got it — let’s go
           </button>
         </div>
+
+        {onPrivacy && (
+          <p className="play-howto-foot">
+            <button
+              type="button"
+              className="footer-credit footer-privacy"
+              onClick={onPrivacy}
+            >
+              privacy
+            </button>
+          </p>
+        )}
       </div>
     </div>
   );

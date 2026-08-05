@@ -296,9 +296,6 @@ button { font-family: var(--font); }
     margin-top: -6px;
   }
 }
-.footer-copy {
-  opacity: 0.85;
-}
 .footer-heart { color: var(--main-color); margin: 0 2px; }
 .footer-credit {
   color: inherit;
@@ -1366,6 +1363,13 @@ button.footer-privacy:hover {
   margin-bottom: 0;
 }
 .help-body p { margin: 0 0 12px; }
+.help-panel-foot {
+  margin: 0;
+  padding: 8px 2px 0;
+  text-align: left;
+  font-size: 12px;
+  color: var(--sub-color);
+}
 
 .feedback-form { display: flex; flex-direction: column; gap: 10px; }
 .feedback-form.is-dragover {
@@ -4824,10 +4828,6 @@ button.footer-privacy:hover {
     max-height: min(90dvh, 680px);
   }
   .join-code-form { width: 100%; }
-  /* Push credit/privacy below the fold on the landing — scroll to find it. */
-  .app--landing .footer {
-    margin-top: 55vh;
-  }
   .guess-media--cassette {
     width: 100%;
     margin-top: 14px;
@@ -4868,3 +4868,9 @@ button.footer-privacy:hover {
 .play-howto-steps b { color: var(--main-color); font-weight: 600; }
 .play-howto .spotlight-actions { justify-content: stretch; }
 .play-howto .spotlight-actions .btn { width: 100%; justify-content: center; }
+.play-howto-foot {
+  margin: 0;
+  text-align: left;
+  font-size: 12px;
+  color: var(--sub-color);
+}

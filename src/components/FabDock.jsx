@@ -2,7 +2,7 @@ import { useCallback, useState } from "react";
 import Feedback from "./Feedback.jsx";
 import HowToPlay from "./HowToPlay.jsx";
 
-export default function FabDock() {
+export default function FabDock({ onPrivacy }) {
   const [panel, setPanel] = useState(null); // null | "help" | "feedback"
   const close = useCallback(() => setPanel(null), []);
 
@@ -17,6 +17,7 @@ export default function FabDock() {
         open={panel === "help"}
         onOpen={() => setPanel("help")}
         onClose={close}
+        onPrivacy={onPrivacy}
       />
     </div>
   );
