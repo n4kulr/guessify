@@ -286,9 +286,18 @@ button { font-family: var(--font); }
 }
 .footer {
   text-align: left;
-  padding: 4px 26px 20px;
+  padding: 4px 26px 12px;
   font-size: 12px;
   color: var(--sub-color);
+}
+@media (min-width: 821px) {
+  .footer {
+    padding: 0 26px 8px;
+    margin-top: -6px;
+  }
+}
+.footer-copy {
+  opacity: 0.85;
 }
 .footer-heart { color: var(--main-color); margin: 0 2px; }
 .footer-credit {
@@ -297,6 +306,18 @@ button { font-family: var(--font); }
   text-underline-offset: 2px;
 }
 .footer-credit:hover {
+  color: var(--main-color);
+}
+button.footer-privacy {
+  display: inline;
+  padding: 0;
+  border: none;
+  background: none;
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+}
+button.footer-privacy:hover {
   color: var(--main-color);
 }
 .loader { color: var(--sub-color); font-size: 15px; }
@@ -4291,6 +4312,52 @@ button { font-family: var(--font); }
   }
 }
 
+/* Privacy policy spotlight */
+.privacy-dialog {
+  position: relative;
+  width: min(520px, 100%);
+  max-height: min(86vh, 720px);
+  gap: 14px;
+}
+.privacy-body {
+  min-height: 0;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding-right: 4px;
+  scrollbar-width: thin;
+  scrollbar-color: color-mix(in srgb, var(--text-color) 28%, transparent) transparent;
+}
+.privacy-body section h3 {
+  margin: 0 0 4px;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--main-color);
+}
+.privacy-body section p,
+.privacy-body .privacy-updated {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.45;
+  color: var(--text-color);
+}
+.privacy-body a {
+  color: var(--main-color);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+.privacy-updated {
+  color: var(--sub-color) !important;
+  font-size: 11px !important;
+}
+.privacy-dialog .spotlight-actions {
+  justify-content: flex-end;
+}
+
 /* Spotify login modal — centered, one clear primary action */
 .login-modal-card {
   position: relative;
@@ -4757,6 +4824,10 @@ button { font-family: var(--font); }
     max-height: min(90dvh, 680px);
   }
   .join-code-form { width: 100%; }
+  /* Push credit/privacy below the fold on the landing — scroll to find it. */
+  .app--landing .footer {
+    margin-top: 55vh;
+  }
   .guess-media--cassette {
     width: 100%;
     margin-top: 14px;

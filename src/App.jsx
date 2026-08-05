@@ -14,6 +14,7 @@ import DebugPanel from "./components/DebugPanel.jsx";
 import { isFastTest } from "./fastTest.js";
 import { useDebugActions } from "./debugRegistry.js";
 import OnlineJoinDialog from "./components/OnlineJoinDialog.jsx";
+import PrivacyDialog from "./components/PrivacyDialog.jsx";
 import PlayHowto, {
   hasSeenPlayHowto,
   markPlayHowtoSeen,
@@ -58,6 +59,7 @@ export default function App() {
   const [hostPrompt, setHostPrompt] = useState(false);
   const [hostProfile, setHostProfile] = useState(null);
   const [howtoMode, setHowtoMode] = useState(null); // null | solo | multi | online
+  const [privacyOpen, setPrivacyOpen] = useState(false);
   // Capture ?fast=1 before history seeding strips the query.
   useRef(isFastTest());
 
@@ -539,7 +541,7 @@ export default function App() {
   );
 
   return (
-    <div className="app">
+    <div className={`app${onLanding ? " app--landing" : ""}`}>
       <header className={`topbar${onLanding ? " topbar--landing" : ""}`}>
         <button className="logo" onClick={goHome} title="home">
           <span className="logo-disc" aria-hidden="true" />
@@ -653,8 +655,21 @@ export default function App() {
           rel="noopener noreferrer"
         >
           nakul
-        </a>
+        </a>{" "}
+        <span className="footer-copy">© Guessify, LLC</span>
+        {" / "}
+        <button
+          type="button"
+          className="footer-credit footer-privacy"
+          onClick={() => setPrivacyOpen(true)}
+        >
+          privacy
+        </button>
       </footer>
+
+      {privacyOpen && (
+        <PrivacyDialog onClose={() => setPrivacyOpen(false)} />
+      )}
 
       <FabDock />
       <DebugPanel />
