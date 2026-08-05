@@ -17,7 +17,7 @@ export default function GuessPopups({ guesses = [], myId }) {
       {visible.map((g, i) => (
         <div
           key={`${g.playerId}-${i}-${g.title || "?"}-${g.artist || ""}`}
-          className={`mp-guess-popup ${g.win ? "win" : "miss"}`}
+          className={`mp-guess-popup ${g.win || g.lockedIn ? "win" : "miss"}`}
         >
           <PlayerAvatar
             avatar={g.avatar || { color: g.color }}

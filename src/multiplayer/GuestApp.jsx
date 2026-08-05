@@ -22,6 +22,7 @@ import { useDebugActions } from "../debugRegistry.js";
 import PlayerRail from "./PlayerRail.jsx";
 import ProfileEditor from "./ProfileEditor.jsx";
 import GuessPopups from "./GuessPopups.jsx";
+import { TimedCountdown, TimedPlacesList } from "./TimedHud.jsx";
 
 export default function GuestApp({ code }) {
   const upper = code.toUpperCase();
@@ -192,7 +193,7 @@ export default function GuestApp({ code }) {
     const g = guesses[i];
     if (!g || g.playerId !== playerId || g.skip) return;
     lastFxGuess.current = i;
-    if (g.win) fireConfetti("title");
+    if (g.win || g.lockedIn) fireConfetti("title");
     else {
       if (g.almostTitle) setAlmostTitle(Date.now());
       if (g.almostArtist) setAlmostArtist(Date.now());
@@ -216,15 +217,6 @@ export default function GuestApp({ code }) {
     setName(n);
     setAvatar(a);
     if (joined) send({ type: "profile", name: n, avatar: a });
-  }
-
-  function submitGuess() {
-    const title = titleGuess.trim();
-    const artist = artistGuess.trim();
-    if (!title && !artist) return;
-    send({ type: "guess", title, artist });
-    setTitleGuess("");
-    setArtistGuess("");
   }
 
   function skipGuess() {
@@ -460,6 +452,7 @@ export default function GuestApp({ code }) {
   if (!state) return <div className="loader">loading…</div>;
 
   if (state.phase === "lobby") {
+    const modeLabel = state.raceMode === "timed" ? "Timed · 45s" : "Classic";
     return (
       <div className="mp-guest">
         <h2 className="section-title">you're in</h2>
@@ -467,6 +460,7 @@ export default function GuestApp({ code }) {
           Waiting for {state.hostName} to start — tweak your look anytime.
         </p>
         <div className="mp-lobby-side">
+          <p className="fineprint lobby-mode-label">mode · {modeLabel}</p>
           <div className="mp-lobby-edit">
             <p className="profile-label">your look</p>
             <ProfileEditor name={name} avatar={avatar} onChange={updateProfile} />
@@ -484,6 +478,22 @@ export default function GuestApp({ code }) {
   const myStep = state.unlockByPlayer?.[playerId] ?? 0;
   const track = state.track;
   const spinning = localPlaying && (state.phase === "play" || state.phase === "reveal");
+  const timed = state.raceMode === "timed";
+  const lockedIn = !!(
+    playerId &&
+    Array.isArray(state.lockedInIds) &&
+    state.lockedInIds.includes(playerId)
+  );
+
+  function submitGuess() {
+    // Title locks after a correct timed solve; artist bonus stays open.
+    const title = lockedIn ? "" : titleGuess.trim();
+    const artist = artistGuess.trim();
+    if (!title && !artist) return;
+    send({ type: "guess", title, artist });
+    setTitleGuess("");
+    setArtistGuess("");
+  }
 
   return (
     <div className="game mp-guest-game mp-board" ref={rootRef}>
@@ -520,15 +530,25 @@ export default function GuestApp({ code }) {
         />
         {errorMsg && <div className="error-banner">{errorMsg}</div>}
 
-        {state.outcome === "win" && revealed && (
+        {state.outcome === "win" && revealed && !timed && (
           <div className="inline-badge inline-badge--win">
             {state.winnerId === playerId
               ? "YOU NAILED IT"
               : `${state.players.find((p) => p.id === state.winnerId)?.name || "someone"} NAILED IT`}
           </div>
         )}
+        {state.outcome === "win" && revealed && timed && (
+          <div className="inline-badge inline-badge--win">TIME’S UP</div>
+        )}
         {state.outcome === "lose" && revealed && (
           <div className="inline-badge inline-badge--lose">MISSED</div>
+        )}
+
+        {state.phase === "play" && timed && (
+          <TimedCountdown
+            roundEndsAt={state.roundEndsAt}
+            lockedIn={lockedIn}
+          />
         )}
 
         <div className="progress">
@@ -553,9 +573,14 @@ export default function GuestApp({ code }) {
               <div className="guess-title-row">
                 <div className="guess-title-field" ref={titleFieldRef}>
                   <input
-                    className={`guess-input${titleHintText ? " guess-input--hint" : ""}`}
-                    placeholder={titleHintText || "song title…"}
-                    value={titleGuess}
+                    className={`guess-input${titleHintText || lockedIn ? " guess-input--hint" : ""}${lockedIn ? " guess-input--locked" : ""}`}
+                    placeholder={
+                      lockedIn
+                        ? "locked in — waiting…"
+                        : titleHintText || "song title…"
+                    }
+                    value={lockedIn ? "" : titleGuess}
+                    disabled={lockedIn}
                     onChange={(e) => {
                       setAlmostTitle(null);
                       setTitleGuess(e.target.value);
@@ -566,7 +591,7 @@ export default function GuestApp({ code }) {
                     token={almostTitle}
                     onDone={() => setAlmostTitle(null)}
                   />
-                  {myStep >= HINT_AFTER_SKIPS && (!hintUsed || hintPop) && (
+                  {myStep >= HINT_AFTER_SKIPS && (!hintUsed || hintPop) && !lockedIn && (
                     <div className="guess-hint-slot">
                       {hintPop ? (
                         <PenaltyPop
@@ -632,7 +657,11 @@ export default function GuestApp({ code }) {
               <button
                 className="btn btn-guess"
                 onClick={submitGuess}
-                disabled={!titleGuess.trim() && !artistGuess.trim()}
+                disabled={
+                  lockedIn
+                    ? !artistGuess.trim() || !!state.revealedArtist
+                    : !titleGuess.trim() && !artistGuess.trim()
+                }
               >
                 <span className="btn-label">guess</span>
                 <span className="btn-hint">enter</span>
@@ -655,6 +684,7 @@ export default function GuestApp({ code }) {
                 )}
               </div>
             </div>
+            {timed && <TimedPlacesList places={state.timedPlaces} />}
             <div className="media-stage-vote">
               <button
                 type="button"

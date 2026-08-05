@@ -5,9 +5,11 @@
 import assert from "node:assert/strict";
 import {
   titlePointsForGuess,
+  timedTitlePoints,
   TITLE_POINTS,
   SKIP_PENALTY,
   HINT_PENALTY,
+  TIMED_PLACE_STEP,
 } from "./multiplayer/constants.js";
 
 assert.equal(titlePointsForGuess(), TITLE_POINTS);
@@ -17,4 +19,7 @@ assert.equal(titlePointsForGuess(2, false), 420);
 assert.equal(titlePointsForGuess(4, false), 340);
 assert.equal(titlePointsForGuess(4, true), 500 - 4 * SKIP_PENALTY - HINT_PENALTY);
 assert.equal(titlePointsForGuess(20, true), 0);
+assert.equal(timedTitlePoints(500, 0), 500);
+assert.equal(timedTitlePoints(500, 1), 500 - TIMED_PLACE_STEP);
+assert.equal(timedTitlePoints(100, 2), 0);
 console.log("scoring.check: ok");

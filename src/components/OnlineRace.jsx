@@ -30,6 +30,8 @@ import {
   TOTAL,
   ROUND_COUNT,
   titlePointsForGuess,
+  timedTitlePoints,
+  TIMED_ROUND_MS,
   ARTIST_BONUS,
   SKIP_PENALTY,
   HINT_PENALTY,
@@ -39,7 +41,9 @@ import {
   nextVotesNeeded,
   activePlayerCount,
   allPlayersMaxUnlocked,
+  normalizeRaceMode,
 } from "../multiplayer/constants.js";
+import { TimedCountdown, TimedPlacesList } from "../multiplayer/TimedHud.jsx";
 
 const HOT_TAGS = ["pop", "hip-hop", "rnb", "2010s", "k-pop", "afrobeats", "latin", "indie"];
 
@@ -223,13 +227,14 @@ function makeOpponents(count = 3, reservedColors = []) {
  * Chart race that looks like live multiplayer. Opponents are local stand-ins —
  * never advertised as bots in the UI.
  */
-export default function OnlineRace({ profile, onExit }) {
+export default function OnlineRace({ profile, onExit, raceMode: raceModeProp }) {
   const youName = profile?.name?.trim().slice(0, 16) || "you";
   const youAvatar = useMemo(
     () => normalizeAvatar(profile?.avatar || randomAvatar(), PLAYER_COLORS[0]),
     [profile?.avatar?.peep, profile?.avatar?.color]
   );
   const youId = "you";
+  const timed = normalizeRaceMode(raceModeProp) === "timed";
 
   const [phase, setPhase] = useState("matching"); // matching | play | reveal | over
   const [loadError, setLoadError] = useState(null);
@@ -278,6 +283,9 @@ export default function OnlineRace({ profile, onExit }) {
   const [playlistBests, setPlaylistBests] = useState(null);
   const [chartKey, setChartKey] = useState(null);
   const [cueReady, setCueReady] = useState(false);
+  const [roundEndsAt, setRoundEndsAt] = useState(null);
+  const [lockedInIds, setLockedInIds] = useState([]);
+  const [timedPlaces, setTimedPlaces] = useState(null);
 
   const { errorMsg, setErrorMsg, play, pause } = usePreviewPlayer();
   const rootRef = useRef(null);
@@ -290,8 +298,11 @@ export default function OnlineRace({ profile, onExit }) {
   const advancingRef = useRef(false);
   const roundStartedAt = useRef(Date.now());
   const loggedRoundRef = useRef(-1);
+  const roundSolvesRef = useRef({});
+  const playersRef = useRef(players);
   const roundsRef = useRef(rounds);
   roundsRef.current = rounds;
+  playersRef.current = players;
 
   phaseRef.current = phase;
   artistClaimedRef.current = artistClaimedBy;
@@ -304,6 +315,22 @@ export default function OnlineRace({ profile, onExit }) {
   const voteNeed = nextVotesNeeded(activePlayerCount(players));
   const voteHave = Object.keys(nextVotes).length;
   const iVotedNext = !!nextVotes[youId];
+  const lockedIn = lockedInIds.includes(youId);
+
+  function clearTimedRound() {
+    roundSolvesRef.current = {};
+    setLockedInIds([]);
+    setTimedPlaces(null);
+    setRoundEndsAt(null);
+  }
+
+  function armTimedClock() {
+    if (!timed) {
+      setRoundEndsAt(null);
+      return;
+    }
+    setRoundEndsAt(Date.now() + TIMED_ROUND_MS);
+  }
 
   function bumpUnlock(playerId) {
     setUnlockByPlayer((prev) => {
@@ -325,6 +352,7 @@ export default function OnlineRace({ profile, onExit }) {
   }
 
   function resetInRound() {
+    clearTimedRound();
     setUnlockByPlayer(() => {
       const next = {};
       for (const p of players) next[p.id] = 0;
@@ -349,6 +377,7 @@ export default function OnlineRace({ profile, onExit }) {
     setPhase("play");
     roundStartedAt.current = Date.now();
     loggedRoundRef.current = -1;
+    armTimedClock();
   }
 
   async function replaceDeadTrack(deadTrack) {
@@ -504,6 +533,8 @@ export default function OnlineRace({ profile, onExit }) {
         if (cancelled) return;
         roundStartedAt.current = Date.now();
         loggedRoundRef.current = -1;
+        clearTimedRound();
+        armTimedClock();
         setCueReady(Boolean(tracks[0]?.previewUrl && isAudioWarm(tracks[0].previewUrl)));
         setPhase("play");
       } catch {
@@ -667,11 +698,83 @@ export default function OnlineRace({ profile, onExit }) {
         artist: artistClaimedRef.current ? (trackRef.artists || []).join(", ") : null,
         titleOk: true,
         artistOk: !!artistClaimedRef.current,
-        win: true,
+        win: !timed,
+        lockedIn: timed,
         artistPts: artistPtsJustNow,
       },
     ]);
+    if (timed) {
+      registerTimedSolve(player, titlePts);
+      return;
+    }
     endRoundWin(player, titlePts, artistPtsJustNow);
+  }
+
+  function registerTimedSolve(player, titlePts) {
+    if (phaseRef.current !== "play") return;
+    if (roundSolvesRef.current[player.id]) return;
+    roundSolvesRef.current[player.id] = {
+      wallMs: Math.max(0, Date.now() - (roundStartedAt.current || Date.now())),
+      baseTitlePts: titlePts,
+    };
+    setLockedInIds(Object.keys(roundSolvesRef.current));
+    if (player.id === youId) fireConfetti("title");
+    maybeFinishTimedIfAllSolved();
+  }
+
+  function maybeFinishTimedIfAllSolved() {
+    if (!timed || phaseRef.current !== "play") return;
+    const roster = playersRef.current || [];
+    const active = roster.filter((p) => p && !p.left && p.connected !== false);
+    if (!active.length) return;
+    if (active.every((p) => roundSolvesRef.current[p.id])) {
+      finishTimedRound();
+    }
+  }
+
+  function finishTimedRound() {
+    if (phaseRef.current !== "play") return;
+    clearTimers();
+    setNextVotes({});
+    advancingRef.current = false;
+    setRoundEndsAt(null);
+
+    const solves = roundSolvesRef.current;
+    const ranked = Object.entries(solves)
+      .map(([playerId, s]) => ({ playerId, ...s }))
+      .sort((a, b) => a.wallMs - b.wallMs);
+
+    const places = [];
+    ranked.forEach((row, place) => {
+      const player = (playersRef.current || []).find((p) => p.id === row.playerId);
+      if (!player) return;
+      const titlePts = timedTitlePoints(row.baseTitlePts, place);
+      bumpScore(player.id, titlePts);
+      if (place === 0) bumpWins(player.id);
+      places.push({
+        playerId: row.playerId,
+        name: player.name,
+        color: player.color,
+        avatar: player.avatar,
+        place,
+        wallMs: row.wallMs,
+        titlePts,
+      });
+    });
+
+    setTimedPlaces(places);
+    if (places.length) {
+      setOutcome("win");
+      setWinnerId(places[0].playerId);
+      setEarnedPts(places[0].titlePts);
+      setBonus(0);
+    } else {
+      setOutcome("lose");
+      setWinnerId(null);
+      setEarnedPts(0);
+      setBonus(0);
+    }
+    setPhase("reveal");
   }
 
   // Schedule opponents for the current round
@@ -729,9 +832,18 @@ export default function OnlineRace({ profile, onExit }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [phase, roundIdx, track?.id]);
 
+  // Timed wall clock — ends the round even if nobody locked in.
+  useEffect(() => {
+    if (!timed || phase !== "play" || !roundEndsAt) return;
+    const delay = Math.max(0, roundEndsAt - Date.now());
+    const t = setTimeout(() => finishTimedRound(), delay);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [timed, phase, roundEndsAt, roundIdx]);
+
   function submitGuess() {
     if (phase !== "play" || !track) return;
-    const title = titleGuess.trim();
+    const title = lockedIn ? "" : titleGuess.trim();
     const artist = artistGuess.trim();
     if (!title && !artist) return;
 
@@ -776,14 +888,20 @@ export default function OnlineRace({ profile, onExit }) {
           artist: artistLabel,
           titleOk,
           artistOk: artistKnown,
-          win: titleOk,
+          win: titleOk && !timed,
+          lockedIn: titleOk && timed,
           artistPts: titleOk ? artistPts : 0,
         },
       ]);
     }
 
     if (titleOk) {
-      endRoundWin(you, titlePointsForGuess(myStep, hintUsed), artistPts);
+      const pts = titlePointsForGuess(myStep, hintUsed);
+      if (timed) {
+        registerTimedSolve(you, pts);
+        return;
+      }
+      endRoundWin(you, pts, artistPts);
       return;
     }
 
@@ -818,16 +936,19 @@ export default function OnlineRace({ profile, onExit }) {
   }
 
   // Lose only once everyone still in the race has maxed their skip ladder.
+  // Timed mode waits for the 45s clock (or everyone locked in) instead.
   useEffect(() => {
     if (phase !== "play") return;
+    if (timed) return;
     if (!allPlayersMaxUnlocked(players, unlockByPlayer)) return;
     endRoundLose();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [phase, unlockByPlayer, players]);
+  }, [phase, unlockByPlayer, players, timed]);
 
   function nextRound() {
     stopAudio();
     clearTimers();
+    clearTimedRound();
     advancingRef.current = false;
     if (roundIdx + 1 >= rounds.length) {
       setPhase("over");
@@ -856,6 +977,7 @@ export default function OnlineRace({ profile, onExit }) {
     setPhase("play");
     roundStartedAt.current = Date.now();
     loggedRoundRef.current = -1;
+    armTimedClock();
   }
 
   function voteNext(e) {
@@ -1011,7 +1133,11 @@ export default function OnlineRace({ profile, onExit }) {
         <h2 className="online-race-title">play online</h2>
         <p className="online-race-status">{matchStatus}</p>
         <PlayerRail players={players} />
-        <p className="fineprint">today’s charts · first to name it wins</p>
+        <p className="fineprint">
+          {timed
+            ? "today’s charts · 45s rounds · fastest title ranks"
+            : "today’s charts · first to name it wins"}
+        </p>
       </div>
     );
   }
@@ -1124,13 +1250,20 @@ export default function OnlineRace({ profile, onExit }) {
         />
         {errorMsg && <div className="error-banner">{errorMsg}</div>}
 
-        {revealed && outcome === "win" && (
+        {revealed && outcome === "win" && !timed && (
           <div className="inline-badge inline-badge--win">
             {winnerId === youId ? "you" : winnerName} NAILED IT
           </div>
         )}
+        {revealed && outcome === "win" && timed && (
+          <div className="inline-badge inline-badge--win">TIME’S UP</div>
+        )}
         {revealed && outcome === "lose" && (
           <div className="inline-badge inline-badge--lose">NOBODY GOT IT</div>
+        )}
+
+        {phase === "play" && timed && (
+          <TimedCountdown roundEndsAt={roundEndsAt} lockedIn={lockedIn} />
         )}
 
         <div className="progress">
@@ -1163,9 +1296,14 @@ export default function OnlineRace({ profile, onExit }) {
               <div className="guess-title-row">
                 <div className="guess-title-field" ref={titleFieldRef}>
                   <input
-                    className={`guess-input${titleHintText ? " guess-input--hint" : ""}`}
-                    placeholder={titleHintText || "song title…"}
-                    value={titleGuess}
+                    className={`guess-input${titleHintText || lockedIn ? " guess-input--hint" : ""}${lockedIn ? " guess-input--locked" : ""}`}
+                    placeholder={
+                      lockedIn
+                        ? "locked in — waiting…"
+                        : titleHintText || "song title…"
+                    }
+                    value={lockedIn ? "" : titleGuess}
+                    disabled={lockedIn}
                     onChange={(e) => {
                       setAlmostTitle(null);
                       setTitleGuess(e.target.value);
@@ -1176,7 +1314,7 @@ export default function OnlineRace({ profile, onExit }) {
                     token={almostTitle}
                     onDone={() => setAlmostTitle(null)}
                   />
-                  {myStep >= HINT_AFTER_SKIPS && (!hintUsed || hintPop) && (
+                  {myStep >= HINT_AFTER_SKIPS && (!hintUsed || hintPop) && !lockedIn && (
                     <div className="guess-hint-slot">
                       {hintPop ? (
                         <PenaltyPop
@@ -1242,7 +1380,11 @@ export default function OnlineRace({ profile, onExit }) {
               <button
                 className="btn btn-guess"
                 onClick={submitGuess}
-                disabled={!titleGuess.trim() && !artistGuess.trim()}
+                disabled={
+                  lockedIn
+                    ? !artistGuess.trim() || !!revealedArtist
+                    : !titleGuess.trim() && !artistGuess.trim()
+                }
               >
                 <span className="btn-label">guess</span>
                 <span className="btn-hint">enter</span>
@@ -1273,6 +1415,7 @@ export default function OnlineRace({ profile, onExit }) {
                 )}
               </div>
             </div>
+            {timed && <TimedPlacesList places={timedPlaces} />}
             <div className="media-stage-vote">
               <button
                 type="button"

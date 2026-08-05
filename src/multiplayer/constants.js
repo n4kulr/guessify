@@ -48,6 +48,25 @@ export function titlePointsForGuess(skips = 0, hintUsed = false) {
   return Math.max(0, TITLE_POINTS - cut);
 }
 
+/** Timed (45s) rounds: wall-clock length before reveal. */
+export const TIMED_ROUND_MS = 45_000;
+/** Drop title payout by this much per place after 1st in timed mode. */
+export const TIMED_PLACE_STEP = 80;
+
+/**
+ * Timed scoreboard: place 0 (fastest) keeps full titlePts; each later place −80.
+ * @param {number} titlePts
+ * @param {number} placeIndex 0-based rank by solve speed
+ */
+export function timedTitlePoints(titlePts, placeIndex = 0) {
+  const place = Math.max(0, Math.floor(Number(placeIndex) || 0));
+  return Math.max(0, Math.floor(Number(titlePts) || 0) - place * TIMED_PLACE_STEP);
+}
+
+export function normalizeRaceMode(mode) {
+  return mode === "timed" ? "timed" : "classic";
+}
+
 /**
  * Seconds unlocked for a player's personal skip step (multiplayer).
  * Prefers unlockByPlayer[playerId]; falls back to legacy shared unlocked /

@@ -15,12 +15,13 @@ import { isFastTest } from "./fastTest.js";
 import { useDebugActions } from "./debugRegistry.js";
 import OnlineJoinDialog from "./components/OnlineJoinDialog.jsx";
 import PrivacyDialog from "./components/PrivacyDialog.jsx";
+import RaceModeDialog from "./components/RaceModeDialog.jsx";
 import PlayHowto, {
   hasSeenPlayHowto,
   markPlayHowtoSeen,
   HOWTO_KEY,
 } from "./components/PlayHowto.jsx";
-import { makeRoomCode } from "./multiplayer/constants.js";
+import { makeRoomCode, normalizeRaceMode } from "./multiplayer/constants.js";
 import { loadLocalProfile, saveLocalProfile, hasSavedLocalProfile } from "./localProfile.js";
 import { loadTheme, DEFAULT_THEME } from "./themes.js";
 import { attachKeyboardSounds } from "./keyboardSounds.js";
@@ -60,6 +61,8 @@ export default function App() {
   const [hostProfile, setHostProfile] = useState(null);
   const [howtoMode, setHowtoMode] = useState(null); // null | solo | multi | online
   const [privacyOpen, setPrivacyOpen] = useState(false);
+  const [raceModePrompt, setRaceModePrompt] = useState(null); // null | "online"
+  const [raceMode, setRaceMode] = useState("classic"); // classic | timed
   // Capture ?fast=1 before history seeding strips the query.
   useRef(isFastTest());
 
@@ -100,6 +103,8 @@ export default function App() {
     setHostPrompt(false);
     setHostProfile(null);
     setHowtoMode(null);
+    setRaceModePrompt(null);
+    setRaceMode("classic");
     setHomeNonce((n) => n + 1);
   }
 
@@ -321,12 +326,29 @@ export default function App() {
     setOnlineProfile(null);
     setHostPrompt(false);
     setHostProfile(null);
+    setRaceMode("classic");
     pushNav("pick", "multi");
   }
 
   function beginOnline() {
+    setRaceModePrompt("online");
+  }
+
+  function confirmRaceMode(mode) {
+    setRaceMode(normalizeRaceMode(mode));
+    setRaceModePrompt(null);
     setOnlinePrompt(true);
     pushNav("online-prompt", "online");
+  }
+
+  function cancelRaceMode() {
+    setRaceModePrompt(null);
+    if (window.history.state?.step === "howto") {
+      window.history.back();
+      return;
+    }
+    resetToHomeUi();
+    replaceNav("home");
   }
 
   function withHowto(nextMode, next) {
@@ -364,10 +386,11 @@ export default function App() {
       setMode("multi");
       setPicking(true);
       setPlaylist(null);
+      setRaceMode("classic");
       replaceNav("pick", "multi");
     } else if (next === "online") {
-      setOnlinePrompt(true);
-      replaceNav("online-prompt", "online");
+      setRaceModePrompt("online");
+      replaceNav("home");
     }
   }
 
@@ -614,13 +637,20 @@ export default function App() {
               playlist={playlist}
               me={me}
               profile={hostProfile}
+              raceMode={raceMode}
               onExit={goHome}
             />
           )}
 
         {(status === "loggedIn" || status === "loggedOut") &&
           mode === "online" &&
-          onlineProfile && <OnlineRace profile={onlineProfile} onExit={goHome} />}
+          onlineProfile && (
+            <OnlineRace
+              profile={onlineProfile}
+              raceMode={raceMode}
+              onExit={goHome}
+            />
+          )}
       </main>
 
       {howtoMode && (
@@ -628,6 +658,13 @@ export default function App() {
           mode={howtoMode}
           onDone={finishHowto}
           onPrivacy={() => setPrivacyOpen(true)}
+        />
+      )}
+
+      {raceModePrompt && (
+        <RaceModeDialog
+          onPick={confirmRaceMode}
+          onCancel={cancelRaceMode}
         />
       )}
 

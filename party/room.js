@@ -13,10 +13,13 @@ import {
   normalizeAvatar,
   randomAvatar,
   titlePointsForGuess,
+  timedTitlePoints,
   ARTIST_BONUS,
   nextVotesNeeded,
   activePlayerCount,
   allPlayersMaxUnlocked,
+  TIMED_ROUND_MS,
+  normalizeRaceMode,
 } from "../src/multiplayer/constants.js";
 import { titleHintMask, HINT_AFTER_SKIPS } from "../src/titleHint.js";
 import { resolveItunesPreview } from "./itunesPreview.js";
@@ -34,6 +37,34 @@ const MAX_PLAYERS = 4;
  */
 export class Room extends Server {
   state = null; // set when host claims the room
+  timedRoundTimer = null;
+
+  clearTimedRoundTimer() {
+    if (this.timedRoundTimer != null) {
+      clearTimeout(this.timedRoundTimer);
+      this.timedRoundTimer = null;
+    }
+  }
+
+  scheduleTimedRoundEnd() {
+    this.clearTimedRoundTimer();
+    if (!this.state || this.state.raceMode !== "timed") return;
+    const endsAt = this.state.roundEndsAt || Date.now() + TIMED_ROUND_MS;
+    this.state.roundEndsAt = endsAt;
+    const delay = Math.max(0, endsAt - Date.now());
+    this.timedRoundTimer = setTimeout(() => {
+      this.timedRoundTimer = null;
+      this.finishTimedRound();
+    }, delay);
+  }
+
+  maybeFinishTimedIfPastDue() {
+    if (!this.state) return;
+    if (this.state.raceMode !== "timed") return;
+    if (this.state.phase !== "play") return;
+    if (!this.state.roundEndsAt || Date.now() < this.state.roundEndsAt) return;
+    this.finishTimedRound();
+  }
 
   async onStart() {
     const saved = await this.ctx.storage.get("room");
@@ -49,6 +80,12 @@ export class Room extends Server {
         // Ensure every player has a peep (migrate legacy eyes/mouth avatars once).
         p.avatar = normalizeAvatar(p.avatar, p.color || PLAYER_COLORS[0]);
         p.color = p.avatar.color;
+      }
+      if (!this.state.raceMode) this.state.raceMode = "classic";
+      if (!this.state.roundSolves) this.state.roundSolves = {};
+      this.maybeFinishTimedIfPastDue();
+      if (this.state.phase === "play" && this.state.raceMode === "timed") {
+        this.scheduleTimedRoundEnd();
       }
       await this.scheduleLeaveAlarm();
     }
@@ -190,12 +227,25 @@ export class Room extends Server {
       case "profile":
         this.handleProfile(msg, sender);
         break;
+      case "raceMode":
+        this.handleRaceMode(msg, sender);
+        break;
       case "setPreview":
         this.handleSetPreview(msg, sender);
         break;
       default:
         break;
     }
+  }
+
+  /** Host can flip classic/timed while waiting in lobby. */
+  handleRaceMode(msg, sender) {
+    if (!this.state || this.state.phase !== "lobby") return;
+    const player = this.playerFor(sender);
+    if (!player?.isHost) return;
+    this.state.raceMode = normalizeRaceMode(msg.raceMode);
+    this.broadcastState();
+    void this.persist();
   }
 
   /** Host (or any player) can publish a resolved preview URL for the current round. */
@@ -251,6 +301,7 @@ export class Room extends Server {
         tracks: shuffle(tracks).slice(0, Math.min(ROUND_COUNT, tracks.length)),
         players: [hostPlayer],
         phase: "lobby", // lobby | play | reveal | over
+        raceMode: normalizeRaceMode(msg.raceMode),
         roundIdx: 0,
         unlockByPlayer: {},
         hintByPlayer: {},
@@ -265,7 +316,10 @@ export class Room extends Server {
         revealedArtist: null,
         artistClaimedBy: null,
         roundResults: [],
+        roundSolves: {},
         roundStartedAt: null,
+        roundEndsAt: null,
+        timedPlaces: null,
         colorIdx: 1,
         updatedAt: Date.now(),
       };
@@ -316,6 +370,9 @@ export class Room extends Server {
         );
         this.state.playlistName = msg.playlistName || this.state.playlistName;
       }
+    }
+    if (this.state.phase === "lobby" && msg.raceMode != null) {
+      this.state.raceMode = normalizeRaceMode(msg.raceMode);
     }
 
     sender.send(
@@ -451,10 +508,17 @@ export class Room extends Server {
     this.state.revealedArtist = null;
     this.state.artistClaimedBy = null;
     this.state.roundResults = [];
+    this.state.roundSolves = {};
+    this.state.timedPlaces = null;
     this.state.roundStartedAt = Date.now();
+    this.state.roundEndsAt =
+      this.state.raceMode === "timed"
+        ? this.state.roundStartedAt + TIMED_ROUND_MS
+        : null;
     await this.resolveCurrentPreview();
     this.broadcastState();
     await this.persist();
+    if (this.state.raceMode === "timed") this.scheduleTimedRoundEnd();
   }
 
   handleGuess(msg, sender) {
@@ -498,6 +562,7 @@ export class Room extends Server {
 
     // Locked / just-claimed artist stays green on later title tries.
     const artistKnown = artistOk || !!this.state.revealedArtist;
+    const alreadySolved = !!this.state.roundSolves?.[player.id];
     this.state.guesses.push({
       playerId: player.id,
       name: player.name,
@@ -509,9 +574,28 @@ export class Room extends Server {
       artistOk: artistKnown,
       almostTitle: !!almostTitle,
       almostArtist: !!almostArtist,
-      win,
+      win: titleOk && this.state.raceMode !== "timed",
+      lockedIn: titleOk && this.state.raceMode === "timed",
       artistPts,
     });
+
+    if (win && this.state.raceMode === "timed") {
+      if (!alreadySolved) {
+        if (!this.state.roundSolves) this.state.roundSolves = {};
+        const skips = this.state.unlockByPlayer?.[player.id] ?? 0;
+        const hinted = !!this.state.hintByPlayer?.[player.id];
+        this.state.roundSolves[player.id] = {
+          wallMs: Math.max(0, Date.now() - (this.state.roundStartedAt || Date.now())),
+          skips,
+          hinted,
+          baseTitlePts: titlePointsForGuess(skips, hinted),
+        };
+      }
+      this.broadcastState();
+      void this.persist();
+      this.maybeFinishTimedIfAllSolved();
+      return;
+    }
 
     if (win) {
       const skips = this.state.unlockByPlayer?.[player.id] ?? 0;
@@ -523,6 +607,8 @@ export class Room extends Server {
       this.state.outcome = "win";
       this.state.phase = "reveal";
       this.state.nextVotes = {};
+      this.state.roundEndsAt = null;
+      this.clearTimedRoundTimer();
       player.score += titlePts;
       player.wins += 1;
       this.pushRoundResult();
@@ -532,6 +618,69 @@ export class Room extends Server {
     }
     // Wrong guesses never unlock more audio — only that player's skip does.
 
+    this.broadcastState();
+    void this.persist();
+  }
+
+  maybeFinishTimedIfAllSolved() {
+    if (!this.state || this.state.raceMode !== "timed" || this.state.phase !== "play") {
+      return;
+    }
+    const active = this.state.players.filter(
+      (p) => p && !p.left && p.connected !== false
+    );
+    if (!active.length) return;
+    const solves = this.state.roundSolves || {};
+    if (active.every((p) => solves[p.id])) {
+      this.finishTimedRound();
+    }
+  }
+
+  finishTimedRound() {
+    if (!this.state || this.state.phase !== "play") return;
+    if (this.state.raceMode !== "timed") return;
+    this.clearTimedRoundTimer();
+
+    const solves = this.state.roundSolves || {};
+    const ranked = Object.entries(solves)
+      .map(([playerId, s]) => ({ playerId, ...s }))
+      .sort((a, b) => a.wallMs - b.wallMs);
+
+    const places = [];
+    ranked.forEach((row, place) => {
+      const player = this.state.players.find((p) => p.id === row.playerId);
+      if (!player) return;
+      const titlePts = timedTitlePoints(row.baseTitlePts, place);
+      player.score += titlePts;
+      if (place === 0) player.wins += 1;
+      places.push({
+        playerId: row.playerId,
+        name: player.name,
+        color: player.color,
+        avatar: player.avatar,
+        place,
+        wallMs: row.wallMs,
+        titlePts,
+      });
+    });
+
+    this.state.timedPlaces = places;
+    this.state.roundEndsAt = null;
+    this.state.nextVotes = {};
+    if (places.length) {
+      this.state.winnerId = places[0].playerId;
+      this.state.outcome = "win";
+      this.state.earnedPts = places[0].titlePts;
+      this.state.bonus = 0;
+      this.state.phase = "reveal";
+      this.pushRoundResult();
+    } else {
+      this.state.winnerId = null;
+      this.state.outcome = "lose";
+      this.state.earnedPts = 0;
+      this.state.bonus = 0;
+      this.state.phase = "reveal";
+    }
     this.broadcastState();
     void this.persist();
   }
@@ -562,7 +711,11 @@ export class Room extends Server {
     this.state.unlockByPlayer[player.id] = step + 1;
 
     // Round only ends once every active player has fully unlocked.
-    if (allPlayersMaxUnlocked(this.state.players, this.state.unlockByPlayer)) {
+    // Timed mode always waits for the 45s clock (or all titles locked in).
+    if (
+      this.state.raceMode !== "timed" &&
+      allPlayersMaxUnlocked(this.state.players, this.state.unlockByPlayer)
+    ) {
       this.state.outcome = "lose";
       this.state.winnerId = null;
       this.state.earnedPts = 0;
@@ -656,11 +809,18 @@ export class Room extends Server {
     this.state.earnedPts = 0;
     this.state.revealedArtist = null;
     this.state.artistClaimedBy = null;
+    this.state.roundSolves = {};
+    this.state.timedPlaces = null;
     this.state.phase = "play";
     this.state.roundStartedAt = Date.now();
+    this.state.roundEndsAt =
+      this.state.raceMode === "timed"
+        ? this.state.roundStartedAt + TIMED_ROUND_MS
+        : null;
     await this.resolveCurrentPreview();
     this.broadcastState();
     await this.persist();
+    if (this.state.raceMode === "timed") this.scheduleTimedRoundEnd();
   }
 
   /** Record a solved round for end-game compare (misses are skipped). */
@@ -804,6 +964,11 @@ export class Room extends Server {
       revealedArtist: this.state.revealedArtist || null,
       artistClaimedBy: this.state.artistClaimedBy || null,
       roundResults: this.state.roundResults || [],
+      raceMode: this.state.raceMode || "classic",
+      roundEndsAt: this.state.roundEndsAt || null,
+      roundStartedAt: this.state.roundStartedAt || null,
+      timedPlaces: this.state.timedPlaces || null,
+      lockedInIds: Object.keys(this.state.roundSolves || {}),
       track: this.publicTrack(),
       trackId: this.state.tracks[this.state.roundIdx]?.id || null,
     };

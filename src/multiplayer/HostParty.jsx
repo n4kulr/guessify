@@ -16,6 +16,7 @@ import GameOverStats from "../components/GameOverStats.jsx";
 import PlayerRail from "./PlayerRail.jsx";
 import ProfileEditor from "./ProfileEditor.jsx";
 import GuessPopups from "./GuessPopups.jsx";
+import { TimedCountdown, TimedPlacesList } from "./TimedHud.jsx";
 import { loadLocalProfile, saveLocalProfile } from "../localProfile.js";
 import { applyThemeForAccent, accentMatchingTheme } from "../themes.js";
 import { isNoPreviewError } from "../shareScore.js";
@@ -24,12 +25,20 @@ import { computeGameStats } from "../gameStats.js";
 import { recordPlaylistScore } from "../playlistBests.js";
 import { isFastTest, buildFastPartyEnd } from "../fastTest.js";
 import { useDebugActions } from "../debugRegistry.js";
+import { normalizeRaceMode } from "./constants.js";
 
 /**
  * Host multiplayer session — picks playlist / starts game; audio plays locally
  * on each device (no shared DJ).
  */
-export default function HostParty({ code, playlist, me, profile, onExit }) {
+export default function HostParty({
+  code,
+  playlist,
+  me,
+  profile,
+  raceMode = "classic",
+  onExit,
+}) {
   const { state, status, error, send, playerId: socketPlayerId, titleHint, consumeTitleHint } =
     usePartyRoom(code);
   // Prefer roster host id — handshake/sessionStorage can lag or go stale, which
@@ -197,6 +206,7 @@ export default function HostParty({ code, playlist, me, profile, onExit }) {
       hostName,
       avatar: hostAvatar,
       playlistName: playlist.name,
+      raceMode: normalizeRaceMode(raceMode),
       tracks: playlist.tracks.map((t) => ({
         id: t.id,
         name: t.name,
@@ -308,7 +318,7 @@ export default function HostParty({ code, playlist, me, profile, onExit }) {
     const g = guesses[i];
     if (!g || g.playerId !== playerId || g.skip) return;
     lastFxGuess.current = i;
-    if (g.win) fireConfetti("title");
+    if (g.win || g.lockedIn) fireConfetti("title");
     else {
       if (g.almostTitle) setAlmostTitle(Date.now());
       if (g.almostArtist) setAlmostArtist(Date.now());
@@ -327,6 +337,12 @@ export default function HostParty({ code, playlist, me, profile, onExit }) {
   const myStep = state?.unlockByPlayer?.[playerId] ?? 0;
   const phase = state?.phase || "lobby";
   const spinning = localPlaying && (phase === "play" || phase === "reveal");
+  const timed = (state?.raceMode || raceMode) === "timed";
+  const lockedIn = !!(
+    playerId &&
+    Array.isArray(state?.lockedInIds) &&
+    state.lockedInIds.includes(playerId)
+  );
 
   async function playSnippet(seconds) {
     if (!canPlay) return;
@@ -516,6 +532,12 @@ export default function HostParty({ code, playlist, me, profile, onExit }) {
   if (!state || phase === "lobby" || phase === "empty") {
     const players = state?.players || [];
     const canStart = players.some((p) => p.connected);
+    const lobbyMode = normalizeRaceMode(state?.raceMode || raceMode);
+    function pickLobbyMode(next) {
+      const mode = normalizeRaceMode(next);
+      if (mode === lobbyMode) return;
+      send({ type: "raceMode", raceMode: mode });
+    }
     return (
       <div className="mp-lobby">
         <button className="btn btn-mini mp-back" onClick={onExit}>
@@ -554,6 +576,25 @@ export default function HostParty({ code, playlist, me, profile, onExit }) {
           </div>
           <div className="mp-lobby-side">
             <h3 className="mp-side-title mp-side-accent">{playlist.name}</h3>
+            <h3 className="mp-side-title">mode</h3>
+            <div className="lobby-race-mode" role="group" aria-label="Game mode">
+              <button
+                type="button"
+                className={`lobby-race-mode-btn${lobbyMode === "classic" ? " is-active" : ""}`}
+                onClick={() => pickLobbyMode("classic")}
+              >
+                <span className="lobby-race-mode-title">Classic</span>
+                <span className="lobby-race-mode-blurb">first to nail it</span>
+              </button>
+              <button
+                type="button"
+                className={`lobby-race-mode-btn${lobbyMode === "timed" ? " is-active" : ""}`}
+                onClick={() => pickLobbyMode("timed")}
+              >
+                <span className="lobby-race-mode-title">Timed</span>
+                <span className="lobby-race-mode-blurb">45s · score by speed</span>
+              </button>
+            </div>
             <h3 className="mp-side-title">players</h3>
             <PlayerRail players={players} />
             {error && <div className="error-banner">{error}</div>}
@@ -582,7 +623,8 @@ export default function HostParty({ code, playlist, me, profile, onExit }) {
   }
 
   function submitGuess() {
-    const title = titleGuess.trim();
+    // Title locks after a correct timed solve; artist bonus stays open.
+    const title = lockedIn ? "" : titleGuess.trim();
     const artist = artistGuess.trim();
     if (!title && !artist) return;
     send({ type: "guess", title, artist });
@@ -661,13 +703,23 @@ export default function HostParty({ code, playlist, me, profile, onExit }) {
       />
       {errorMsg && <div className="error-banner">{errorMsg}</div>}
 
-      {revealed && state.outcome === "win" && (
+      {revealed && state.outcome === "win" && !timed && (
         <div className="inline-badge inline-badge--win">
           {state.players.find((p) => p.id === state.winnerId)?.name || "someone"} NAILED IT
         </div>
       )}
+      {revealed && state.outcome === "win" && timed && (
+        <div className="inline-badge inline-badge--win">TIME’S UP</div>
+      )}
       {revealed && state.outcome === "lose" && (
         <div className="inline-badge inline-badge--lose">NOBODY GOT IT</div>
+      )}
+
+      {phase === "play" && timed && (
+        <TimedCountdown
+          roundEndsAt={state.roundEndsAt}
+          lockedIn={lockedIn}
+        />
       )}
 
       <div className="progress">
@@ -694,9 +746,12 @@ export default function HostParty({ code, playlist, me, profile, onExit }) {
             <div className="guess-title-row">
               <div className="guess-title-field" ref={titleFieldRef}>
                 <input
-                  className={`guess-input${titleHintText ? " guess-input--hint" : ""}`}
-                  placeholder={titleHintText || "song title…"}
-                  value={titleGuess}
+                  className={`guess-input${titleHintText || lockedIn ? " guess-input--hint" : ""}${lockedIn ? " guess-input--locked" : ""}`}
+                  placeholder={
+                    lockedIn ? "locked in — waiting…" : titleHintText || "song title…"
+                  }
+                  value={lockedIn ? "" : titleGuess}
+                  disabled={lockedIn}
                   onChange={(e) => {
                     setAlmostTitle(null);
                     setTitleGuess(e.target.value);
@@ -707,7 +762,7 @@ export default function HostParty({ code, playlist, me, profile, onExit }) {
                   token={almostTitle}
                   onDone={() => setAlmostTitle(null)}
                 />
-                {myStep >= HINT_AFTER_SKIPS && (!hintUsed || hintPop) && (
+                {myStep >= HINT_AFTER_SKIPS && (!hintUsed || hintPop) && !lockedIn && (
                   <div className="guess-hint-slot">
                     {hintPop ? (
                       <PenaltyPop
@@ -773,7 +828,11 @@ export default function HostParty({ code, playlist, me, profile, onExit }) {
             <button
               className="btn btn-guess"
               onClick={submitGuess}
-              disabled={!titleGuess.trim() && !artistGuess.trim()}
+              disabled={
+                lockedIn
+                  ? !artistGuess.trim() || !!state.revealedArtist
+                  : !titleGuess.trim() && !artistGuess.trim()
+              }
             >
               <span className="btn-label">guess</span>
               <span className="btn-hint">enter</span>
@@ -800,6 +859,7 @@ export default function HostParty({ code, playlist, me, profile, onExit }) {
               )}
             </div>
           </div>
+          {timed && <TimedPlacesList places={state.timedPlaces} />}
           <div className="media-stage-vote">
             <button
               type="button"
