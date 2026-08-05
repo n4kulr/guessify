@@ -1,8 +1,11 @@
 import PlayerAvatar from "./PlayerAvatar.jsx";
 
 /** Round guesses as sticky right-side popups (cleared when the room resets guesses). */
-export default function GuessPopups({ guesses = [], myId }) {
-  const visible = guesses.filter((g) => !g.skip);
+export default function GuessPopups({ guesses = [], myId, timed = false }) {
+  // Timed: hide others so a lock-in doesn't spoil the race. Classic: show everyone.
+  const visible = guesses.filter(
+    (g) => !g.skip && (!timed || g.playerId === myId)
+  );
 
   if (!visible.length) {
     return (

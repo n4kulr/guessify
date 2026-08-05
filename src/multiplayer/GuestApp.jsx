@@ -722,7 +722,7 @@ export default function GuestApp({ code }) {
         {error && <div className="error-banner">{error}</div>}
       </div>
 
-      <GuessPopups guesses={state.guesses} myId={playerId} />
+      <GuessPopups guesses={state.guesses} myId={playerId} timed={timed} />
     </div>
   );
 }

@@ -1458,7 +1458,7 @@ export default function OnlineRace({ profile, onExit, raceMode: raceModeProp }) 
         )}
       </div>
 
-      <GuessPopups guesses={guesses} myId={youId} />
+      <GuessPopups guesses={guesses} myId={youId} timed={timed} />
     </div>
   );
 }
