@@ -34,7 +34,7 @@ function joinCodeFromPath() {
   return m ? m[1].toUpperCase() : null;
 }
 
-const HOME_TITLE = "Guessify — name that song. Free music guessing game";
+const HOME_TITLE = "Guessify — Guess the song from a short clip";
 
 function syncSeo() {
   const home = (window.location.pathname.replace(/\/+$/, "") || "/") === "/";
