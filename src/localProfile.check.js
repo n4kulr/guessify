@@ -21,6 +21,11 @@ const {
 } = await import("./localProfile.js");
 
 assert.equal(hasSavedLocalProfile(), false);
+const seeded = loadLocalProfile();
+assert.ok(seeded.avatar.peep >= 1);
+assert.deepEqual(loadLocalProfile().avatar, seeded.avatar, "first visit keeps the random look");
+assert.equal(hasSavedLocalProfile(), false, "seed must not mark customized");
+
 saveLocalProfile({ name: "from-spotify", avatar: { peep: 1, color: "#e2b714" } });
 assert.equal(hasSavedLocalProfile(), false, "name sync must not mark customized");
 assert.equal(loadLocalProfile().name, "from-spotify");

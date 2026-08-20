@@ -18,7 +18,7 @@ export default function UserMenu({ me, onLogout }) {
     <div className={`user-menu${open ? " is-open" : ""}`} ref={ref}>
       <button
         type="button"
-        className="user-menu-btn"
+        className="volume-btn user-menu-btn"
         aria-haspopup="menu"
         aria-expanded={open}
         title={name}

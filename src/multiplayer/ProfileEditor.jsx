@@ -63,13 +63,17 @@ export default function ProfileEditor({
   avatar: avatarProp,
   onChange,
   showRandom = true,
+  compact = false,
 }) {
   const [name, setName] = useState(nameProp);
   const [avatar, setAvatar] = useState(() =>
     avatarMatchingTheme(avatarProp || randomAvatar())
   );
   const [menu, setMenu] = useState(null); // null | "peep" | "accent"
+  const [shown, setShown] = useState(null);
+  const [open, setOpen] = useState(false);
   const peepRef = useRef(null);
+  const peepMenuRef = useRef(null);
   const accentRef = useRef(null);
   const didEmitInit = useRef(false);
   const peepIds = useMemo(
@@ -97,15 +101,38 @@ export default function ProfileEditor({
   }, []);
 
   useEffect(() => {
+    if (menu) {
+      setShown(menu);
+      const id = requestAnimationFrame(() => setOpen(true));
+      return () => cancelAnimationFrame(id);
+    }
+    setOpen(false);
+    const t = setTimeout(() => setShown(null), 320);
+    return () => clearTimeout(t);
+  }, [menu]);
+
+  useEffect(() => {
     if (!menu) return;
     function onDoc(e) {
       const t = e.target;
-      if (peepRef.current?.contains(t) || accentRef.current?.contains(t)) return;
+      if (
+        peepRef.current?.contains(t) ||
+        peepMenuRef.current?.contains(t) ||
+        accentRef.current?.contains(t)
+      )
+        return;
       setMenu(null);
     }
     document.addEventListener("pointerdown", onDoc);
     return () => document.removeEventListener("pointerdown", onDoc);
   }, [menu]);
+
+  useEffect(() => {
+    if (shown !== "peep") return;
+    peepMenuRef.current
+      ?.querySelector(".profile-peep-swatch.active")
+      ?.scrollIntoView({ block: "nearest" });
+  }, [shown]);
 
   function emit(nextName, nextAvatar) {
     onChange?.({
@@ -135,8 +162,8 @@ export default function ProfileEditor({
   }
 
   return (
-    <div className="profile-editor">
-      <PlayerAvatar avatar={avatar} size={56} />
+    <div className={`profile-editor${compact ? " profile-editor--compact" : ""}`}>
+      {!compact && <PlayerAvatar avatar={avatar} size={56} />}
       <div className="profile-fields">
         <input
           className="guess-input profile-name"
@@ -164,30 +191,6 @@ export default function ProfileEditor({
                 icon
                 <Chevron />
               </button>
-              {menu === "peep" && (
-                <div className="profile-peep-menu" role="listbox" aria-label="icons">
-                  <p className="profile-dd-label">pick an icon</p>
-                  <div className="profile-peep-grid">
-                    {peepIds.map((id) => (
-                      <button
-                        key={id}
-                        type="button"
-                        role="option"
-                        aria-selected={avatar.peep === id}
-                        className={`profile-peep-swatch ${avatar.peep === id ? "active" : ""}`}
-                        style={{ background: avatar.color }}
-                        onClick={() => {
-                          patchAvatar({ peep: id });
-                          setMenu(null);
-                        }}
-                        aria-label={`icon ${id}`}
-                      >
-                        <img src={peepSrc(id)} alt="" draggable={false} />
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              )}
             </div>
             <div className="profile-accent" ref={accentRef}>
               <button
@@ -205,29 +208,89 @@ export default function ProfileEditor({
                 accent
                 <Chevron />
               </button>
-              {menu === "accent" && (
-                <div className="profile-accent-menu" role="listbox" aria-label="accent colors">
-                  <p className="profile-dd-label">pick a color</p>
-                  <div className="profile-swatch-grid">
-                    {PLAYER_COLORS.map((c) => (
-                      <button
-                        key={c}
-                        type="button"
-                        role="option"
-                        aria-selected={avatar.color === c}
-                        className={`profile-swatch ${avatar.color === c ? "active" : ""}`}
-                        style={{ background: c }}
-                        onClick={() => {
-                          patchAvatar({ color: c });
-                          setMenu(null);
-                        }}
-                        aria-label={`color ${c}`}
-                      />
-                    ))}
-                  </div>
-                </div>
-              )}
             </div>
+          </div>
+        </div>
+        <div className={`profile-pick-tray${open ? " is-open" : ""}`}>
+          <div className="profile-pick-tray-inner">
+        {shown === "peep" && (
+          <div
+            className="profile-peep-menu"
+            ref={peepMenuRef}
+            role="listbox"
+            aria-label="icons"
+          >
+            <div className="profile-dd-head">
+              <p className="profile-dd-label">pick an icon</p>
+              <button
+                type="button"
+                className="btn btn-mini"
+                onClick={() => {
+                  let peep = randomAvatar().peep;
+                  if (peep === avatar.peep) peep = (peep % PEEP_COUNT) + 1;
+                  patchAvatar({ peep });
+                }}
+              >
+                surprise me
+              </button>
+            </div>
+            <div className="profile-peep-grid">
+              {peepIds.map((id) => (
+                <button
+                  key={id}
+                  type="button"
+                  role="option"
+                  aria-selected={avatar.peep === id}
+                  className={`profile-peep-swatch ${avatar.peep === id ? "active" : ""}`}
+                  onClick={() => patchAvatar({ peep: id })}
+                  aria-label={`icon ${id}`}
+                >
+                  <img src={peepSrc(id)} alt="" draggable={false} />
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+        {shown === "accent" && (
+          <div
+            className="profile-peep-menu"
+            ref={peepMenuRef}
+            role="listbox"
+            aria-label="accent colors"
+          >
+            <div className="profile-dd-head">
+              <p className="profile-dd-label">pick a color</p>
+              <button
+                type="button"
+                className="btn btn-mini"
+                onClick={() => {
+                  let color = randomAvatar().color;
+                  if (color === avatar.color) {
+                    const i = PLAYER_COLORS.indexOf(color);
+                    color = PLAYER_COLORS[(Math.max(0, i) + 1) % PLAYER_COLORS.length];
+                  }
+                  patchAvatar({ color });
+                }}
+              >
+                surprise me
+              </button>
+            </div>
+            <div className="profile-peep-grid profile-peep-grid--fit">
+              {PLAYER_COLORS.map((c) => (
+                <button
+                  key={c}
+                  type="button"
+                  role="option"
+                  aria-selected={avatar.color === c}
+                  className={`profile-swatch ${avatar.color === c ? "active" : ""}`}
+                  style={{ background: c }}
+                  onClick={() => patchAvatar({ color: c })}
+                  aria-label={`color ${c}`}
+                />
+              ))}
+            </div>
+          </div>
+        )}
           </div>
         </div>
       </div>

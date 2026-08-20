@@ -4,6 +4,7 @@ import Home from "./components/Home.jsx";
 import PlaylistPicker from "./components/PlaylistPicker.jsx";
 import Game from "./components/Game.jsx";
 import ThemeSwitcher from "./components/ThemeSwitcher.jsx";
+import LookButton from "./components/LookButton.jsx";
 import VolumeControl from "./components/VolumeControl.jsx";
 import FabDock from "./components/FabDock.jsx";
 import UserMenu from "./components/UserMenu.jsx";
@@ -597,6 +598,7 @@ export default function App() {
         <div className="topbar-right">
           <VolumeControl />
           <ThemeSwitcher current={theme} onChange={setTheme} />
+          <LookButton />
           {status === "loggedIn" && <UserMenu me={me} onLogout={logout} />}
         </div>
       </header>

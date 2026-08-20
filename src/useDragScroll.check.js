@@ -10,5 +10,5 @@ import { dirname, join } from "node:path";
 const src = readFileSync(join(dirname(fileURLToPath(import.meta.url)), "useDragScroll.js"), "utf8");
 assert.doesNotMatch(src, /addEventListener\(\s*["']wheel["']/, "must not intercept wheel");
 assert.doesNotMatch(src, /onWheel/, "no wheel handler");
-assert.match(src, /pointerdown/, "still supports click-drag");
+assert.match(src, /window\.addEventListener\(\s*["']pointermove["']/, "drag tracks on window (Windows mouse)");
 console.log("useDragScroll.check: ok");

@@ -8,14 +8,22 @@ export function loadLocalProfile() {
   try {
     const raw = JSON.parse(localStorage.getItem(KEY) || "null");
     if (!raw || typeof raw !== "object") {
-      return { name: "", avatar: randomAvatar() };
+      const seeded = { name: "", avatar: randomAvatar() };
+      localStorage.setItem(KEY, JSON.stringify(seeded));
+      return seeded;
     }
     return {
       name: String(raw.name || "").trim().slice(0, 16),
       avatar: normalizeAvatar(raw.avatar || randomAvatar()),
     };
   } catch {
-    return { name: "", avatar: randomAvatar() };
+    const seeded = { name: "", avatar: randomAvatar() };
+    try {
+      localStorage.setItem(KEY, JSON.stringify(seeded));
+    } catch {
+      /* ignore */
+    }
+    return seeded;
   }
 }
 

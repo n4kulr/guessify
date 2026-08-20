@@ -4,6 +4,9 @@ import { useEffect } from "react";
  * Mouse click-drag for overflow-x shelves.
  * Trackpad / touch scrolling stays native (compositor) so it feels like mobile —
  * do not intercept wheel; preventDefault + scrollLeft is what made it laggy.
+ *
+ * Pointermove is bound on window after down so Windows mouse-drag keeps
+ * working when the cursor leaves a CD button / the strip.
  */
 export function useDragScroll(scrollRef) {
   useEffect(() => {
@@ -15,14 +18,6 @@ export function useDragScroll(scrollRef) {
     let pointerId = null;
     let suppressClick = false;
 
-    function onDown(e) {
-      if (e.pointerType === "touch") return;
-      if (e.button !== 0) return;
-      dragging = false;
-      startX = e.clientX;
-      startScroll = el.scrollLeft;
-      pointerId = e.pointerId;
-    }
     function onMove(e) {
       if (pointerId !== e.pointerId) return;
       if (e.pointerType === "touch") return;
@@ -31,19 +26,32 @@ export function useDragScroll(scrollRef) {
         if (Math.abs(dx) < 8) return;
         dragging = true;
         suppressClick = true;
-        el.setPointerCapture?.(e.pointerId);
       }
       el.scrollLeft = startScroll - dx;
     }
     function onUp(e) {
       if (pointerId != null && e.pointerId !== pointerId) return;
       pointerId = null;
+      window.removeEventListener("pointermove", onMove);
+      window.removeEventListener("pointerup", onUp);
+      window.removeEventListener("pointercancel", onUp);
       if (dragging) {
         dragging = false;
         requestAnimationFrame(() => {
           suppressClick = false;
         });
       }
+    }
+    function onDown(e) {
+      if (e.pointerType === "touch") return;
+      if (e.button !== 0) return;
+      dragging = false;
+      startX = e.clientX;
+      startScroll = el.scrollLeft;
+      pointerId = e.pointerId;
+      window.addEventListener("pointermove", onMove);
+      window.addEventListener("pointerup", onUp);
+      window.addEventListener("pointercancel", onUp);
     }
     function onClickCapture(e) {
       if (suppressClick) {
@@ -56,18 +64,15 @@ export function useDragScroll(scrollRef) {
     }
 
     el.addEventListener("pointerdown", onDown);
-    el.addEventListener("pointermove", onMove);
-    el.addEventListener("pointerup", onUp);
-    el.addEventListener("pointercancel", onUp);
     el.addEventListener("click", onClickCapture, true);
     el.addEventListener("dragstart", onDragStart);
     return () => {
       el.removeEventListener("pointerdown", onDown);
-      el.removeEventListener("pointermove", onMove);
-      el.removeEventListener("pointerup", onUp);
-      el.removeEventListener("pointercancel", onUp);
       el.removeEventListener("click", onClickCapture, true);
       el.removeEventListener("dragstart", onDragStart);
+      window.removeEventListener("pointermove", onMove);
+      window.removeEventListener("pointerup", onUp);
+      window.removeEventListener("pointercancel", onUp);
     };
   }, [scrollRef]);
 }
