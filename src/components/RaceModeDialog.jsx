@@ -39,14 +39,16 @@ export default function RaceModeDialog({ onPick, onCancel }) {
         <div className="race-mode-choices">
           <button
             type="button"
-            className="btn btn-big btn-play race-mode-choice"
+            className="btn btn-big btn-multi race-mode-choice"
             onClick={() => onPick?.("classic")}
           >
             <ClassicModeIcon size={26} />
             <span className="race-mode-choice-copy">
               <span className="race-mode-choice-title">Classic</span>
               <span className="race-mode-choice-blurb">
-                first to guess wins the round
+                first to guess wins — ends round
+                <br />
+                can see others’ guesses
               </span>
             </span>
           </button>
@@ -59,7 +61,9 @@ export default function RaceModeDialog({ onPick, onCancel }) {
             <span className="race-mode-choice-copy">
               <span className="race-mode-choice-title">Timed</span>
               <span className="race-mode-choice-blurb">
-                45 seconds · guess times revealed at end of round · faster → more points
+                45 seconds for everyone
+                <br />
+                guesses revealed at the end
               </span>
             </span>
           </button>

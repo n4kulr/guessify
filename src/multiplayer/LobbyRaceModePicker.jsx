@@ -33,7 +33,9 @@ export default function LobbyRaceModePicker({
           <span className="lobby-race-mode-copy">
             <span className="lobby-race-mode-title">Classic</span>
             <span className="lobby-race-mode-blurb">
-              first to guess wins the round
+              first to guess wins — ends round
+              <br />
+              can see others’ guesses
             </span>
           </span>
         </button>
@@ -48,8 +50,9 @@ export default function LobbyRaceModePicker({
           <span className="lobby-race-mode-copy">
             <span className="lobby-race-mode-title">Timed</span>
             <span className="lobby-race-mode-blurb">
-              45 seconds · guess times revealed at end of round · faster → more
-              points
+              45 seconds for everyone
+              <br />
+              guesses revealed at the end
             </span>
           </span>
         </button>

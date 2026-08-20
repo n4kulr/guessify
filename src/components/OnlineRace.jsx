@@ -1151,8 +1151,8 @@ export default function OnlineRace({ profile, onExit, raceMode: raceModeProp }) 
         <PlayerRail players={players} />
         <p className="fineprint">
           {timed
-            ? "today’s charts · 45s · faster → more points"
-            : "today’s charts · first to guess wins"}
+            ? "today’s charts · 45s for everyone · guesses revealed at the end"
+            : "today’s charts · first to guess wins — ends round"}
         </p>
       </div>
     );

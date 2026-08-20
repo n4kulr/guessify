@@ -2,9 +2,19 @@
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "installCommand": "npm install",
   "rewrites": [
+    { "source": "/join/:code", "destination": "/index.html" },
+    { "source": "/pick", "destination": "/index.html" },
+    { "source": "/pick/multi", "destination": "/index.html" },
+    { "source": "/play", "destination": "/index.html" },
+    { "source": "/host", "destination": "/index.html" },
+    { "source": "/host/:code", "destination": "/index.html" },
+    { "source": "/online", "destination": "/index.html" },
+    { "source": "/howto/:mode", "destination": "/index.html" }
+  ],
+  "headers": [
     {
-      "source": "/((?!api/|.*\\..*).*)",
-      "destination": "/index.html"
+      "source": "/(join|pick|play|host|online|howto|mocks)(.*)",
+      "headers": [{ "key": "X-Robots-Tag", "value": "noindex, follow" }]
     }
   ]
 }

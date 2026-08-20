@@ -34,6 +34,20 @@ function joinCodeFromPath() {
   return m ? m[1].toUpperCase() : null;
 }
 
+const HOME_TITLE = "Guessify — name that song. Free music guessing game";
+
+function syncSeo() {
+  const home = (window.location.pathname.replace(/\/+$/, "") || "/") === "/";
+  document.title = home ? HOME_TITLE : "Guessify";
+  let el = document.querySelector('meta[name="robots"]');
+  if (!el) {
+    el = document.createElement("meta");
+    el.name = "robots";
+    document.head.appendChild(el);
+  }
+  el.content = home ? "index, follow" : "noindex, follow";
+}
+
 function pathFor(step, mode, roomCode) {
   if (step === "pick") return mode === "multi" ? "/pick/multi" : "/pick";
   if (step === "play") return "/play";
@@ -83,6 +97,7 @@ export default function App() {
       "",
       pathFor(step, nextMode, code)
     );
+    syncSeo();
   }
 
   function replaceNav(step, nextMode = "solo", code = null) {
@@ -91,6 +106,7 @@ export default function App() {
       "",
       pathFor(step, nextMode, code)
     );
+    syncSeo();
   }
 
   function resetToHomeUi() {
@@ -235,6 +251,10 @@ export default function App() {
   }, [joinCode]);
 
   useEffect(() => {
+    syncSeo();
+  }, [joinCode]);
+
+  useEffect(() => {
     if (joinCode) return;
 
     function onPop(e) {
@@ -243,6 +263,7 @@ export default function App() {
         setHowtoMode(null);
       }
       applyHistory(e.state);
+      syncSeo();
     }
 
     window.addEventListener("popstate", onPop);

@@ -1,0 +1,12 @@
+User-agent: *
+Allow: /
+Disallow: /api/
+Disallow: /join/
+Disallow: /pick
+Disallow: /play
+Disallow: /host
+Disallow: /online
+Disallow: /howto
+Disallow: /mocks/
+
+Sitemap: https://guessify.uk/sitemap.xml
