@@ -51,7 +51,7 @@ export default function PrivacyDialog({ onClose }) {
             <p>
               Guessify is a personal project by{" "}
               <a
-                href="https://devpage-one.vercel.app/"
+                href="https://portfolio-nakulr.vercel.app/"
                 target="_blank"
                 rel="noopener noreferrer"
               >

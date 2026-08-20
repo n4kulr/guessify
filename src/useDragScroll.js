@@ -2,8 +2,8 @@ import { useEffect } from "react";
 
 /**
  * Mouse click-drag for overflow-x shelves.
- * Trackpad / touch scrolling stays native (compositor) so it feels like mobile —
- * do not intercept wheel; preventDefault + scrollLeft is what made it laggy.
+ * Trackpad sideways stays native. Vertical mouse-wheel (Windows) is mapped
+ * to scrollLeft — intercepting every trackpad pixel is what felt laggy.
  *
  * Pointermove is bound on window after down so Windows mouse-drag keeps
  * working when the cursor leaves a CD button / the strip.
@@ -53,6 +53,19 @@ export function useDragScroll(scrollRef) {
       window.addEventListener("pointerup", onUp);
       window.addEventListener("pointercancel", onUp);
     }
+    function onWheel(e) {
+      if (e.ctrlKey) return;
+      if (Math.abs(e.deltaX) > Math.abs(e.deltaY)) return;
+      let dx = e.deltaY;
+      if (e.deltaMode === 1) dx *= 40;
+      if (!dx) return;
+      const max = el.scrollWidth - el.clientWidth;
+      if (max <= 1) return;
+      const next = Math.max(0, Math.min(max, el.scrollLeft + dx));
+      if (next === el.scrollLeft) return;
+      e.preventDefault();
+      el.scrollLeft = next;
+    }
     function onClickCapture(e) {
       if (suppressClick) {
         e.preventDefault();
@@ -64,10 +77,12 @@ export function useDragScroll(scrollRef) {
     }
 
     el.addEventListener("pointerdown", onDown);
+    el.addEventListener("wheel", onWheel, { passive: false });
     el.addEventListener("click", onClickCapture, true);
     el.addEventListener("dragstart", onDragStart);
     return () => {
       el.removeEventListener("pointerdown", onDown);
+      el.removeEventListener("wheel", onWheel);
       el.removeEventListener("click", onClickCapture, true);
       el.removeEventListener("dragstart", onDragStart);
       window.removeEventListener("pointermove", onMove);
