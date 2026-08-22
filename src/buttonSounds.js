@@ -276,7 +276,7 @@ export function resolveButtonSound(el) {
   if (!btn) return null;
 
   // Don't SFX vinyl platter / theme chips / volume / plain peep swatches.
-  if (btn.classList.contains("theme-btn") || btn.classList.contains("volume-btn")) {
+  if (btn.classList.contains("theme-btn") || btn.classList.contains("volume-btn") || btn.classList.contains("theme-mode-btn")) {
     return null;
   }
   if (btn.classList.contains("profile-peep-swatch")) return null;

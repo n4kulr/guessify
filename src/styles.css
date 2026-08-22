@@ -122,6 +122,32 @@ button { font-family: var(--font); }
 .volume-control.is-open .volume-btn {
   color: var(--text-color);
 }
+.theme-mode-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  width: 33px;
+  height: 33px;
+  padding: 0;
+  color: var(--sub-color);
+  background: var(--sub-alt-color);
+  border: none;
+  border-radius: var(--radius);
+  cursor: pointer;
+  transition: color 0.15s ease;
+  flex: none;
+}
+.theme-mode-btn:hover,
+.theme-mode-btn.is-on {
+  color: var(--text-color);
+}
+.theme-mode-btn.is-on {
+  color: var(--main-color);
+}
+.theme-mode-ico {
+  display: block;
+}
 .volume-ico {
   display: block;
 }
@@ -486,7 +512,7 @@ button.footer-privacy:hover {
   background: var(--main-color) !important;
 }
 .look-btn .mp-avatar img {
-  transform: translateX(-1px) scale(1.7);
+  transform: translateX(-1px) translateY(-2px) scale(1.7);
   transform-origin: 50% 18%;
 }
 .look-menu {
@@ -4198,6 +4224,7 @@ button.footer-privacy:hover {
   height: 100%;
   object-fit: cover;
   object-position: center 20%;
+  transform: translateY(-2px);
   pointer-events: none;
   user-select: none;
 }
@@ -4801,6 +4828,7 @@ button.footer-privacy:hover {
   min-width: 0;
   max-width: 100%;
   object-fit: cover;
+  transform: translateY(-2px);
   pointer-events: none;
 }
 .profile-peep-swatch:hover {

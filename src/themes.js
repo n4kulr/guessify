@@ -3,7 +3,6 @@
 // (bg / main accent / sub muted / sub-alt surface / text / error).
 export const THEMES = {
   serika_dark:  { name: "serika dark",  bg: "#323437", main: "#e2b714", sub: "#646669", subAlt: "#2c2e31", text: "#d1d0c5", error: "#ca4754" },
-  serika_light: { name: "serika light", bg: "#e1e1e1", main: "#e2b714", sub: "#aaaeb3", subAlt: "#d5d5d5", text: "#323437", error: "#da3333" },
   dracula:      { name: "dracula",      bg: "#282a36", main: "#bd93f9", sub: "#6272a4", subAlt: "#21222c", text: "#f8f8f2", error: "#ff5555" },
   nord:         { name: "nord",         bg: "#242933", main: "#88c0d0", sub: "#4c566a", subAlt: "#2e3440", text: "#d8dee9", error: "#bf616a" },
   gruvbox_dark: { name: "gruvbox dark", bg: "#282828", main: "#d79921", sub: "#928374", subAlt: "#32302f", text: "#ebdbb2", error: "#fb4934" },
@@ -19,9 +18,22 @@ export const THEMES = {
 
 export const DEFAULT_THEME = "olivia";
 const KEY = "guessify-theme";
+const MODE_KEY = "guessify-theme-mode";
 /** In-tab theme after a Safari chrome reload (fresh tabs still open on Olivia). */
 const SESSION_KEY = "guessify-theme-session";
+const SESSION_MODE_KEY = "guessify-theme-mode-session";
 const SESSION_PAINTED_KEY = "guessify-theme-painted";
+
+/** Official serika light, used as the light face of `serika_dark`. */
+const SERIKA_LIGHT = {
+  name: "serika dark",
+  bg: "#e1e1e1",
+  main: "#e2b714",
+  sub: "#aaaeb3",
+  subAlt: "#d5d5d5",
+  text: "#323437",
+  error: "#da3333",
+};
 
 function parseHex(hex) {
   const m = /^#?([0-9a-f]{6})$/i.exec(String(hex || "").trim());
@@ -46,6 +58,67 @@ function colorDist(a, b) {
   return dr * dr + dg * dg + db * db;
 }
 
+function mixHex(a, b, t) {
+  const A = parseHex(a);
+  const B = parseHex(b);
+  if (!A || !B) return a;
+  const m = (x, y) => Math.round(x + (y - x) * t);
+  return (
+    "#" +
+    [m(A.r, B.r), m(A.g, B.g), m(A.b, B.b)]
+      .map((n) => n.toString(16).padStart(2, "0"))
+      .join("")
+  );
+}
+
+function toLight(t) {
+  const paper = mixHex("#f3f3f3", t.bg, 0.08);
+  const ink = t.bg;
+  return {
+    name: t.name,
+    bg: paper,
+    main: t.main,
+    sub: mixHex(ink, paper, 0.48),
+    subAlt: mixHex(paper, ink, 0.1),
+    text: ink,
+    error: t.error,
+  };
+}
+
+export function paletteFor(key, mode) {
+  const resolved = THEMES[key] ? key : DEFAULT_THEME;
+  const base = THEMES[resolved];
+  if (mode !== "light") return base;
+  return resolved === "serika_dark" ? SERIKA_LIGHT : toLight(base);
+}
+
+function readStoredMode() {
+  if (typeof document !== "undefined") {
+    const live = document.documentElement.dataset.themeMode;
+    if (live === "light" || live === "dark") return live;
+  }
+  try {
+    const session = sessionStorage.getItem(SESSION_MODE_KEY);
+    if (session === "light" || session === "dark") return session;
+  } catch {
+    /* ignore */
+  }
+  return "dark";
+}
+
+export function currentThemeMode() {
+  if (typeof document === "undefined") return "dark";
+  return document.documentElement.dataset.themeMode === "light" ? "light" : "dark";
+}
+
+function normalizeTheme(key, mode) {
+  if (key === "serika_light") return { key: "serika_dark", mode: "light" };
+  return {
+    key: THEMES[key] ? key : DEFAULT_THEME,
+    mode: mode === "light" || mode === "dark" ? mode : readStoredMode(),
+  };
+}
+
 /** 1:1 avatar accent → theme (every PLAYER_COLORS swatch gets its own look). */
 const ACCENT_THEME_BY_HEX = {
   "#e2b714": "serika_dark",
@@ -62,7 +135,7 @@ const ACCENT_THEME_BY_HEX = {
   "#f7768e": "tokyo_pink",
 };
 
-/** Prefer a dark theme when two mains tie (skip serika_light). */
+/** Prefer a dark theme when two mains tie. */
 const ACCENT_THEME_ORDER = [
   "serika_dark",
   "tokyo_night",
@@ -141,7 +214,7 @@ export function currentThemeKey() {
 
 /** Palette for the theme currently on screen (live CSS, then THEMES fallback). */
 export function getThemePalette() {
-  const base = THEMES[currentThemeKey()] || THEMES[DEFAULT_THEME];
+  const base = paletteFor(currentThemeKey(), currentThemeMode());
   if (typeof document === "undefined") {
     return { ...base };
   }
@@ -157,11 +230,12 @@ export function getThemePalette() {
   };
 }
 
-export function applyTheme(key, { persist = true, safariReload = false } = {}) {
-  const resolved = THEMES[key] ? key : DEFAULT_THEME;
-  const t = THEMES[resolved];
+export function applyTheme(key, { persist = true, safariReload = false, mode } = {}) {
+  const n = normalizeTheme(key, mode);
+  const t = paletteFor(n.key, n.mode);
   const r = document.documentElement;
-  r.dataset.theme = resolved;
+  r.dataset.theme = n.key;
+  r.dataset.themeMode = n.mode;
   r.style.setProperty("--bg-color", t.bg);
   r.style.setProperty("--main-color", t.main);
   r.style.setProperty("--sub-color", t.sub);
@@ -169,14 +243,17 @@ export function applyTheme(key, { persist = true, safariReload = false } = {}) {
   r.style.setProperty("--text-color", t.text);
   r.style.setProperty("--error-color", t.error);
   syncBrowserChrome(t.bg);
+  const paintedId = `${n.key}:${n.mode}`;
   if (persist) {
     try {
-      localStorage.setItem(KEY, resolved);
+      localStorage.setItem(KEY, n.key);
+      localStorage.setItem(MODE_KEY, n.mode);
     } catch {
       /* ignore */
     }
     try {
-      sessionStorage.setItem(SESSION_KEY, resolved);
+      sessionStorage.setItem(SESSION_KEY, n.key);
+      sessionStorage.setItem(SESSION_MODE_KEY, n.mode);
     } catch {
       /* ignore */
     }
@@ -185,8 +262,8 @@ export function applyTheme(key, { persist = true, safariReload = false } = {}) {
   // Safari (not Chrome/Firefox on iOS) freezes toolbar tint at first paint.
   // CSS/meta updates never retint — only a reload re-samples. ponytail: reload
   // ceiling; drop when WebKit re-tints live again.
-  // Only from the top-right theme menu on the landing page — never mid-flow
-  // (online/host profile customize, lobby, game, …).
+  // Only from the top-right theme/mode controls on the landing page — never
+  // mid-flow (online/host profile customize, lobby, game, …).
   if (safariReload && needsSafariChromeReload()) {
     let painted = null;
     try {
@@ -194,9 +271,9 @@ export function applyTheme(key, { persist = true, safariReload = false } = {}) {
     } catch {
       /* ignore */
     }
-    if (painted !== resolved) {
+    if (painted !== paintedId) {
       try {
-        sessionStorage.setItem(SESSION_PAINTED_KEY, resolved);
+        sessionStorage.setItem(SESSION_PAINTED_KEY, paintedId);
       } catch {
         /* ignore */
       }
@@ -258,15 +335,20 @@ export function applyThemeForAccent(hex, opts) {
 export function loadTheme() {
   // Fresh tab → Olivia. Same tab after Safari theme reload → session theme.
   let key = DEFAULT_THEME;
+  let mode = "dark";
   try {
-    const session = sessionStorage.getItem(SESSION_KEY);
-    if (session && THEMES[session]) key = session;
+    const n = normalizeTheme(
+      sessionStorage.getItem(SESSION_KEY),
+      sessionStorage.getItem(SESSION_MODE_KEY)
+    );
+    key = n.key;
+    mode = n.mode;
   } catch {
     /* ignore */
   }
-  applyTheme(key, { persist: false });
+  applyTheme(key, { persist: false, mode });
   try {
-    sessionStorage.setItem(SESSION_PAINTED_KEY, key);
+    sessionStorage.setItem(SESSION_PAINTED_KEY, `${key}:${mode}`);
   } catch {
     /* ignore */
   }

@@ -98,3 +98,17 @@ export function MuteIcon(props) {
     </svg>
   );
 }
+
+export function SunIcon(props) {
+  return (
+    <svg viewBox="0 0 32 32" fill="none" aria-hidden="true" {...props}>
+      <circle cx="16" cy="16" r="5.5" fill="currentColor" />
+      <path
+        stroke="currentColor"
+        strokeWidth="2.2"
+        strokeLinecap="round"
+        d="M16 4.5v3M16 24.5v3M4.5 16h3M24.5 16h3M8.2 8.2l2.1 2.1M21.7 21.7l2.1 2.1M8.2 23.8l2.1-2.1M21.7 10.3l2.1-2.1"
+      />
+    </svg>
+  );
+}

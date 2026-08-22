@@ -3,7 +3,7 @@ import Login from "./components/Login.jsx";
 import Home from "./components/Home.jsx";
 import PlaylistPicker from "./components/PlaylistPicker.jsx";
 import Game from "./components/Game.jsx";
-import ThemeSwitcher from "./components/ThemeSwitcher.jsx";
+import ThemeSwitcher, { ThemeModeButton } from "./components/ThemeSwitcher.jsx";
 import LookButton from "./components/LookButton.jsx";
 import VolumeControl from "./components/VolumeControl.jsx";
 import FabDock from "./components/FabDock.jsx";
@@ -24,7 +24,7 @@ import PlayHowto, {
 } from "./components/PlayHowto.jsx";
 import { makeRoomCode, normalizeRaceMode } from "./multiplayer/constants.js";
 import { loadLocalProfile, saveLocalProfile, hasSavedLocalProfile } from "./localProfile.js";
-import { loadTheme, DEFAULT_THEME } from "./themes.js";
+import { loadTheme, DEFAULT_THEME, currentThemeMode } from "./themes.js";
 import { attachKeyboardSounds } from "./keyboardSounds.js";
 import { attachButtonSounds } from "./buttonSounds.js";
 import { primePlaylistPreviews } from "./previewWarm.js";
@@ -69,6 +69,7 @@ export default function App() {
   const [joinCode] = useState(() => joinCodeFromPath());
   const [authError, setAuthError] = useState(null);
   const [theme, setTheme] = useState(DEFAULT_THEME);
+  const [themeMode, setThemeMode] = useState("dark");
   const [homeNonce, setHomeNonce] = useState(0);
   const [onlinePrompt, setOnlinePrompt] = useState(false);
   const [onlineProfile, setOnlineProfile] = useState(null);
@@ -223,6 +224,7 @@ export default function App() {
 
   useEffect(() => {
     setTheme(loadTheme());
+    setThemeMode(currentThemeMode());
     // Keep sticky flag even if we rewrite the path below.
     isFastTest();
     const params = new URLSearchParams(window.location.search);
@@ -597,7 +599,8 @@ export default function App() {
 
         <div className="topbar-right">
           <VolumeControl />
-          <ThemeSwitcher current={theme} onChange={setTheme} />
+          <ThemeModeButton mode={themeMode} onChange={setThemeMode} />
+          <ThemeSwitcher current={theme} mode={themeMode} onChange={setTheme} />
           <LookButton />
           {status === "loggedIn" && <UserMenu me={me} onLogout={logout} />}
         </div>

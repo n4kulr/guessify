@@ -61,5 +61,6 @@ assert.equal(
   "transport-pause"
 );
 assert.equal(resolveButtonSound(el("button", "theme-btn", "theme")), null);
+assert.equal(resolveButtonSound(el("button", "theme-mode-btn", "light mode")), null);
 
 console.log("buttonSounds.check.js: ok");

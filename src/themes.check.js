@@ -9,6 +9,7 @@ import {
   DEFAULT_THEME,
   getThemePalette,
   currentThemeKey,
+  paletteFor,
 } from "./themes.js";
 import { PLAYER_COLORS } from "./multiplayer/constants.js";
 
@@ -25,6 +26,17 @@ for (const hex of PLAYER_COLORS) {
   used.set(key, hex);
 }
 assert.equal(used.size, PLAYER_COLORS.length);
+
+assert.equal(THEMES.serika_light, undefined);
+const serikaLight = paletteFor("serika_dark", "light");
+assert.equal(serikaLight.bg, "#e1e1e1");
+assert.equal(serikaLight.text, "#323437");
+assert.equal(serikaLight.main, THEMES.serika_dark.main);
+
+const oliviaLight = paletteFor("olivia", "light");
+assert.equal(oliviaLight.main, THEMES.olivia.main);
+assert.equal(oliviaLight.text, THEMES.olivia.bg);
+assert.notEqual(oliviaLight.bg.toLowerCase(), THEMES.olivia.bg.toLowerCase());
 
 assert.equal(currentThemeKey(), DEFAULT_THEME);
 const palette = getThemePalette();
