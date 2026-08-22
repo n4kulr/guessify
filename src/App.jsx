@@ -714,7 +714,7 @@ export default function App() {
         made with <span className="footer-heart" aria-hidden="true">♥</span> by{" "}
         <a
           className="footer-credit"
-          href="https://portfolio-nakulr.vercel.app/"
+          href="https://portfolio-blond-eta-95.vercel.app/"
           target="_blank"
           rel="noopener noreferrer"
         >
