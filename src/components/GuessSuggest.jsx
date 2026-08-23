@@ -3,9 +3,9 @@ import { useEffect, useId, useRef, useState } from "react";
 const MIN_CHARS = 2;
 const DEBOUNCE_MS = 220;
 
-// One cache for the whole session. Players retype the same prefixes constantly
-// ("dan" → "dani" → "dan"), and the answers never change within a round.
+// Text suggestions — fast. Covers are a separate request so typing stays snappy.
 const cache = new Map();
+const coverCache = new Map();
 
 async function fetchSuggestions(kind, q, roundArtists) {
   const artistsKey = (roundArtists || []).join("\0").toLowerCase();
@@ -27,6 +27,27 @@ async function fetchSuggestions(kind, q, roundArtists) {
     return items;
   } catch {
     return [];
+  }
+}
+
+async function fetchCovers(kind, q, items) {
+  if (!items.length) return items;
+  const sig = items.map((i) => `${i.name}\0${i.artist || ""}`).join("|");
+  const key = `${kind}:${q.toLowerCase()}:${sig}`;
+  if (coverCache.has(key)) return coverCache.get(key);
+  try {
+    const r = await fetch("/api/suggest-covers", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ kind, q, items }),
+    });
+    if (!r.ok) return items;
+    const data = await r.json();
+    const withCovers = Array.isArray(data?.items) ? data.items : items;
+    coverCache.set(key, withCovers);
+    return withCovers;
+  } catch {
+    return items;
   }
 }
 
@@ -74,6 +95,10 @@ export function useGuessSuggest({
       if (queryRef.current !== q) return;
       setItems(found);
       setActive(-1);
+      void fetchCovers(kind, q, found).then((withCovers) => {
+        if (queryRef.current !== q) return;
+        setItems(withCovers);
+      });
     }, DEBOUNCE_MS);
     return () => clearTimeout(t);
   }, [kind, q, enabled, artistsKey]);
@@ -180,7 +205,9 @@ export default function GuessSuggest({ suggest }) {
                 draggable={false}
                 loading="lazy"
               />
-            ) : null}
+            ) : (
+              <span className="guess-suggest-cover guess-suggest-cover--empty" />
+            )}
             <span className="guess-suggest-text">
               <span className="guess-suggest-name">{item.name}</span>
               {item.artist ? (

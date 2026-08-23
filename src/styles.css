@@ -3329,6 +3329,9 @@ button.footer-privacy:hover {
   object-fit: cover;
   background: color-mix(in srgb, var(--sub-color) 25%, transparent);
 }
+.guess-suggest-cover--empty {
+  display: block;
+}
 .guess-suggest-text {
   display: flex;
   flex-direction: column;
