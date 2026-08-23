@@ -5,6 +5,7 @@ import ChartPreviewDialog from "./ChartPreviewDialog.jsx";
 import PlaylistCdShelf from "./PlaylistCdShelf.jsx";
 import { shakeEl } from "../fx.js";
 import { useTypewriterPh } from "../useTypewriterPh.js";
+import { parseSpotifyPlaylistId } from "../spotifyPlaylistId.js";
 
 const YOURS_PREVIEW = 6;
 
@@ -85,6 +86,7 @@ export default function PlaylistPicker({ onPick, needsLogin = false }) {
   const [stackMix, setStackMix] = useState(null);
   const [stackInsertOpen, setStackInsertOpen] = useState(false);
   const [stackBusy, setStackBusy] = useState(false);
+  const [linkQuery, setLinkQuery] = useState("");
   const [yoursView, setYoursView] = useState("cds"); // cds | list
   const [showLoginModal, setShowLoginModal] = useState(false);
   const loginModalTitleId = useId();
@@ -381,6 +383,41 @@ export default function PlaylistPicker({ onPick, needsLogin = false }) {
     onPick(playlist);
   }
 
+  async function choosePlaylistLink(raw) {
+    const id = parseSpotifyPlaylistId(raw);
+    if (!id) {
+      setNote("Paste a Spotify playlist link (Share → Copy link).");
+      return;
+    }
+    setLoadingId(`link:${id}`);
+    setNote(null);
+    try {
+      const res = await fetch(`/api/playlist/${encodeURIComponent(id)}`, {
+        credentials: "include",
+      });
+      const d = await res.json();
+      if (!res.ok) {
+        if (res.status === 403 && needsLogin) setShowLoginModal(true);
+        throw new Error(d.error || "Couldn't load that playlist.");
+      }
+      if (d.playableCount < 2) {
+        setNote(`"${d.name || "That playlist"}" needs at least 2 tracks to play.`);
+        setLoadingId(null);
+        return;
+      }
+      onPick(d);
+    } catch (err) {
+      setNote(err.message || "Couldn't load that playlist.");
+      setLoadingId(null);
+    }
+  }
+
+  function submitPlaylistLink(e) {
+    e.preventDefault();
+    if (!linkQuery.trim() || loadingId !== null) return;
+    choosePlaylistLink(linkQuery);
+  }
+
   function slugBits(names) {
     return names
       .join("-")
@@ -567,6 +604,39 @@ export default function PlaylistPicker({ onPick, needsLogin = false }) {
         onPutBack={() => setStackInsertOpen(false)}
         onPutInPlayer={putStackInPlayer}
       />
+
+      <div className="chart-search-block playlist-link-block">
+        <h3 className="picker-section-title">got a spotify link?</h3>
+        <p className="section-sub chart-search-sub">
+          (your playlist — public or link-only · log in with Spotify)
+        </p>
+        <form className="chart-search playlist-link-form" onSubmit={submitPlaylistLink}>
+          <div className="join-code-row">
+            <div className="chart-search-field">
+              <label className="chart-search-label">
+                <input
+                  className="guess-input join-code-input chart-search-input playlist-link-input"
+                  placeholder="https://open.spotify.com/playlist/…"
+                  value={linkQuery}
+                  onChange={(e) => setLinkQuery(e.target.value)}
+                  disabled={loadingId !== null}
+                  autoCorrect="off"
+                  autoCapitalize="off"
+                  spellCheck={false}
+                  aria-label="Spotify playlist link"
+                />
+              </label>
+            </div>
+            <button
+              type="submit"
+              className="btn btn-play"
+              disabled={loadingId !== null || !linkQuery.trim()}
+            >
+              {loadingId?.startsWith("link:") ? "…" : "play"}
+            </button>
+          </div>
+        </form>
+      </div>
 
       {chartPreview && (
         <ChartPreviewDialog

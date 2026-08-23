@@ -1656,6 +1656,13 @@ button.footer-privacy:hover {
   margin: 0;
   max-width: 400px;
 }
+.playlist-link-form {
+  width: min(100%, 480px);
+  max-width: 480px;
+}
+.playlist-link-input {
+  font-size: 14px;
+}
 .chart-search .join-code-row { width: 100%; }
 .chart-search-field {
   position: relative;
