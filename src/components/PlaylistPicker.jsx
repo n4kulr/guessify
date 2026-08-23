@@ -89,6 +89,7 @@ export default function PlaylistPicker({ onPick, needsLogin = false }) {
   const [linkQuery, setLinkQuery] = useState("");
   const [yoursView, setYoursView] = useState("cds"); // cds | list
   const [showLoginModal, setShowLoginModal] = useState(false);
+  const [loginModalForLink, setLoginModalForLink] = useState(false);
   const loginModalTitleId = useId();
   const chartFieldRef = useRef(null);
   const chartErrorTimer = useRef(0);
@@ -397,7 +398,10 @@ export default function PlaylistPicker({ onPick, needsLogin = false }) {
       });
       const d = await res.json();
       if (!res.ok) {
-        if (res.status === 403 && needsLogin) setShowLoginModal(true);
+        if (res.status === 403 && needsLogin) {
+          setLoginModalForLink(true);
+          setShowLoginModal(true);
+        }
         throw new Error(d.error || "Couldn't load that playlist.");
       }
       if (d.playableCount < 2) {
@@ -461,9 +465,12 @@ export default function PlaylistPicker({ onPick, needsLogin = false }) {
         <button
           type="button"
           className="own-playlists-link"
-          onClick={() => setShowLoginModal(true)}
+          onClick={() => {
+            setLoginModalForLink(false);
+            setShowLoginModal(true);
+          }}
         >
-          want your own playlists?
+          play your own playlist?
         </button>
       )}
 
@@ -680,10 +687,25 @@ export default function PlaylistPicker({ onPick, needsLogin = false }) {
               log in with Spotify
             </h2>
             <p className="spotlight-hint login-modal-hint">
-              Login will work but playlists wont load as spotify is a bum
-              and reduced personal project user limits to 5 :( if you really
-              really wanna play, send your email through feedback (bottom
-              right pencil button) and i will add it to my webapi userbase.
+              {loginModalForLink ? (
+                <>
+                  Log in with the Spotify account that owns that playlist, then
+                  hit play again on your link. The playlist stays off the shelf —
+                  only you load it.
+                </>
+              ) : (
+                <>
+                  Make a playlist on Spotify, set it public (Share → Copy link),
+                  log in here, then paste the link under{" "}
+                  <strong>got a spotify link?</strong> at the bottom. It won&apos;t
+                  show on the shelf.
+                </>
+              )}
+            </p>
+            <p className="spotlight-hint login-modal-hint login-modal-hint--fine">
+              Spotify only lets this app have 5 logged-in users right now. If
+              login fails, send your email through feedback (bottom-right pencil)
+              and I&apos;ll add you.
             </p>
             <a className="btn btn-big btn-spotify login-modal-primary" href="/api/login">
               Log in with Spotify

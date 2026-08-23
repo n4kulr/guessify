@@ -4977,6 +4977,14 @@ button.footer-privacy:hover {
   font-size: 13px;
   line-height: 1.55;
 }
+.login-modal-hint--fine {
+  margin-top: -6px;
+  font-size: 12px;
+  opacity: 0.88;
+}
+.login-modal-hint strong {
+  font-weight: 700;
+}
 .login-modal-primary {
   width: 100%;
   justify-content: center;
