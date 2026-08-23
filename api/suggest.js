@@ -3,16 +3,26 @@ import {
   rankArtistSuggestions,
   SUGGEST_FETCH,
 } from "../src/suggestRank.js";
+import { enrichArtistCovers, enrichTrackCovers } from "./_suggestArt.js";
 
 const LASTFM = "https://ws.audioscrobbler.com/2.0/";
 const UA = { "User-Agent": "Guessify/1.0 (https://guessify.uk)" };
 
 // Guess-field autocomplete from Last.fm — not the playlist (that would spoil answers).
-// Artwork is loaded separately via /api/suggest-covers so this stays snappy.
 //
-// ?q=dan&kind=artist&artists=SZA,Drake
-// ?q=dan&kind=track&artists=SZA
+// GET  ?q=dan&kind=artist&artists=SZA,Drake  → text matches (fast)
+// POST { kind, q, items }                    → same rows + iTunes cover art
 export default async function handler(req, res) {
+  if (req.method === "POST") return handleCovers(req, res);
+  if (req.method !== "GET") {
+    res.setHeader("Allow", "GET, POST");
+    res.status(405).json({ error: "GET or POST only" });
+    return;
+  }
+  return handleSearch(req, res);
+}
+
+async function handleSearch(req, res) {
   const key = process.env.LASTFM_API_KEY;
   const q = String(req.query.q || "").trim().slice(0, 120);
   const kind = req.query.kind === "track" ? "track" : "artist";
@@ -37,6 +47,48 @@ export default async function handler(req, res) {
   } catch (e) {
     console.error("lastfm suggest", e);
     res.status(200).json({ items: [] });
+  }
+}
+
+async function handleCovers(req, res) {
+  let body = req.body;
+  if (typeof body === "string") {
+    try {
+      body = JSON.parse(body);
+    } catch {
+      res.status(400).json({ error: "Invalid JSON" });
+      return;
+    }
+  }
+
+  const kind = body?.kind === "track" ? "track" : "artist";
+  const q = String(body?.q || "").trim().slice(0, 120);
+  const items = (Array.isArray(body?.items) ? body.items : [])
+    .slice(0, 6)
+    .map((row) => ({
+      name: String(row?.name || "").trim(),
+      artist: row?.artist ? String(row.artist).trim() : null,
+    }))
+    .filter((row) => row.name);
+
+  if (!items.length || q.length < 2) {
+    res.status(200).json({ items: [] });
+    return;
+  }
+
+  try {
+    const enriched =
+      kind === "track"
+        ? await enrichTrackCovers(items, q)
+        : await enrichArtistCovers(items, q);
+    res.setHeader(
+      "Cache-Control",
+      "public, s-maxage=86400, stale-while-revalidate=604800"
+    );
+    res.status(200).json({ items: enriched });
+  } catch (e) {
+    console.error("suggest covers", e);
+    res.status(200).json({ items });
   }
 }
 

@@ -36,7 +36,7 @@ async function fetchCovers(kind, q, items) {
   const key = `${kind}:${q.toLowerCase()}:${sig}`;
   if (coverCache.has(key)) return coverCache.get(key);
   try {
-    const r = await fetch("/api/suggest-covers", {
+    const r = await fetch("/api/suggest", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ kind, q, items }),
