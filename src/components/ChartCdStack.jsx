@@ -1,32 +1,28 @@
-import { useLayoutEffect, useRef, useState } from "react";
+import { useLayoutEffect, useRef } from "react";
 import { useDragScroll } from "../useDragScroll.js";
 import { spineMeta } from "../cdSpineMeta.js";
 
-/** Vertical CD stack — horizontal disc edges piled up; insert opens to the right. */
+/** Vertical CD stack — same case as genre spindle; insert shows full shuffled mix. */
 export default function ChartCdStack({
   layers,
-  loadingId,
+  mix,
+  insertOpen,
   stackBusy,
   onAdd,
-  onRemove,
-  onPlay,
+  onPutBack,
+  onPutInPlayer,
 }) {
-  const busy = stackBusy || loadingId !== null;
-  const [picked, setPicked] = useState(null);
+  const busy = stackBusy;
   const scrollRef = useRef(null);
   const trayRef = useRef(null);
   const rowRef = useRef(null);
-  const [query, setQuery] = useState("");
+  const queryRef = useRef(null);
   useDragScroll(scrollRef, { axis: "y" });
 
-  const pickedLayer = picked
-    ? layers.find((l) => l.id === picked) || null
-    : null;
-  const pickedIndex = pickedLayer
-    ? layers.findIndex((l) => l.id === pickedLayer.id)
-    : -1;
-  const pickedMeta = pickedIndex >= 0 ? spineMeta(pickedIndex) : null;
-  const panelOpen = Boolean(pickedLayer && pickedMeta);
+  const panelOpen = Boolean(insertOpen && layers.length > 0);
+  const panelMeta = layers.length > 0 ? spineMeta(layers.length - 1) : null;
+  const tracks = Array.isArray(mix?.tracks) ? mix.tracks : [];
+  const canPlay = !busy && mix && mix.playableCount >= 2;
 
   useLayoutEffect(() => {
     const tray = trayRef.current;
@@ -50,17 +46,13 @@ export default function ChartCdStack({
     };
   }, [panelOpen, layers.length]);
 
-  function selectLayer(id) {
-    if (busy) return;
-    setPicked((cur) => (cur === id ? null : id));
-  }
-
   async function submitAdd(e) {
     e.preventDefault();
-    const clean = query.trim();
+    const input = queryRef.current;
+    const clean = input?.value.trim() || "";
     if (!clean || busy) return;
     const ok = await onAdd?.(clean);
-    if (ok) setQuery("");
+    if (ok && input) input.value = "";
   }
 
   const panelClass = ["cd-panel", panelOpen ? "is-open" : ""]
@@ -70,19 +62,17 @@ export default function ChartCdStack({
   return (
     <div className="cd-stack-block">
       <h3 className="picker-section-title">make your own playlist!</h3>
-      <p className="section-sub chart-search-sub">
-        (add artists/albums/eras)
-      </p>
+      <p className="section-sub chart-search-sub">(add artists/albums/eras)</p>
 
       <form className="chart-search cd-stack-add" onSubmit={submitAdd}>
         <div className="join-code-row">
           <div className="chart-search-field">
             <label className="chart-search-label">
               <input
+                ref={queryRef}
                 className="guess-input join-code-input chart-search-input"
                 placeholder="steve lacy, drake, 2002 malayalam…"
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
+                defaultValue=""
                 disabled={busy}
                 autoCorrect="off"
                 spellCheck={false}
@@ -90,11 +80,7 @@ export default function ChartCdStack({
               />
             </label>
           </div>
-          <button
-            type="submit"
-            className="btn btn-ghost"
-            disabled={busy || !query.trim()}
-          >
+          <button type="submit" className="btn btn-ghost" disabled={busy}>
             {stackBusy ? "…" : "add"}
           </button>
         </div>
@@ -116,26 +102,17 @@ export default function ChartCdStack({
               <ul className="cd-stack-discs" ref={scrollRef}>
                 {layers.map((layer, i) => {
                   const meta = spineMeta(i);
-                  const selected = picked === layer.id;
                   const histCls = meta.history.map((h) => `cd-spine--${h}`).join(" ");
                   const fontCls = meta.font ? `cd-spine--font-${meta.font}` : "";
 
                   return (
                     <li
                       key={layer.id}
-                      className={`cd-stack-disc-slot${selected ? " is-out" : ""}`}
+                      className="cd-stack-disc-slot"
                       style={{ "--stack-i": i }}
                     >
-                      <button
-                        type="button"
-                        className={`cd-stack-disc cd-spine--${meta.tone} ${histCls} ${fontCls}${selected ? " is-selected" : ""}`.trim()}
-                        style={{
-                          "--w-scale": meta.wScale,
-                          "--tilt": `${meta.tilt * 0.4}deg`,
-                          "--depth": `${meta.depth}px`,
-                        }}
-                        onClick={() => selectLayer(layer.id)}
-                        disabled={busy}
+                      <div
+                        className={`cd-stack-disc cd-spine--${meta.tone} ${histCls} ${fontCls}`.trim()}
                         aria-label={layer.label}
                         title={layer.label}
                       >
@@ -155,7 +132,7 @@ export default function ChartCdStack({
                             {meta.sticker.text}
                           </span>
                         ) : null}
-                      </button>
+                      </div>
                     </li>
                   );
                 })}
@@ -169,12 +146,12 @@ export default function ChartCdStack({
         </figure>
 
         <aside className={panelClass} aria-hidden={!panelOpen} aria-live="polite">
-          {pickedLayer && pickedMeta ? (
+          {panelOpen && panelMeta ? (
             <div
               className={[
                 "cd-insert",
-                `cd-spine--${pickedMeta.tone}`,
-                pickedMeta.history.includes("faded") ? "is-faded" : "",
+                `cd-spine--${panelMeta.tone}`,
+                panelMeta.history.includes("faded") ? "is-faded" : "",
               ]
                 .filter(Boolean)
                 .join(" ")}
@@ -182,65 +159,63 @@ export default function ChartCdStack({
               <div className="cd-insert-head">
                 <h2
                   className={`cd-insert-title${
-                    pickedMeta.font === "hand"
+                    panelMeta.font === "hand"
                       ? " hand"
-                      : pickedMeta.font === "serif"
+                      : panelMeta.font === "serif"
                         ? " serif"
                         : ""
                   }`}
                 >
-                  {pickedLayer.label}
+                  {mix?.name || "Your mix"}
                 </h2>
                 <p className="cd-insert-meta">
-                  <span>{pickedLayer.kind === "artist" ? "artist" : "era / tag"}</span>
-                  {pickedLayer.fuzzy ? (
-                    <>
-                      <span aria-hidden="true"> · </span>
-                      <span>closest match</span>
-                    </>
-                  ) : null}
+                  <span>{layers.length} disc{layers.length === 1 ? "" : "s"}</span>
+                  <span aria-hidden="true"> · </span>
+                  <span>{busy ? "…" : `${tracks.length} tracks`}</span>
+                  <span aria-hidden="true"> · </span>
+                  <span>shuffled</span>
                 </p>
               </div>
               <div className="cd-insert-body">
-                <p className="cd-insert-notes">
-                  Layer {pickedIndex + 1} of {layers.length} in your stack.
-                </p>
+                {busy ? (
+                  <p className="cd-insert-notes">building your mix…</p>
+                ) : tracks.length < 2 ? (
+                  <p className="cd-insert-notes">
+                    Add another disc — need at least 2 tracks to play.
+                  </p>
+                ) : (
+                  <ol className="cd-insert-tracks">
+                    {tracks.map((t, i) => (
+                      <li key={t.id || `${t.name}-${i}`}>
+                        <span className="n">{String(i + 1).padStart(2, "0")}</span>
+                        <span>{t.name}</span>
+                      </li>
+                    ))}
+                  </ol>
+                )}
               </div>
               <div className="cd-insert-actions">
                 <button
                   type="button"
                   className="cd-insert-back"
-                  onClick={() => onRemove?.(pickedLayer.id)}
+                  onClick={onPutBack}
                   disabled={busy}
                 >
-                  Peel Off
+                  Put Back
                 </button>
                 <button
                   type="button"
                   className="cd-insert-play"
-                  onClick={() => setPicked(null)}
-                  disabled={busy}
+                  onClick={() => canPlay && onPutInPlayer?.(mix)}
+                  disabled={!canPlay}
                 >
-                  Keep
+                  ► Put in Player
                 </button>
               </div>
             </div>
           ) : null}
         </aside>
       </div>
-
-      {layers.length > 0 ? (
-        <div className="cd-stack-play-row">
-          <button
-            type="button"
-            className="btn btn-play cd-stack-play"
-            disabled={busy || layers.length < 1}
-            onClick={() => onPlay?.()}
-          >
-            {loadingId === "stack:mix" ? "…" : `play ${layers.length}-disc mix`}
-          </button>
-        </div>
-      ) : null}
     </div>
   );
 }
