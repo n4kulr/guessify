@@ -3,7 +3,22 @@
  * iTunes first, Deezer if Apple has no clip. Mirrors api/preview.js.
  */
 
+/** Cap so a hung iTunes/Deezer fetch can't freeze the party on “cueing…”. */
+const PREVIEW_FETCH_MS = 12_000;
+
 export async function resolveItunesPreview(title, artist = "") {
+  const ctrl = typeof AbortController !== "undefined" ? new AbortController() : null;
+  const timer = ctrl ? setTimeout(() => ctrl.abort(), PREVIEW_FETCH_MS) : null;
+  try {
+    return await resolveItunesPreviewInner(title, artist, ctrl?.signal);
+  } catch {
+    return null;
+  } finally {
+    if (timer) clearTimeout(timer);
+  }
+}
+
+async function resolveItunesPreviewInner(title, artist, signal) {
   const cleanTitle = cleanForSearch(title);
   const cleanArtist = cleanForSearch(artist);
   const wantTitle = cleanTitle || title;
@@ -16,7 +31,7 @@ export async function resolveItunesPreview(title, artist = "") {
   ].filter((q, i, arr) => q && arr.indexOf(q) === i);
 
   for (const term of queries) {
-    const results = await itunesSearch(term);
+    const results = await itunesSearch(term, signal);
     const pick = pickBest(results, wantTitle, wantArtist);
     if (pick?.previewUrl) {
       return {
@@ -27,7 +42,7 @@ export async function resolveItunesPreview(title, artist = "") {
   }
 
   for (const term of queries) {
-    const results = await deezerSearch(term);
+    const results = await deezerSearch(term, signal);
     const pick = pickBest(results, wantTitle, wantArtist);
     if (pick?.previewUrl) {
       return {
@@ -39,22 +54,24 @@ export async function resolveItunesPreview(title, artist = "") {
   return null;
 }
 
-async function itunesSearch(term) {
+async function itunesSearch(term, signal) {
   const url =
     `https://itunes.apple.com/search?term=${encodeURIComponent(term)}` +
     `&media=music&entity=song&limit=25&country=US`;
   const r = await fetch(url, {
     headers: { Accept: "application/json" },
+    signal,
   });
   if (!r.ok) return [];
   const data = await r.json();
   return Array.isArray(data.results) ? data.results : [];
 }
 
-async function deezerSearch(term) {
+async function deezerSearch(term, signal) {
   const url = `https://api.deezer.com/search?q=${encodeURIComponent(term)}&limit=25`;
   const r = await fetch(url, {
     headers: { Accept: "application/json" },
+    signal,
   });
   if (!r.ok) return [];
   const data = await r.json();

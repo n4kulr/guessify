@@ -106,7 +106,8 @@ export default function GuestApp({ code }) {
     }
     const url = playTrack?.previewUrl;
     if (!url) {
-      // Room may still publish previewUrl; don't hold the board forever.
+      // Worker swaps spares / drops the slot; keep a short hold so we don't
+      // flash the board while resolve is still in flight.
       setCueReady(false);
       const timer = setTimeout(() => setCueReady(true), 15_000);
       return () => clearTimeout(timer);

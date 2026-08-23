@@ -155,7 +155,8 @@ export default function HostParty({
     }
     const url = state?.track?.previewUrl;
     if (!url) {
-      // Host may still resolve + setPreview; don't hold the board forever.
+      // Worker swaps spares / drops the slot; keep a short hold so we don't
+      // flash the board while resolve is still in flight.
       setCueReady(false);
       const timer = setTimeout(() => setCueReady(true), 15_000);
       return () => clearTimeout(timer);

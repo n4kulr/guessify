@@ -9,7 +9,6 @@ import {
   MAX_GUESSES,
   ROUND_COUNT,
   PLAYER_COLORS,
-  shuffle,
   normalizeAvatar,
   randomAvatar,
   titlePointsForGuess,
@@ -25,6 +24,7 @@ import {
 } from "../src/multiplayer/constants.js";
 import { titleHintMask } from "../src/titleHint.js";
 import { resolveItunesPreview } from "./itunesPreview.js";
+import { dealPartyTracks } from "../src/deadPreview.js";
 
 /** Soft-offline (grey) until this long, then marked left (strikethrough). */
 const LEAVE_AFTER_MS = 45 * 60 * 1000;
@@ -85,6 +85,7 @@ export class Room extends Server {
       }
       if (!this.state.raceMode) this.state.raceMode = "classic";
       if (!this.state.roundSolves) this.state.roundSolves = {};
+      if (!Array.isArray(this.state.spareTracks)) this.state.spareTracks = [];
       this.maybeFinishTimedIfPastDue();
       if (this.state.phase === "play" && this.state.raceMode === "timed") {
         this.scheduleTimedRoundEnd();
@@ -301,12 +302,14 @@ export class Room extends Server {
         disconnectedAt: null,
         isHost: true,
       };
+      const dealt = dealPartyTracks(tracks, ROUND_COUNT);
       this.state = {
         hostConnId: sender.id,
         hostConnected: true,
         hostName,
         playlistName: msg.playlistName || "playlist",
-        tracks: shuffle(tracks).slice(0, Math.min(ROUND_COUNT, tracks.length)),
+        tracks: dealt.tracks,
+        spareTracks: dealt.spareTracks,
         players: [hostPlayer],
         phase: "lobby", // lobby | play | reveal | over
         raceMode: normalizeRaceMode(msg.raceMode),
@@ -373,10 +376,9 @@ export class Room extends Server {
     if (msg.tracks?.length) {
       // Only replace tracks while still in lobby.
       if (this.state.phase === "lobby") {
-        this.state.tracks = shuffle(msg.tracks).slice(
-          0,
-          Math.min(ROUND_COUNT, msg.tracks.length)
-        );
+        const dealt = dealPartyTracks(msg.tracks, ROUND_COUNT);
+        this.state.tracks = dealt.tracks;
+        this.state.spareTracks = dealt.spareTracks;
         this.state.playlistName = msg.playlistName || this.state.playlistName;
       }
     }
@@ -879,29 +881,80 @@ export class Room extends Server {
 
   async resolveCurrentPreview() {
     if (!this.state) return;
+    if (!Array.isArray(this.state.spareTracks)) this.state.spareTracks = [];
+
+    // Same idea as solo replaceDeadTrack: keep the round, swap spares, or drop
+    // the slot if nothing in the playlist has a preview.
+    for (let guard = 0; guard < ROUND_COUNT + 8; guard++) {
+      if (!this.state.tracks.length) {
+        this.finishUnplayableGame();
+        return;
+      }
+      if (this.state.roundIdx >= this.state.tracks.length) {
+        this.state.roundIdx = Math.max(0, this.state.tracks.length - 1);
+      }
+
+      if (await this.bindPreviewForCurrent()) {
+        void this.prefetchNextPreview();
+        return;
+      }
+
+      let foundSpare = false;
+      while (this.state.spareTracks.length) {
+        this.state.tracks[this.state.roundIdx] = this.state.spareTracks.shift();
+        foundSpare = true;
+        if (await this.bindPreviewForCurrent()) {
+          void this.prefetchNextPreview();
+          return;
+        }
+      }
+
+      // No spare left — drop this unplayable slot (round count may shrink).
+      this.state.tracks.splice(this.state.roundIdx, 1);
+      this.state.previewUrl = null;
+      this.state.previewArt = null;
+      if (!foundSpare && !this.state.tracks.length) {
+        this.finishUnplayableGame();
+        return;
+      }
+    }
+    this.finishUnplayableGame();
+  }
+
+  /** @returns {Promise<boolean>} */
+  async bindPreviewForCurrent() {
     const t = this.state.tracks[this.state.roundIdx];
     this.state.previewUrl = null;
     this.state.previewArt = null;
-    if (!t?.name) return;
-    // Prefer a preview the host already attached to the track payload.
+    if (!t?.name) return false;
     if (t.previewUrl) {
       this.state.previewUrl = t.previewUrl;
       this.state.previewArt = t.previewArt || null;
-    } else {
-      try {
-        const pick = await resolveItunesPreview(t.name, (t.artists || [])[0] || "");
-        if (pick) {
-          this.state.previewUrl = pick.previewUrl;
-          this.state.previewArt = pick.artworkUrl;
-          t.previewUrl = pick.previewUrl;
-          t.previewArt = pick.artworkUrl;
-        }
-      } catch (e) {
-        console.error("preview resolve failed", e);
-      }
+      return true;
     }
-    // Warm the next round's URL on the track object so advance is instant.
-    void this.prefetchNextPreview();
+    try {
+      const pick = await resolveItunesPreview(t.name, (t.artists || [])[0] || "");
+      if (pick) {
+        this.state.previewUrl = pick.previewUrl;
+        this.state.previewArt = pick.artworkUrl;
+        t.previewUrl = pick.previewUrl;
+        t.previewArt = pick.artworkUrl;
+        return true;
+      }
+    } catch (e) {
+      console.error("preview resolve failed", e);
+    }
+    return false;
+  }
+
+  finishUnplayableGame() {
+    if (!this.state) return;
+    this.clearTimedRoundTimer();
+    this.state.phase = "over";
+    this.state.previewUrl = null;
+    this.state.previewArt = null;
+    this.state.nextVotes = {};
+    this.state.roundEndsAt = null;
   }
 
   async prefetchNextPreview() {
