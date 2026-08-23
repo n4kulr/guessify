@@ -214,7 +214,7 @@ export default function DemoPreview() {
         audio.dataset.previewUrl = url;
         audio.src = url;
       }
-      audio.muted = mutedRef.current;
+      outputRef.current?.setMuted(mutedRef.current);
       try {
         await outputRef.current?.resume();
         await audio.play();
@@ -228,8 +228,20 @@ export default function DemoPreview() {
     };
   }, [roundIdx, answer.title, answer.artist]);
 
+  // Drive the audio from `muted` rather than from inside the click handler —
+  // side effects in a state updater run twice under StrictMode.
   useEffect(() => {
-    if (audioRef.current) audioRef.current.muted = muted;
+    const a = audioRef.current;
+    if (!a) return;
+    outputRef.current?.setMuted(muted);
+    if (muted) {
+      pauseGuessifyNowPlaying();
+      return;
+    }
+    outputRef.current?.resume();
+    a.play()
+      .then(() => setGuessifyNowPlaying())
+      .catch(() => {});
   }, [muted]);
 
   useEffect(() => {
@@ -447,24 +459,7 @@ export default function DemoPreview() {
               interactiveTeeth
               muteControl={{
                 muted,
-                onToggle: () => {
-                  setMuted((m) => {
-                    const next = !m;
-                    const a = audioRef.current;
-                    if (a) {
-                      a.muted = next;
-                      if (!next) {
-                        outputRef.current?.resume();
-                        a.play()
-                          .then(() => setGuessifyNowPlaying())
-                          .catch(() => {});
-                      } else {
-                        pauseGuessifyNowPlaying();
-                      }
-                    }
-                    return next;
-                  });
-                },
+                onToggle: () => setMuted((m) => !m),
               }}
             />
           </div>

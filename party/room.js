@@ -13,6 +13,7 @@ import {
   normalizeAvatar,
   randomAvatar,
   titlePointsForGuess,
+  isHintDue,
   timedTitlePoints,
   TITLE_POINTS,
   ARTIST_BONUS,
@@ -22,7 +23,7 @@ import {
   TIMED_ROUND_MS,
   normalizeRaceMode,
 } from "../src/multiplayer/constants.js";
-import { titleHintMask, HINT_AFTER_SKIPS } from "../src/titleHint.js";
+import { titleHintMask } from "../src/titleHint.js";
 import { resolveItunesPreview } from "./itunesPreview.js";
 
 /** Soft-offline (grey) until this long, then marked left (strikethrough). */
@@ -311,7 +312,6 @@ export class Room extends Server {
         raceMode: normalizeRaceMode(msg.raceMode),
         roundIdx: 0,
         unlockByPlayer: {},
-        hintByPlayer: {},
         guesses: [],
         nextVotes: {},
         outcome: null,
@@ -510,7 +510,6 @@ export class Room extends Server {
     this.state.phase = "play";
     this.state.roundIdx = 0;
     this.state.unlockByPlayer = {};
-    this.state.hintByPlayer = {};
     this.state.guesses = [];
     this.state.nextVotes = {};
     this.state.outcome = null;
@@ -596,12 +595,10 @@ export class Room extends Server {
       if (!alreadySolved) {
         if (!this.state.roundSolves) this.state.roundSolves = {};
         const skips = this.state.unlockByPlayer?.[player.id] ?? 0;
-        const hinted = !!this.state.hintByPlayer?.[player.id];
         this.state.roundSolves[player.id] = {
           wallMs: Math.max(0, Date.now() - (this.state.roundStartedAt || Date.now())),
           skips,
-          hinted,
-          baseTitlePts: titlePointsForGuess(skips, hinted),
+          baseTitlePts: titlePointsForGuess(skips),
         };
       }
       this.broadcastState();
@@ -612,8 +609,7 @@ export class Room extends Server {
 
     if (win) {
       const skips = this.state.unlockByPlayer?.[player.id] ?? 0;
-      const hinted = !!this.state.hintByPlayer?.[player.id];
-      const titlePts = titlePointsForGuess(skips, hinted);
+      const titlePts = titlePointsForGuess(skips);
       const wallMs = Math.max(
         0,
         Date.now() - (this.state.roundStartedAt || Date.now())
@@ -761,22 +757,14 @@ export class Room extends Server {
       sender.send(JSON.stringify({ type: "error", error: "Join the race first." }));
       return;
     }
-    const step = this.state.unlockByPlayer?.[player.id] ?? 0;
-    if (step < HINT_AFTER_SKIPS) {
-      sender.send(
-        JSON.stringify({ type: "error", error: "Skip a few more times for a hint." })
-      );
-      return;
-    }
+    // Clients run the same clock and ask when it's due; re-check server-side so
+    // a tampered client can't pull the hint early. The `phase === "play"` guard
+    // above is the classic "nobody solved it" half — a solve ends the round.
+    if (!isHintDue(this.state)) return;
+
     const t = this.state.tracks?.[this.state.roundIdx];
     const hint = titleHintMask(t?.name || "");
     if (!hint) return;
-
-    if (!this.state.hintByPlayer) this.state.hintByPlayer = {};
-    if (!this.state.hintByPlayer[player.id]) {
-      this.state.hintByPlayer[player.id] = true;
-      void this.persist();
-    }
 
     sender.send(JSON.stringify({ type: "titleHint", hint }));
   }
@@ -824,7 +812,6 @@ export class Room extends Server {
 
     this.state.roundIdx += 1;
     this.state.unlockByPlayer = {};
-    this.state.hintByPlayer = {};
     this.state.guesses = [];
     this.state.nextVotes = {};
     this.state.outcome = null;

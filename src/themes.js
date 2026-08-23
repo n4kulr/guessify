@@ -23,6 +23,9 @@ const MODE_KEY = "guessify-theme-mode";
 const SESSION_KEY = "guessify-theme-session";
 const SESSION_MODE_KEY = "guessify-theme-mode-session";
 const SESSION_PAINTED_KEY = "guessify-theme-painted";
+/** Set once the player opens the theme menu or the accent picker — kills the nudge. */
+const TOUCHED_KEY = "guessify-theme-touched";
+const TOUCHED_EVT = "guessify:theme-touched";
 
 /** Official serika light, used as the light face of `serika_dark`. */
 const SERIKA_LIGHT = {
@@ -353,4 +356,28 @@ export function loadTheme() {
     /* ignore */
   }
   return key;
+}
+
+export function hasTouchedTheme() {
+  try {
+    return localStorage.getItem(TOUCHED_KEY) === "1";
+  } catch {
+    return false;
+  }
+}
+
+/** Idempotent: only fires the event the first time, so the nudge retires once. */
+export function markThemeTouched() {
+  if (hasTouchedTheme()) return;
+  try {
+    localStorage.setItem(TOUCHED_KEY, "1");
+  } catch {
+    /* private mode — nudge just keeps its old session-only behaviour */
+  }
+  window.dispatchEvent(new CustomEvent(TOUCHED_EVT));
+}
+
+export function subscribeThemeTouched(cb) {
+  window.addEventListener(TOUCHED_EVT, cb);
+  return () => window.removeEventListener(TOUCHED_EVT, cb);
 }

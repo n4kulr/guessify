@@ -42,13 +42,21 @@ export function attachVolumeControl(audio) {
     }
   }
 
-  const apply = (v) => {
-    const level = Math.min(1, Math.max(0, Number(v) || 0));
+  let level = 0;
+  let muted = false;
+
+  const push = () => {
+    const out = muted ? 0 : level;
     if (gain) {
-      gain.gain.value = level;
+      gain.gain.value = out;
     } else {
-      audio.volume = level;
+      audio.volume = out;
     }
+  };
+
+  const apply = (v) => {
+    level = Math.min(1, Math.max(0, Number(v) || 0));
+    push();
   };
 
   apply(getVolume());
@@ -59,6 +67,20 @@ export function attachVolumeControl(audio) {
     /** Current gain (or element volume when Web Audio unavailable). */
     getLevel() {
       return gain ? gain.gain.value : audio.volume;
+    },
+    /**
+     * Mute has to ride the same path as the slider: once WebKit hands the
+     * element to a MediaElementSource, `element.muted` stops gating what
+     * reaches the speakers, so muting via the element alone is silent-fail
+     * on iOS. Set both — the flag still drives the tab's audio indicator.
+     */
+    setMuted(next) {
+      muted = !!next;
+      audio.muted = muted;
+      push();
+    },
+    isMuted() {
+      return muted;
     },
     async resume() {
       if (ctx?.state === "suspended") {

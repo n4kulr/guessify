@@ -1,6 +1,7 @@
 import ScrubbableVinyl from "./ScrubbableVinyl.jsx";
 import CassetteShell from "./CassetteShell.jsx";
 import SpinMeNudge from "./SpinMeNudge.jsx";
+import { PlayIcon, PauseIcon } from "./icons.jsx";
 
 /**
  * In-round media stage: vinyl turntable (default) or shared cassette shell.
@@ -77,6 +78,24 @@ export default function GuessMedia({
           <img src={cover} alt="" className="vinyl-cover" draggable={false} />
         ) : (
           <div className="vinyl-label" aria-hidden="true" />
+        )}
+        {canControl && !revealed && (
+          <button
+            type="button"
+            className={`vinyl-cue ${spinning ? "vinyl-cue--playing" : ""}`}
+            aria-label={spinning ? "Pause preview" : "Play preview"}
+            onPointerDown={(e) => e.stopPropagation()}
+            onClick={(e) => {
+              e.stopPropagation();
+              onTogglePlay?.();
+            }}
+          >
+            {spinning ? (
+              <PauseIcon className="vinyl-cue-ico" />
+            ) : (
+              <PlayIcon className="vinyl-cue-ico" />
+            )}
+          </button>
         )}
       </ScrubbableVinyl>
       <div className={`tonearm ${spinning ? "tonearm--on" : ""}`} />

@@ -7,7 +7,11 @@ import {
   randomAvatar,
   normalizeAvatar,
 } from "./constants.js";
-import { applyThemeForAccent, accentMatchingTheme } from "../themes.js";
+import {
+  applyThemeForAccent,
+  accentMatchingTheme,
+  markThemeTouched,
+} from "../themes.js";
 
 function syncThemeFromAccent(color) {
   if (!color) return;
@@ -196,7 +200,10 @@ export default function ProfileEditor({
               <button
                 type="button"
                 className={`btn btn-mini profile-accent-btn ${menu === "accent" ? "open" : ""}`}
-                onClick={() => setMenu((m) => (m === "accent" ? null : "accent"))}
+                onClick={() => {
+                  markThemeTouched();
+                  setMenu((m) => (m === "accent" ? null : "accent"));
+                }}
                 aria-expanded={menu === "accent"}
                 aria-haspopup="true"
               >

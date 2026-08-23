@@ -59,5 +59,5 @@ export function titleHintMask(title) {
   return words.join(WORD_GAP);
 }
 
-/** Skips before the hint control appears (0-based step index). */
-export const HINT_AFTER_SKIPS = 3;
+/** Skips before the title hint appears on its own (0-based step index). */
+export const HINT_AFTER_SKIPS = 4;

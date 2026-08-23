@@ -35,9 +35,14 @@ function stubWindow({ ios }) {
       for (const cb of listeners.get(e.type) || []) cb(e);
     },
   };
-  globalThis.navigator = ios
-    ? { userAgent: "Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X)", platform: "iPhone", maxTouchPoints: 5 }
-    : { userAgent: "Mozilla/5.0 (Macintosh; Intel Mac OS X) Chrome/120", platform: "MacIntel", maxTouchPoints: 0 };
+  // Node 24 exposes navigator as a getter-only global — defineProperty past it.
+  Object.defineProperty(globalThis, "navigator", {
+    configurable: true,
+    writable: true,
+    value: ios
+      ? { userAgent: "Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X)", platform: "iPhone", maxTouchPoints: 5 }
+      : { userAgent: "Mozilla/5.0 (Macintosh; Intel Mac OS X) Chrome/120", platform: "MacIntel", maxTouchPoints: 0 },
+  });
   globalThis.localStorage = {
     _m: new Map(),
     getItem(k) {
@@ -61,6 +66,16 @@ const { attachVolumeControl } = await import("./audioOutput.js");
   setVolume(0.25);
   assert.equal(api.getLevel(), 0.25, "iOS: slider drives gain");
   assert.equal(audio.volume, 1);
+
+  // The bug this guards: element.muted alone leaves gain untouched, so audio
+  // kept playing through the Web Audio graph on iOS after pressing mute.
+  api.setMuted(true);
+  assert.equal(api.getLevel(), 0, "iOS: mute drops the gain, not just the flag");
+  assert.equal(audio.muted, true);
+  setVolume(0.8); // slider moves while muted — must stay silent
+  assert.equal(api.getLevel(), 0, "iOS: muted survives a volume change");
+  api.setMuted(false);
+  assert.equal(api.getLevel(), 0.8, "iOS: unmute restores the current slider level");
   api.detach();
 }
 
@@ -75,6 +90,11 @@ stubWindow({ ios: false });
   setVolume(0.4);
   assert.equal(audio.volume, 0.4, "desktop: slider writes element.volume");
   assert.equal(api.getLevel(), 0.4);
+  api.setMuted(true);
+  assert.equal(audio.muted, true, "desktop: mute sets the element flag");
+  assert.equal(audio.volume, 0, "desktop: mute also zeroes volume");
+  api.setMuted(false);
+  assert.equal(audio.volume, 0.4, "desktop: unmute restores the slider level");
   api.detach();
 }
 

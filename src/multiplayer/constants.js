@@ -10,8 +10,6 @@ export const TITLE_POINTS = 500;
 export const ARTIST_BONUS = 100;
 /** Cut from this round's title payout each skip (not banked score). */
 export const SKIP_PENALTY = 40;
-/** Cut from this round's title payout the first time you take the hint. */
-export const HINT_PENALTY = 100;
 /** @deprecated use TITLE_POINTS */
 export const TITLE_POINTS_SONG_FIRST = TITLE_POINTS;
 /** @deprecated title is never reduced after artist */
@@ -42,14 +40,34 @@ export function allPlayersMaxUnlocked(players = [], unlockByPlayer = {}) {
  * Title payout for this round after skip/hint cuts.
  * Banked score from earlier rounds is never touched — only what you earn now.
  */
-export function titlePointsForGuess(skips = 0, hintUsed = false) {
+export function titlePointsForGuess(skips = 0) {
   const n = Math.max(0, Math.floor(Number(skips) || 0));
-  const cut = n * SKIP_PENALTY + (hintUsed ? HINT_PENALTY : 0);
-  return Math.max(0, TITLE_POINTS - cut);
+  return Math.max(0, TITLE_POINTS - n * SKIP_PENALTY);
 }
 
 /** Timed (45s) rounds: wall-clock length before reveal. */
 export const TIMED_ROUND_MS = 45_000;
+
+/** Auto title hint: last 10s of a timed round, or 45s into an unsolved classic one. */
+export const HINT_BEFORE_TIMED_END_MS = 10_000;
+export const HINT_AFTER_CLASSIC_MS = 45_000;
+
+/**
+ * Is the free title hint due yet? Timed rounds count back from the reveal;
+ * classic rounds have no deadline so they count up from the start.
+ * Classic ends the moment someone nails the title, so a round still in `play`
+ * is by definition unsolved — callers only need to check the phase.
+ */
+export function isHintDue(
+  { raceMode, roundStartedAt, roundEndsAt } = {},
+  now = Date.now()
+) {
+  if (!roundStartedAt) return false;
+  if (normalizeRaceMode(raceMode) === "timed") {
+    return !!roundEndsAt && now >= roundEndsAt - HINT_BEFORE_TIMED_END_MS;
+  }
+  return now - roundStartedAt >= HINT_AFTER_CLASSIC_MS;
+}
 /** Drop title payout by this much per place after 1st in timed mode. */
 export const TIMED_PLACE_STEP = 80;
 

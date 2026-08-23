@@ -1,4 +1,5 @@
 import { useEffect, useId, useState } from "react";
+import { hasTouchedTheme, subscribeThemeTouched } from "../themes.js";
 
 const FIRST_DELAY_MS = 2000;
 const REPEAT_MS = 60_000;
@@ -8,8 +9,20 @@ const VISIBLE_MS = 5000;
 export default function ThemeNudge() {
   const markerId = useId().replace(/:/g, "");
   const [visible, setVisible] = useState(false);
+  // Retires for good once the player has opened the theme or accent menu.
+  const [retired, setRetired] = useState(hasTouchedTheme);
+
+  useEffect(
+    () =>
+      subscribeThemeTouched(() => {
+        setRetired(true);
+        setVisible(false);
+      }),
+    []
+  );
 
   useEffect(() => {
+    if (retired) return undefined;
     let hideTimer;
     let interval;
     const timers = [];
@@ -32,7 +45,9 @@ export default function ThemeNudge() {
       clearTimeout(hideTimer);
       clearInterval(interval);
     };
-  }, []);
+  }, [retired]);
+
+  if (retired) return null;
 
   return (
     <div

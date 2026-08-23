@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { THEMES, applyTheme, paletteFor } from "../themes.js";
+import { THEMES, applyTheme, paletteFor, markThemeTouched } from "../themes.js";
 import ThemeNudge from "./ThemeNudge.jsx";
 import { SunIcon } from "./icons.jsx";
 
@@ -73,7 +73,14 @@ export default function ThemeSwitcher({
       }`}
       ref={ref}
     >
-      <button className="theme-btn" onClick={() => setOpen((o) => !o)} title="change theme">
+      <button
+        className="theme-btn"
+        onClick={() => {
+          markThemeTouched();
+          setOpen((o) => !o);
+        }}
+        title="change theme"
+      >
         <span className="theme-dot" style={{ background: "var(--main-color)" }} />
         <span className="theme-btn-label">
           {open ? THEMES[current]?.name || "theme" : "theme"}

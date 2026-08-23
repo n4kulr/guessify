@@ -13,6 +13,7 @@ import { isNoPreviewError } from "../shareScore.js";
 import { nextSpareTrack } from "../deadPreview.js";
 import { titleHintMask, HINT_AFTER_SKIPS } from "../titleHint.js";
 import GuessMedia from "./GuessMedia.jsx";
+import GuessSuggest, { useGuessSuggest } from "./GuessSuggest.jsx";
 import GuessTransport from "./GuessTransport.jsx";
 import ShareScoreButton from "./ShareScoreButton.jsx";
 import ScrubbableVinyl from "./ScrubbableVinyl.jsx";
@@ -32,7 +33,6 @@ import {
   titlePointsForGuess,
   ARTIST_BONUS,
   SKIP_PENALTY,
-  HINT_PENALTY,
   ROUND_MAX_POINTS,
   normalizeAvatar,
   randomAvatar,
@@ -90,10 +90,8 @@ export default function Game({ playlist, me, onExit, onReplay }) {
   const [playBusy, setPlayBusy] = useState(false);
   const [celebrate, setCelebrate] = useState(false);
   const [scrubbing, setScrubbing] = useState(false);
-  const [hintUsed, setHintUsed] = useState(false);
   const [titleHintText, setTitleHintText] = useState("");
   const [skipPop, setSkipPop] = useState(null);
-  const [hintPop, setHintPop] = useState(null);
   const [almostTitle, setAlmostTitle] = useState(null);
   const [almostArtist, setAlmostArtist] = useState(null);
   const [roundLog, setRoundLog] = useState([]);
@@ -107,6 +105,19 @@ export default function Game({ playlist, me, onExit, onReplay }) {
   const unlocked = STEPS[Math.min(guessNum, MAX_GUESSES - 1)];
   const resolved = outcome !== null;
   const canControl = !!track;
+  const canSuggest = phase === "play" && !resolved;
+  const titleSuggest = useGuessSuggest({
+    kind: "track",
+    value: titleGuess,
+    enabled: canSuggest,
+    onPick: setTitleGuess,
+  });
+  const artistSuggest = useGuessSuggest({
+    kind: "artist",
+    value: artistGuess,
+    enabled: canSuggest && !revealedArtist,
+    onPick: setArtistGuess,
+  });
 
   const players = useMemo(
     () => [
@@ -134,10 +145,8 @@ export default function Game({ playlist, me, onExit, onReplay }) {
     setCelebrate(false);
     setTitleGuess("");
     setArtistGuess("");
-    setHintUsed(false);
     setTitleHintText("");
     setSkipPop(null);
-    setHintPop(null);
     setAlmostTitle(null);
     setAlmostArtist(null);
     setPhase("play");
@@ -323,6 +332,9 @@ export default function Game({ playlist, me, onExit, onReplay }) {
     const artist = artistGuess.trim();
     if (!title && !artist) return;
 
+    titleSuggest.dismiss();
+    artistSuggest.dismiss();
+
     const titleOk = title ? isCorrect(title, track.name) : false;
     const artistOk = artist ? matchesAnyArtist(artist, track.artists) : false;
     const titleAlmost = title && !titleOk && isAlmost(title, track.name);
@@ -348,7 +360,7 @@ export default function Game({ playlist, me, onExit, onReplay }) {
     }
 
     if (win) {
-      const titlePts = titlePointsForGuess(guessNum, hintUsed);
+      const titlePts = titlePointsForGuess(guessNum);
       setEarnedPts(titlePts + artistPts);
       setScore((s) => s + titlePts);
       pushRoundResult({
@@ -378,17 +390,15 @@ export default function Game({ playlist, me, onExit, onReplay }) {
     consumeGuess();
   }
 
-  function applyTitleHint() {
-    if (phase !== "play" || resolved || !track?.name) return;
-    if (guessNum < HINT_AFTER_SKIPS) return;
-    const first = !hintUsed;
-    if (first) setHintUsed(true);
+
+  // Free title hint, handed over automatically once you've skipped enough.
+  useEffect(() => {
+    if (phase !== "play" || resolved) return;
+    if (guessNum < HINT_AFTER_SKIPS || !track?.name) return;
+    if (titleHintText) return;
     setTitleHintText(titleHintMask(track.name));
-    if (first) {
-      setHintPop(Date.now());
-      shakeEl(titleFieldRef.current);
-    }
-  }
+    shakeEl(titleFieldRef.current);
+  }, [phase, resolved, guessNum, track?.name, titleHintText]);
 
   function nextRound() {
     stopAudio();
@@ -487,9 +497,12 @@ export default function Game({ playlist, me, onExit, onReplay }) {
     >
       <div className="mp-board-main">
         <div className="game-head">
-          <button className="btn btn-mini" onClick={onExit}>
-            ← change playlist
-          </button>
+          {/* The results screen has its own "pick another playlist" — one is enough. */}
+          {phase !== "over" && (
+            <button className="btn btn-mini" onClick={onExit}>
+              ← change playlist
+            </button>
+          )}
           <div className="scoreboard">
             <span className="scoreboard-label">solo</span>
             <span className="scoreboard-value">{playlist.name}</span>
@@ -498,7 +511,7 @@ export default function Game({ playlist, me, onExit, onReplay }) {
 
         {phase !== "over" && (
           <div className="now-playing">
-            <span className="np-playlist">{playlist.name}</span>
+            {/* Playlist name already sits in the scoreboard top-right. */}
             <span className="np-round">
               record {roundIdx + 1} / {rounds.length}
             </span>
@@ -572,7 +585,7 @@ export default function Game({ playlist, me, onExit, onReplay }) {
                 <span>
                   {resolved
                     ? "revealed"
-                    : `${unlocked}s unlocked · 0:${String(TOTAL).padStart(2, "0")}`}
+                    : `${unlocked}s unlocked`}
                 </span>
               </div>
             </div>
@@ -608,37 +621,21 @@ export default function Game({ playlist, me, onExit, onReplay }) {
                         className={`guess-input${titleHintText ? " guess-input--hint" : ""}`}
                         placeholder={titleHintText || "song title…"}
                         value={titleGuess}
+                        {...titleSuggest.inputProps}
                         onChange={(e) => {
                           setAlmostTitle(null);
                           setTitleGuess(e.target.value);
                         }}
-                        onKeyDown={(e) => e.key === "Enter" && submitGuess()}
+                        onKeyDown={(e) => {
+                          if (titleSuggest.handleKeyDown(e)) return;
+                          if (e.key === "Enter") submitGuess();
+                        }}
                       />
+                      <GuessSuggest suggest={titleSuggest} />
                       <AlmostFlash
                         token={almostTitle}
                         onDone={() => setAlmostTitle(null)}
                       />
-                      {guessNum >= HINT_AFTER_SKIPS && (!hintUsed || hintPop) && (
-                        <div className="guess-hint-slot">
-                          {hintPop ? (
-                            <PenaltyPop
-                              token={hintPop}
-                              pts={HINT_PENALTY}
-                              className="penalty-pop--hint"
-                              onDone={() => setHintPop(null)}
-                            />
-                          ) : (
-                            <button
-                              type="button"
-                              className="guess-hint-link"
-                              onClick={applyTitleHint}
-                              aria-label="Reveal title hint"
-                            >
-                              hint
-                            </button>
-                          )}
-                        </div>
-                      )}
                     </div>
                   </div>
                   <div className="guess-artist-row">
@@ -648,12 +645,17 @@ export default function Game({ playlist, me, onExit, onReplay }) {
                         placeholder="artist…"
                         value={revealedArtist || artistGuess}
                         disabled={!!revealedArtist}
+                        {...artistSuggest.inputProps}
                         onChange={(e) => {
                           setAlmostArtist(null);
                           setArtistGuess(e.target.value);
                         }}
-                        onKeyDown={(e) => e.key === "Enter" && submitGuess()}
+                        onKeyDown={(e) => {
+                          if (artistSuggest.handleKeyDown(e)) return;
+                          if (e.key === "Enter") submitGuess();
+                        }}
                       />
+                      <GuessSuggest suggest={artistSuggest} />
                       <AlmostFlash
                         token={almostArtist}
                         onDone={() => setAlmostArtist(null)}

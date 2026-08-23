@@ -2,10 +2,11 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { usePartyRoom } from "./usePartyRoom.js";
 import { usePreviewPlayer } from "../usePreviewPlayer.js";
 import { isAudioWarm, warmAudioUrl } from "../previewWarm.js";
-import { STEPS, TOTAL, MAX_GUESSES, randomAvatar, normalizeAvatar, unlockSecondsFor, PLAYER_COLORS, nextVotesNeeded, activePlayerCount, SKIP_PENALTY, HINT_PENALTY } from "./constants.js";
+import { STEPS, TOTAL, MAX_GUESSES, randomAvatar, normalizeAvatar, unlockSecondsFor, PLAYER_COLORS, nextVotesNeeded, activePlayerCount, SKIP_PENALTY } from "./constants.js";
 import { accentMatchingTheme } from "../themes.js";
 import { fireConfetti, shakeEl } from "../fx.js";
 import GuessMedia from "../components/GuessMedia.jsx";
+import GuessSuggest, { useGuessSuggest } from "../components/GuessSuggest.jsx";
 import GuessTransport from "../components/GuessTransport.jsx";
 import ShareScoreButton from "../components/ShareScoreButton.jsx";
 import ScrubbableVinyl from "../components/ScrubbableVinyl.jsx";
@@ -14,7 +15,7 @@ import AlmostFlash from "../components/AlmostFlash.jsx";
 import GameOverStats from "../components/GameOverStats.jsx";
 import { isNoPreviewError } from "../shareScore.js";
 import { loadLocalProfile } from "../localProfile.js";
-import { HINT_AFTER_SKIPS } from "../titleHint.js";
+import { useAutoTitleHint } from "../useAutoTitleHint.js";
 import { computeGameStats } from "../gameStats.js";
 import { recordPlaylistScore } from "../playlistBests.js";
 import { isFastTest, buildFastPartyEnd } from "../fastTest.js";
@@ -41,9 +42,7 @@ export default function GuestApp({ code }) {
   const [titleGuess, setTitleGuess] = useState("");
   const [artistGuess, setArtistGuess] = useState("");
   const [titleHintText, setTitleHintText] = useState("");
-  const [hintUsed, setHintUsed] = useState(false);
   const [skipPop, setSkipPop] = useState(null);
-  const [hintPop, setHintPop] = useState(null);
   const [almostTitle, setAlmostTitle] = useState(null);
   const [almostArtist, setAlmostArtist] = useState(null);
   const [roundLog, setRoundLog] = useState([]);
@@ -74,6 +73,24 @@ export default function GuestApp({ code }) {
     : null;
   // Guests rely on the room's previewUrl (host publishes if the worker lookup fails).
   const canPlay = !!playTrack?.previewUrl;
+  const lockedIn = !!(
+    playerId &&
+    Array.isArray(state?.lockedInIds) &&
+    state.lockedInIds.includes(playerId)
+  );
+  const canSuggest = state?.phase === "play" && !lockedIn;
+  const titleSuggest = useGuessSuggest({
+    kind: "track",
+    value: titleGuess,
+    enabled: canSuggest,
+    onPick: setTitleGuess,
+  });
+  const artistSuggest = useGuessSuggest({
+    kind: "artist",
+    value: artistGuess,
+    enabled: canSuggest && !state?.revealedArtist,
+    onPick: setArtistGuess,
+  });
 
   useEffect(() => {
     const roundPhase = state?.phase;
@@ -117,9 +134,7 @@ export default function GuestApp({ code }) {
   useEffect(() => {
     if (!state?.revealedArtist) setArtistGuess("");
     setTitleHintText("");
-    setHintUsed(false);
     setSkipPop(null);
-    setHintPop(null);
     setAlmostTitle(null);
     setAlmostArtist(null);
   }, [state?.roundIdx]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -231,16 +246,16 @@ export default function GuestApp({ code }) {
     shakeEl(skipWrapRef.current);
   }
 
-  function applyTitleHint() {
-    const step = state?.unlockByPlayer?.[playerId] ?? 0;
-    if (state?.phase !== "play" || step < HINT_AFTER_SKIPS) return;
-    send({ type: "hint" });
-    if (!hintUsed) {
-      setHintUsed(true);
-      setHintPop(Date.now());
-      shakeEl(titleFieldRef.current);
-    }
-  }
+  // Free title hint on the round clock (10s left in timed / 45s into classic).
+  // The worker owns the title, so ask for it — it re-checks the same condition.
+  useAutoTitleHint({
+    active: state?.phase === "play" && !lockedIn && !titleHintText,
+    raceMode: state?.raceMode,
+    roundStartedAt: state?.roundStartedAt,
+    roundEndsAt: state?.roundEndsAt,
+    resetKey: state?.roundIdx,
+    onDue: () => send({ type: "hint" }),
+  });
 
   useEffect(() => {
     if (!titleHint) return;
@@ -479,17 +494,14 @@ export default function GuestApp({ code }) {
   const track = state.track;
   const spinning = localPlaying && (state.phase === "play" || state.phase === "reveal");
   const timed = state.raceMode === "timed";
-  const lockedIn = !!(
-    playerId &&
-    Array.isArray(state.lockedInIds) &&
-    state.lockedInIds.includes(playerId)
-  );
 
   function submitGuess() {
     // Title locks after a correct timed solve; artist bonus still scores live.
     const title = lockedIn ? "" : titleGuess.trim();
     const artist = artistGuess.trim();
     if (!title && !artist) return;
+    titleSuggest.dismiss();
+    artistSuggest.dismiss();
     send({ type: "guess", title, artist });
     setTitleGuess("");
     setArtistGuess("");
@@ -584,37 +596,21 @@ export default function GuestApp({ code }) {
                     }
                     value={lockedIn ? "" : titleGuess}
                     disabled={lockedIn}
+                    {...titleSuggest.inputProps}
                     onChange={(e) => {
                       setAlmostTitle(null);
                       setTitleGuess(e.target.value);
                     }}
-                    onKeyDown={(e) => e.key === "Enter" && submitGuess()}
+                    onKeyDown={(e) => {
+                      if (titleSuggest.handleKeyDown(e)) return;
+                      if (e.key === "Enter") submitGuess();
+                    }}
                   />
+                  <GuessSuggest suggest={titleSuggest} />
                   <AlmostFlash
                     token={almostTitle}
                     onDone={() => setAlmostTitle(null)}
                   />
-                  {myStep >= HINT_AFTER_SKIPS && (!hintUsed || hintPop) && !lockedIn && (
-                    <div className="guess-hint-slot">
-                      {hintPop ? (
-                        <PenaltyPop
-                          token={hintPop}
-                          pts={HINT_PENALTY}
-                          className="penalty-pop--hint"
-                          onDone={() => setHintPop(null)}
-                        />
-                      ) : (
-                        <button
-                          type="button"
-                          className="guess-hint-link"
-                          onClick={applyTitleHint}
-                          aria-label="Reveal title hint"
-                        >
-                          hint
-                        </button>
-                      )}
-                    </div>
-                  )}
                 </div>
               </div>
               <div className="guess-artist-row">
@@ -624,12 +620,17 @@ export default function GuestApp({ code }) {
                     placeholder="artist…"
                     value={state.revealedArtist || artistGuess}
                     disabled={!!state.revealedArtist}
+                    {...artistSuggest.inputProps}
                     onChange={(e) => {
                       setAlmostArtist(null);
                       setArtistGuess(e.target.value);
                     }}
-                    onKeyDown={(e) => e.key === "Enter" && submitGuess()}
+                    onKeyDown={(e) => {
+                      if (artistSuggest.handleKeyDown(e)) return;
+                      if (e.key === "Enter") submitGuess();
+                    }}
                   />
+                  <GuessSuggest suggest={artistSuggest} />
                   <AlmostFlash
                     token={almostArtist}
                     onDone={() => setAlmostArtist(null)}

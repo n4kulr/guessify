@@ -3,6 +3,7 @@ import { isCorrect, matchesAnyArtist, isAlmost, isAlmostAnyArtist } from "../mat
 import { usePreviewPlayer } from "../usePreviewPlayer.js";
 import { fireConfetti, shakeEl } from "../fx.js";
 import GuessMedia from "./GuessMedia.jsx";
+import GuessSuggest, { useGuessSuggest } from "./GuessSuggest.jsx";
 import GuessTransport from "./GuessTransport.jsx";
 import ShareScoreButton from "./ShareScoreButton.jsx";
 import ScrubbableVinyl from "./ScrubbableVinyl.jsx";
@@ -19,7 +20,8 @@ import {
   warmTrackPreview,
   patchRoundsPreview,
 } from "../previewWarm.js";
-import { titleHintMask, HINT_AFTER_SKIPS } from "../titleHint.js";
+import { titleHintMask } from "../titleHint.js";
+import { useAutoTitleHint } from "../useAutoTitleHint.js";
 import { computeGameStats } from "../gameStats.js";
 import { recordPlaylistScore } from "../playlistBests.js";
 import { isFastTest, FAST_ROUND_LOG } from "../fastTest.js";
@@ -35,7 +37,6 @@ import {
   TIMED_ROUND_MS,
   ARTIST_BONUS,
   SKIP_PENALTY,
-  HINT_PENALTY,
   randomAvatar,
   normalizeAvatar,
   PLAYER_COLORS,
@@ -273,10 +274,8 @@ export default function OnlineRace({ profile, onExit, raceMode: raceModeProp }) 
   const [artistGuess, setArtistGuess] = useState("");
   const [localPlaying, setLocalPlaying] = useState(false);
   const [playBusy, setPlayBusy] = useState(false);
-  const [hintUsed, setHintUsed] = useState(false);
   const [titleHintText, setTitleHintText] = useState("");
   const [skipPop, setSkipPop] = useState(null);
-  const [hintPop, setHintPop] = useState(null);
   const [almostTitle, setAlmostTitle] = useState(null);
   const [almostArtist, setAlmostArtist] = useState(null);
   const [roundLog, setRoundLog] = useState([]);
@@ -318,6 +317,19 @@ export default function OnlineRace({ profile, onExit, raceMode: raceModeProp }) 
   const voteHave = Object.keys(nextVotes).length;
   const iVotedNext = !!nextVotes[youId];
   const lockedIn = lockedInIds.includes(youId);
+  const canSuggest = phase === "play" && !lockedIn;
+  const titleSuggest = useGuessSuggest({
+    kind: "track",
+    value: titleGuess,
+    enabled: canSuggest,
+    onPick: setTitleGuess,
+  });
+  const artistSuggest = useGuessSuggest({
+    kind: "artist",
+    value: artistGuess,
+    enabled: canSuggest && !revealedArtist,
+    onPick: setArtistGuess,
+  });
 
   function clearTimedRound() {
     roundSolvesRef.current = {};
@@ -371,10 +383,8 @@ export default function OnlineRace({ profile, onExit, raceMode: raceModeProp }) 
     setArtistClaimedBy(null);
     setTitleGuess("");
     setArtistGuess("");
-    setHintUsed(false);
     setTitleHintText("");
     setSkipPop(null);
-    setHintPop(null);
     setAlmostTitle(null);
     setAlmostArtist(null);
     setPhase("play");
@@ -695,8 +705,7 @@ export default function OnlineRace({ profile, onExit, raceMode: raceModeProp }) 
   function claimTitle(player, trackRef, artistPtsJustNow = 0) {
     if (phaseRef.current !== "play") return;
     const skips = unlockByPlayer[player.id] ?? 0;
-    const usedHint = player.id === youId && hintUsed;
-    const titlePts = titlePointsForGuess(skips, usedHint);
+    const titlePts = titlePointsForGuess(skips);
     setGuesses((g) => [
       ...g,
       {
@@ -863,6 +872,9 @@ export default function OnlineRace({ profile, onExit, raceMode: raceModeProp }) 
     const artist = artistGuess.trim();
     if (!title && !artist) return;
 
+    titleSuggest.dismiss();
+    artistSuggest.dismiss();
+
     const artistWasClaimed = !!artistClaimedRef.current;
     const titleOk = title ? isCorrect(title, track.name) : false;
     const artistOk =
@@ -912,7 +924,7 @@ export default function OnlineRace({ profile, onExit, raceMode: raceModeProp }) 
     }
 
     if (titleOk) {
-      const pts = titlePointsForGuess(myStep, hintUsed);
+      const pts = titlePointsForGuess(myStep);
       if (timed) {
         registerTimedSolve(you, pts);
         return;
@@ -939,17 +951,18 @@ export default function OnlineRace({ profile, onExit, raceMode: raceModeProp }) 
     bumpUnlock(youId);
   }
 
-  function applyTitleHint() {
-    if (phase !== "play" || !track?.name) return;
-    if (myStep < HINT_AFTER_SKIPS) return;
-    const first = !hintUsed;
-    if (first) setHintUsed(true);
-    setTitleHintText(titleHintMask(track.name));
-    if (first) {
-      setHintPop(Date.now());
+  // Free title hint, handed over on the round clock (10s left / 45s in).
+  useAutoTitleHint({
+    active: phase === "play" && !lockedIn && !!track?.name && !titleHintText,
+    raceMode: timed ? "timed" : "classic",
+    roundStartedAt: roundStartedAt.current,
+    roundEndsAt,
+    resetKey: roundIdx,
+    onDue: () => {
+      setTitleHintText(titleHintMask(track.name));
       shakeEl(titleFieldRef.current);
-    }
-  }
+    },
+  });
 
   // Lose only once everyone still in the race has maxed their skip ladder.
   // Timed mode waits for the 45s clock (or everyone locked in) instead.
@@ -984,10 +997,8 @@ export default function OnlineRace({ profile, onExit, raceMode: raceModeProp }) 
     artistClaimedRef.current = null;
     setTitleGuess("");
     setArtistGuess("");
-    setHintUsed(false);
     setTitleHintText("");
     setSkipPop(null);
-    setHintPop(null);
     setAlmostTitle(null);
     setAlmostArtist(null);
     setPhase("play");
@@ -1304,7 +1315,7 @@ export default function OnlineRace({ profile, onExit, raceMode: raceModeProp }) 
             <span>
               {revealed
                 ? "revealed"
-                : `${unlocked}s unlocked · 0:${String(TOTAL).padStart(2, "0")}`}
+                : `${unlocked}s unlocked`}
             </span>
           </div>
         </div>
@@ -1323,37 +1334,21 @@ export default function OnlineRace({ profile, onExit, raceMode: raceModeProp }) 
                     }
                     value={lockedIn ? "" : titleGuess}
                     disabled={lockedIn}
+                    {...titleSuggest.inputProps}
                     onChange={(e) => {
                       setAlmostTitle(null);
                       setTitleGuess(e.target.value);
                     }}
-                    onKeyDown={(e) => e.key === "Enter" && submitGuess()}
+                    onKeyDown={(e) => {
+                      if (titleSuggest.handleKeyDown(e)) return;
+                      if (e.key === "Enter") submitGuess();
+                    }}
                   />
+                  <GuessSuggest suggest={titleSuggest} />
                   <AlmostFlash
                     token={almostTitle}
                     onDone={() => setAlmostTitle(null)}
                   />
-                  {myStep >= HINT_AFTER_SKIPS && (!hintUsed || hintPop) && !lockedIn && (
-                    <div className="guess-hint-slot">
-                      {hintPop ? (
-                        <PenaltyPop
-                          token={hintPop}
-                          pts={HINT_PENALTY}
-                          className="penalty-pop--hint"
-                          onDone={() => setHintPop(null)}
-                        />
-                      ) : (
-                        <button
-                          type="button"
-                          className="guess-hint-link"
-                          onClick={applyTitleHint}
-                          aria-label="Reveal title hint"
-                        >
-                          hint
-                        </button>
-                      )}
-                    </div>
-                  )}
                 </div>
               </div>
               <div className="guess-artist-row">
@@ -1363,12 +1358,17 @@ export default function OnlineRace({ profile, onExit, raceMode: raceModeProp }) 
                     placeholder="artist…"
                     value={revealedArtist || artistGuess}
                     disabled={!!revealedArtist}
+                    {...artistSuggest.inputProps}
                     onChange={(e) => {
                       setAlmostArtist(null);
                       setArtistGuess(e.target.value);
                     }}
-                    onKeyDown={(e) => e.key === "Enter" && submitGuess()}
+                    onKeyDown={(e) => {
+                      if (artistSuggest.handleKeyDown(e)) return;
+                      if (e.key === "Enter") submitGuess();
+                    }}
                   />
+                  <GuessSuggest suggest={artistSuggest} />
                   <AlmostFlash
                     token={almostArtist}
                     onDone={() => setAlmostArtist(null)}

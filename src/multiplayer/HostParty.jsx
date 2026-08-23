@@ -4,9 +4,10 @@ import { usePartyRoom } from "./usePartyRoom.js";
 import { usePreviewPlayer } from "../usePreviewPlayer.js";
 import { resolvePreview } from "../itunes.js";
 import { isAudioWarm, warmAudioUrl, primePlaylistPreviews } from "../previewWarm.js";
-import { STEPS, TOTAL, MAX_GUESSES, randomAvatar, normalizeAvatar, unlockSecondsFor, PLAYER_COLORS, nextVotesNeeded, activePlayerCount, SKIP_PENALTY, HINT_PENALTY, ROUND_COUNT } from "./constants.js";
+import { STEPS, TOTAL, MAX_GUESSES, randomAvatar, normalizeAvatar, unlockSecondsFor, PLAYER_COLORS, nextVotesNeeded, activePlayerCount, SKIP_PENALTY, ROUND_COUNT } from "./constants.js";
 import { fireConfetti, shakeEl } from "../fx.js";
 import GuessMedia from "../components/GuessMedia.jsx";
+import GuessSuggest, { useGuessSuggest } from "../components/GuessSuggest.jsx";
 import GuessTransport from "../components/GuessTransport.jsx";
 import ShareScoreButton from "../components/ShareScoreButton.jsx";
 import ScrubbableVinyl from "../components/ScrubbableVinyl.jsx";
@@ -21,7 +22,7 @@ import LobbyRaceModePicker from "./LobbyRaceModePicker.jsx";
 import { loadLocalProfile, saveLocalProfile } from "../localProfile.js";
 import { applyThemeForAccent, accentMatchingTheme } from "../themes.js";
 import { isNoPreviewError } from "../shareScore.js";
-import { HINT_AFTER_SKIPS } from "../titleHint.js";
+import { useAutoTitleHint } from "../useAutoTitleHint.js";
 import { computeGameStats } from "../gameStats.js";
 import { recordPlaylistScore } from "../playlistBests.js";
 import { isFastTest, buildFastPartyEnd } from "../fastTest.js";
@@ -51,9 +52,7 @@ export default function HostParty({
   const [titleGuess, setTitleGuess] = useState("");
   const [artistGuess, setArtistGuess] = useState("");
   const [titleHintText, setTitleHintText] = useState("");
-  const [hintUsed, setHintUsed] = useState(false);
   const [skipPop, setSkipPop] = useState(null);
-  const [hintPop, setHintPop] = useState(null);
   const [almostTitle, setAlmostTitle] = useState(null);
   const [almostArtist, setAlmostArtist] = useState(null);
   const [roundLog, setRoundLog] = useState([]);
@@ -243,9 +242,7 @@ export default function HostParty({
   useEffect(() => {
     if (!state?.revealedArtist) setArtistGuess("");
     setTitleHintText("");
-    setHintUsed(false);
     setSkipPop(null);
-    setHintPop(null);
     setAlmostTitle(null);
     setAlmostArtist(null);
   }, [state?.roundIdx]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -360,6 +357,29 @@ export default function HostParty({
     Array.isArray(state?.lockedInIds) &&
     state.lockedInIds.includes(playerId)
   );
+  const canSuggest = phase === "play" && !lockedIn;
+  const titleSuggest = useGuessSuggest({
+    kind: "track",
+    value: titleGuess,
+    enabled: canSuggest,
+    onPick: setTitleGuess,
+  });
+  const artistSuggest = useGuessSuggest({
+    kind: "artist",
+    value: artistGuess,
+    enabled: canSuggest && !state?.revealedArtist,
+    onPick: setArtistGuess,
+  });
+
+  // Free title hint on the round clock (10s left in timed / 45s into classic).
+  useAutoTitleHint({
+    active: state?.phase === "play" && !lockedIn && !titleHintText,
+    raceMode: state?.raceMode,
+    roundStartedAt: state?.roundStartedAt,
+    roundEndsAt: state?.roundEndsAt,
+    resetKey: state?.roundIdx,
+    onDue: () => send({ type: "hint" }),
+  });
 
   async function playSnippet(seconds) {
     if (!canPlay) return;
@@ -628,6 +648,8 @@ export default function HostParty({
     const title = lockedIn ? "" : titleGuess.trim();
     const artist = artistGuess.trim();
     if (!title && !artist) return;
+    titleSuggest.dismiss();
+    artistSuggest.dismiss();
     send({ type: "guess", title, artist });
     setTitleGuess("");
     setArtistGuess("");
@@ -641,17 +663,6 @@ export default function HostParty({
     stopAudio();
     setSkipPop(Date.now());
     shakeEl(skipWrapRef.current);
-  }
-
-  function applyTitleHint() {
-    if (phase !== "play") return;
-    if (myStep < HINT_AFTER_SKIPS) return;
-    send({ type: "hint" });
-    if (!hintUsed) {
-      setHintUsed(true);
-      setHintPop(Date.now());
-      shakeEl(titleFieldRef.current);
-    }
   }
 
   // ---- play / reveal board ----
@@ -739,7 +750,7 @@ export default function HostParty({
         <div className="progress-labels">
           <span>0:00</span>
           <span>
-            {revealed ? "revealed" : `${unlocked}s unlocked · 0:${String(TOTAL).padStart(2, "0")}`}
+            {revealed ? "revealed" : `${unlocked}s unlocked`}
           </span>
         </div>
       </div>
@@ -756,37 +767,21 @@ export default function HostParty({
                   }
                   value={lockedIn ? "" : titleGuess}
                   disabled={lockedIn}
+                  {...titleSuggest.inputProps}
                   onChange={(e) => {
                     setAlmostTitle(null);
                     setTitleGuess(e.target.value);
                   }}
-                  onKeyDown={(e) => e.key === "Enter" && submitGuess()}
+                  onKeyDown={(e) => {
+                    if (titleSuggest.handleKeyDown(e)) return;
+                    if (e.key === "Enter") submitGuess();
+                  }}
                 />
+                <GuessSuggest suggest={titleSuggest} />
                 <AlmostFlash
                   token={almostTitle}
                   onDone={() => setAlmostTitle(null)}
                 />
-                {myStep >= HINT_AFTER_SKIPS && (!hintUsed || hintPop) && !lockedIn && (
-                  <div className="guess-hint-slot">
-                    {hintPop ? (
-                      <PenaltyPop
-                        token={hintPop}
-                        pts={HINT_PENALTY}
-                        className="penalty-pop--hint"
-                        onDone={() => setHintPop(null)}
-                      />
-                    ) : (
-                      <button
-                        type="button"
-                        className="guess-hint-link"
-                        onClick={applyTitleHint}
-                        aria-label="Reveal title hint"
-                      >
-                        hint
-                      </button>
-                    )}
-                  </div>
-                )}
               </div>
             </div>
             <div className="guess-artist-row">
@@ -796,12 +791,17 @@ export default function HostParty({
                   placeholder="artist…"
                   value={state.revealedArtist || artistGuess}
                   disabled={!!state.revealedArtist}
+                  {...artistSuggest.inputProps}
                   onChange={(e) => {
                     setAlmostArtist(null);
                     setArtistGuess(e.target.value);
                   }}
-                  onKeyDown={(e) => e.key === "Enter" && submitGuess()}
+                  onKeyDown={(e) => {
+                    if (artistSuggest.handleKeyDown(e)) return;
+                    if (e.key === "Enter") submitGuess();
+                  }}
                 />
+                <GuessSuggest suggest={artistSuggest} />
                 <AlmostFlash
                   token={almostArtist}
                   onDone={() => setAlmostArtist(null)}
