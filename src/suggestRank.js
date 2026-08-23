@@ -71,7 +71,6 @@ export function rankTrackSuggestions(raw = [], query = "", roundArtists = []) {
       best.set(key, {
         name: name.slice(0, 160),
         artist: artist ? artist.slice(0, 120) : null,
-        cover: row?.cover || null,
         score,
       });
     }
@@ -80,7 +79,7 @@ export function rankTrackSuggestions(raw = [], query = "", roundArtists = []) {
   return [...best.values()]
     .sort((a, b) => b.score - a.score)
     .slice(0, SUGGEST_OUT)
-    .map(({ name, artist, cover }) => ({ name, artist, cover: cover || null }));
+    .map(({ name, artist }) => ({ name, artist }));
 }
 
 /** One row per artist name; same slight round-artist nudge for tie-breaks. */
@@ -102,16 +101,12 @@ export function rankArtistSuggestions(raw = [], query = "", roundArtists = []) {
 
     const prev = best.get(key);
     if (!prev || score > prev.score) {
-      best.set(key, {
-        name: name.slice(0, 120),
-        cover: row?.cover || null,
-        score,
-      });
+      best.set(key, { name: name.slice(0, 120), score });
     }
   });
 
   return [...best.values()]
     .sort((a, b) => b.score - a.score)
     .slice(0, SUGGEST_OUT)
-    .map(({ name, cover }) => ({ name, cover: cover || null }));
+    .map(({ name }) => ({ name }));
 }
