@@ -69,7 +69,7 @@ export default function ChartCdStack({
 
   return (
     <div className="cd-stack-block">
-      <h3 className="picker-section-title">or stack a mix</h3>
+      <h3 className="picker-section-title">make your own playlist!</h3>
       <p className="section-sub chart-search-sub">
         (add artists &amp; eras — they pile up)
       </p>
@@ -102,14 +102,14 @@ export default function ChartCdStack({
 
       <div
         ref={rowRef}
-        className={`cd-stack-row${panelOpen ? " is-picking" : ""}${layers.length ? " has-discs" : ""}`}
+        className={`cd-row cd-stack-row${panelOpen ? " is-picking" : ""}${layers.length ? " has-discs" : ""}`}
       >
         <figure
-          className="cd-stack-tray"
+          className="cd-tray cd-stack-tray"
           ref={trayRef}
           aria-label="Temporary mix as a stacked CD spindle"
         >
-          <div className="cd-stack-tray-inner">
+          <div className="cd-tray-inner cd-stack-tray-inner">
             {layers.length === 0 ? (
               <p className="cd-stack-empty">add something — discs stack here</p>
             ) : (
@@ -128,7 +128,7 @@ export default function ChartCdStack({
                     >
                       <button
                         type="button"
-                        className={`cd-stack-disc cd-spine cd-spine--${meta.tone} ${histCls} ${fontCls}${selected ? " is-selected" : ""}`.trim()}
+                        className={`cd-stack-disc cd-spine--${meta.tone} ${histCls} ${fontCls}${selected ? " is-selected" : ""}`.trim()}
                         style={{
                           "--w-scale": meta.wScale,
                           "--tilt": `${meta.tilt * 0.4}deg`,
@@ -162,7 +162,7 @@ export default function ChartCdStack({
               </ul>
             )}
           </div>
-          <figcaption className="cd-tray-caption">cd stack</figcaption>
+          <figcaption className="cd-tray-caption">cd case</figcaption>
           {layers.length > 1 ? (
             <p className="cd-tray-hint">scroll for more</p>
           ) : null}

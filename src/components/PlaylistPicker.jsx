@@ -607,6 +607,12 @@ export default function PlaylistPicker({ onPick, needsLogin = false }) {
         </form>
       </div>
 
+      <ChartCdSpindle
+        packs={CHART_PACKS}
+        loadingId={loadingId}
+        onChoose={chooseChart}
+      />
+
       <ChartCdStack
         layers={stackLayers}
         loadingId={loadingId}
@@ -614,12 +620,6 @@ export default function PlaylistPicker({ onPick, needsLogin = false }) {
         onAdd={addStackLayer}
         onRemove={removeStackLayer}
         onPlay={playStackMix}
-      />
-
-      <ChartCdSpindle
-        packs={CHART_PACKS}
-        loadingId={loadingId}
-        onChoose={chooseChart}
       />
 
       {chartPreview && (

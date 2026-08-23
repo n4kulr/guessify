@@ -2171,7 +2171,7 @@ button.footer-privacy:hover {
   color: color-mix(in srgb, var(--sub-color) 80%, transparent);
 }
 
-/* ---- stack mix: vertical tray, horizontal disc edges (spindle rotated 90°) ---- */
+/* ---- stack mix: same cd case as genre spindle, discs stack vertically ---- */
 .cd-stack-block {
   margin: 28px auto 8px;
   width: min(920px, 100%);
@@ -2179,54 +2179,10 @@ button.footer-privacy:hover {
 .cd-stack-add {
   margin-bottom: 10px;
 }
-.cd-stack-row {
-  --cd-disc-h: 22px;
-  --cd-stack-w: 220px;
-  --cd-stack-h: 220px;
-  --cd-gap: 3px;
-  --cd-dur: 0.34s;
-  --cd-ease: cubic-bezier(0.22, 1, 0.36, 1);
-  --cd-pull: 10px;
-  display: flex;
-  align-items: flex-start;
-  justify-content: center;
-  gap: 0;
-  width: min(920px, 100%);
-  margin: 6px auto 4px;
-}
-.cd-stack-row.is-picking {
-  gap: 0;
-}
-.cd-stack-tray {
-  position: relative;
-  z-index: 2;
-  flex: 0 0 min(280px, 42vw);
-  max-width: 300px;
-  margin: 0;
-  padding: 14px 12px 16px;
-  border-radius: 10px;
-  background:
-    linear-gradient(
-      180deg,
-      color-mix(in srgb, var(--text-color) 14%, var(--sub-alt-color)) 0%,
-      var(--sub-alt-color) 40%,
-      color-mix(in srgb, #000 28%, var(--sub-alt-color)) 100%
-    );
-  border: 1px solid color-mix(in srgb, var(--text-color) 18%, transparent);
-  box-shadow:
-    0 22px 48px color-mix(in srgb, #000 45%, transparent),
-    inset 0 1px 0 color-mix(in srgb, #fff 12%, transparent),
-    inset 0 -3px 10px color-mix(in srgb, #000 35%, transparent);
-}
 .cd-stack-tray-inner {
-  position: relative;
-  box-sizing: border-box;
-  height: var(--cd-stack-h);
-  padding: 8px;
-  border-radius: 6px;
-  display: flex;
   flex-direction: column;
   justify-content: flex-end;
+  align-items: stretch;
   background:
     repeating-linear-gradient(
       180deg,
@@ -2239,13 +2195,14 @@ button.footer-privacy:hover {
       color-mix(in srgb, #000 35%, var(--bg-color)) 50%,
       color-mix(in srgb, #000 45%, var(--bg-color)) 100%
     );
-  box-shadow:
-    inset 0 0 0 1px color-mix(in srgb, #000 55%, transparent),
-    inset 0 10px 22px color-mix(in srgb, #000 45%, transparent);
-  overflow: hidden;
 }
 .cd-stack-empty {
-  margin: auto;
+  flex: 1 1 auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: var(--cd-case-h);
+  margin: 0;
   padding: 0 8px;
   text-align: center;
   font-size: 12px;
@@ -2256,14 +2213,14 @@ button.footer-privacy:hover {
 .cd-stack-discs {
   list-style: none;
   margin: 0;
-  padding: 2px 14px 2px 2px;
+  padding: 0 14px 14px 2px;
   display: flex;
   flex-direction: column-reverse;
   flex-wrap: nowrap;
   align-items: stretch;
   gap: var(--cd-gap);
   width: 100%;
-  max-height: calc(var(--cd-stack-h) - 8px);
+  height: var(--cd-case-h);
   box-sizing: content-box;
   overflow-x: hidden;
   overflow-y: auto;
@@ -2286,9 +2243,9 @@ button.footer-privacy:hover {
 }
 .cd-stack-disc-slot {
   position: relative;
-  flex: 0 0 var(--cd-disc-h);
+  flex: 0 0 var(--cd-spine-w);
   width: 100%;
-  min-height: var(--cd-disc-h);
+  min-height: var(--cd-spine-w);
   scroll-snap-align: end;
   z-index: calc(var(--stack-i, 0) + 1);
 }
@@ -2298,6 +2255,10 @@ button.footer-privacy:hover {
   z-index: 20;
 }
 .cd-stack-disc {
+  --cd-base: #cfcfc8;
+  --cd-hi: #f2f2ec;
+  --cd-lo: #9a9a94;
+  --cd-ink: #1a1a1a;
   position: relative;
   width: calc(100% * var(--w-scale, 1));
   height: 100%;
