@@ -87,11 +87,13 @@ export default function PlaylistPicker({ onPick, needsLogin = false }) {
   const [stackInsertOpen, setStackInsertOpen] = useState(false);
   const [stackBusy, setStackBusy] = useState(false);
   const [linkQuery, setLinkQuery] = useState("");
+  const [linkError, setLinkError] = useState(null);
   const [yoursView, setYoursView] = useState("cds"); // cds | list
   const [showLoginModal, setShowLoginModal] = useState(false);
   const [loginModalForLink, setLoginModalForLink] = useState(false);
   const loginModalTitleId = useId();
   const chartFieldRef = useRef(null);
+  const linkFieldRef = useRef(null);
   const chartErrorTimer = useRef(0);
 
   useEffect(() => {
@@ -387,31 +389,46 @@ export default function PlaylistPicker({ onPick, needsLogin = false }) {
   async function choosePlaylistLink(raw) {
     const id = parseSpotifyPlaylistId(raw);
     if (!id) {
-      setNote("Paste a Spotify playlist link (Share → Copy link).");
+      const msg = "Paste a Spotify playlist link (Share → Copy link).";
+      setLinkError(msg);
+      setNote(msg);
+      requestAnimationFrame(() => shakeEl(linkFieldRef.current));
       return;
     }
     setLoadingId(`link:${id}`);
     setNote(null);
+    setLinkError(null);
     try {
       const res = await fetch(`/api/playlist/${encodeURIComponent(id)}`, {
         credentials: "include",
       });
       const d = await res.json();
       if (!res.ok) {
-        if (res.status === 403 && needsLogin) {
-          setLoginModalForLink(true);
-          setShowLoginModal(true);
+        let msg = d.error || "Couldn't load that playlist.";
+        if (res.status === 403) {
+          msg =
+            "Can't play someone else's playlist — Spotify only allows ones you created, even if they're public. If this is yours, log in with the Spotify account that owns it.";
         }
-        throw new Error(d.error || "Couldn't load that playlist.");
-      }
-      if (d.playableCount < 2) {
-        setNote(`"${d.name || "That playlist"}" needs at least 2 tracks to play.`);
+        setLinkError(msg);
+        setNote(msg);
+        requestAnimationFrame(() => shakeEl(linkFieldRef.current));
         setLoadingId(null);
         return;
       }
+      if (d.playableCount < 2) {
+        const msg = `"${d.name || "That playlist"}" needs at least 2 tracks to play.`;
+        setLinkError(msg);
+        setNote(msg);
+        setLoadingId(null);
+        return;
+      }
+      setLinkError(null);
       onPick(d);
-    } catch (err) {
-      setNote(err.message || "Couldn't load that playlist.");
+    } catch {
+      const msg = "Couldn't load that playlist — check the link and try again.";
+      setLinkError(msg);
+      setNote(msg);
+      requestAnimationFrame(() => shakeEl(linkFieldRef.current));
       setLoadingId(null);
     }
   }
@@ -615,21 +632,29 @@ export default function PlaylistPicker({ onPick, needsLogin = false }) {
       <div className="chart-search-block playlist-link-block">
         <h3 className="picker-section-title">got a spotify link?</h3>
         <p className="section-sub chart-search-sub">
-          (your playlist — public or link-only · log in with Spotify)
+          (a playlist you created — not a friend&apos;s, even if public)
         </p>
         <form className="chart-search playlist-link-form" onSubmit={submitPlaylistLink}>
           <div className="join-code-row">
-            <div className="chart-search-field">
+            <div className="chart-search-field" ref={linkFieldRef}>
               <label className="chart-search-label">
                 <input
-                  className="guess-input join-code-input chart-search-input playlist-link-input"
+                  className={
+                    "guess-input join-code-input chart-search-input playlist-link-input" +
+                    (linkError ? " chart-search-input--error" : "")
+                  }
                   placeholder="https://open.spotify.com/playlist/…"
                   value={linkQuery}
-                  onChange={(e) => setLinkQuery(e.target.value)}
+                  onChange={(e) => {
+                    setLinkQuery(e.target.value);
+                    if (linkError) setLinkError(null);
+                  }}
                   disabled={loadingId !== null}
                   autoCorrect="off"
                   autoCapitalize="off"
                   spellCheck={false}
+                  aria-invalid={linkError ? true : undefined}
+                  aria-describedby={linkError ? "playlist-link-error" : undefined}
                   aria-label="Spotify playlist link"
                 />
               </label>
@@ -642,6 +667,26 @@ export default function PlaylistPicker({ onPick, needsLogin = false }) {
               {loadingId?.startsWith("link:") ? "…" : "play"}
             </button>
           </div>
+          {linkError ? (
+            <p id="playlist-link-error" className="playlist-link-error" role="alert">
+              {linkError}
+              {needsLogin && linkError.includes("log in") ? (
+                <>
+                  {" "}
+                  <button
+                    type="button"
+                    className="playlist-link-login"
+                    onClick={() => {
+                      setLoginModalForLink(true);
+                      setShowLoginModal(true);
+                    }}
+                  >
+                    Log in with Spotify
+                  </button>
+                </>
+              ) : null}
+            </p>
+          ) : null}
         </form>
       </div>
 
