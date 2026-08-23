@@ -506,9 +506,14 @@ button.footer-privacy:hover {
 }
 .look-menu > .profile-dd-label { margin-bottom: 8px; }
 /* Theme picker folded into "your look" — phones only (see the 820px block). */
-.look-menu-theme { display: none; margin-top: 12px; }
+.look-menu-theme { display: none; margin-top: 6px; }
 .theme-switcher--inline { display: block; width: 100%; }
-.theme-switcher--inline .theme-btn { width: 100%; max-width: none; }
+/* Menu bg is --sub-alt-color too, so lift the button a shade to separate it. */
+.theme-switcher--inline .theme-btn {
+  width: 100%;
+  max-width: none;
+  background: color-mix(in srgb, var(--text-color) 12%, var(--sub-alt-color));
+}
 .theme-switcher--inline .theme-menu {
   position: static;
   width: 100%;
