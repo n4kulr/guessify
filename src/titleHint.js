@@ -1,15 +1,14 @@
 /**
  * Mask a song title for the late-game hint.
  * Only the first HINT_MAX_LETTERS letters are shown (rest omitted).
- * Unknown letters are box glyphs; words split with a middle-dot gap
- * (not "/" — titles like "House of Balloons / …" already use that).
- * Example: "daisies" → "d▢▢s▢e▢"
- *          "hello world" → "h▢▢l▢ · w▢▢l▢"
+ * Unknown letters are underscores with spaces so slots don't merge.
+ * Example: "daisies" → "d _ _ s _ e s"
+ *          "hello world" → "h _ _ l _ · w _ _ l _"
  */
 
 export const HINT_MAX_LETTERS = 10;
 
-const BLANK = "▢";
+const BLANK = "_";
 const WORD_GAP = " · ";
 
 /** Strip featured-artist credits for display + hints (matching still uses the raw title). */
@@ -61,7 +60,7 @@ export function titleHintMask(title) {
           if (revealAt(i, len)) return ch.toLowerCase();
           return BLANK;
         })
-        .join("")
+        .join(" ")
     );
   }
   return words.join(WORD_GAP);

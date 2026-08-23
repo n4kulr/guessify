@@ -87,7 +87,7 @@ export default function GuessMedia({
       {canControl && !revealed && (
         <button
           type="button"
-          className={`vinyl-cue ${spinning ? "vinyl-cue--playing" : ""}`}
+          className="vinyl-cue"
           aria-label={spinning ? "Pause preview" : "Play preview"}
           onClick={(e) => {
             e.stopPropagation();

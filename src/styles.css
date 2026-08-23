@@ -3015,7 +3015,7 @@ button.footer-privacy:hover {
   color: var(--main-color);
   background: var(--bg-color);
   box-shadow: 0 2px 12px color-mix(in srgb, #000 40%, transparent);
-  transition: opacity 0.2s ease, transform 0.2s ease;
+  transition: transform 0.2s ease;
   -webkit-tap-highlight-color: transparent;
 }
 .vinyl-cue:hover {
@@ -3026,17 +3026,6 @@ button.footer-privacy:hover {
   height: 24px;
   display: block;
 }
-/* Once it's clearly playing the hint has done its job — fade back, but stay
-   visible enough to read as the pause control. */
-.vinyl-cue--playing {
-  opacity: 0.5;
-  transform: translate(-50%, -50%) scale(0.86);
-}
-.turntable--game:hover .vinyl-cue--playing {
-  opacity: 0.92;
-  transform: translate(-50%, -50%) scale(1);
-}
-.vinyl--scrubbing ~ .vinyl-cue { opacity: 0; pointer-events: none; }
 @media (prefers-reduced-motion: reduce) {
   .vinyl-cue { transition: none; }
 }

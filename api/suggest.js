@@ -70,6 +70,7 @@ async function searchArtists(key, q) {
   });
   return asList(data?.results?.artistmatches?.artist).map((a) => ({
     name: String(a?.name || "").trim(),
+    listeners: a?.listeners,
   }));
 }
 
@@ -82,5 +83,6 @@ async function searchTracks(key, q) {
   return asList(data?.results?.trackmatches?.track).map((t) => ({
     name: String(t?.name || "").trim(),
     artist: String(t?.artist || "").trim(),
+    listeners: t?.listeners,
   }));
 }
