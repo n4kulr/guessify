@@ -1,6 +1,9 @@
-import { useLayoutEffect, useRef } from "react";
+import { useLayoutEffect, useRef, useState } from "react";
 import { useDragScroll } from "../useDragScroll.js";
 import { spineMeta } from "../cdSpineMeta.js";
+import { useTypewriterPh } from "../useTypewriterPh.js";
+
+const STACK_PH_EXAMPLES = ["daniel caesar", "brent faiyaz", "adele"];
 
 /** Vertical CD stack — same case as genre spindle; insert shows full shuffled mix. */
 export default function ChartCdStack({
@@ -13,10 +16,11 @@ export default function ChartCdStack({
   onPutInPlayer,
 }) {
   const busy = stackBusy;
+  const [stackQuery, setStackQuery] = useState("");
+  const stackPh = useTypewriterPh(STACK_PH_EXAMPLES, !!stackQuery);
   const scrollRef = useRef(null);
   const trayRef = useRef(null);
   const rowRef = useRef(null);
-  const queryRef = useRef(null);
   useDragScroll(scrollRef, { axis: "y" });
 
   const panelOpen = Boolean(insertOpen && layers.length > 0);
@@ -48,11 +52,10 @@ export default function ChartCdStack({
 
   async function submitAdd(e) {
     e.preventDefault();
-    const input = queryRef.current;
-    const clean = input?.value.trim() || "";
+    const clean = stackQuery.trim();
     if (!clean || busy) return;
     const ok = await onAdd?.(clean);
-    if (ok && input) input.value = "";
+    if (ok) setStackQuery("");
   }
 
   const panelClass = ["cd-panel", panelOpen ? "is-open" : ""]
@@ -68,11 +71,17 @@ export default function ChartCdStack({
         <div className="join-code-row">
           <div className="chart-search-field">
             <label className="chart-search-label">
+              {!stackQuery && (
+                <span className="chart-search-ph" aria-hidden="true">
+                  <span className="chart-search-ph-main">{stackPh}</span>
+                  <span className="chart-search-ph-caret" />
+                </span>
+              )}
               <input
-                ref={queryRef}
                 className="guess-input join-code-input chart-search-input"
-                placeholder="steve lacy, drake, 2002 malayalam…"
-                defaultValue=""
+                placeholder=""
+                value={stackQuery}
+                onChange={(e) => setStackQuery(e.target.value)}
                 disabled={busy}
                 autoCorrect="off"
                 spellCheck={false}
@@ -80,7 +89,11 @@ export default function ChartCdStack({
               />
             </label>
           </div>
-          <button type="submit" className="btn btn-ghost" disabled={busy}>
+          <button
+            type="submit"
+            className="btn btn-ghost"
+            disabled={busy || !stackQuery.trim()}
+          >
             {stackBusy ? "…" : "add"}
           </button>
         </div>

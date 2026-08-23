@@ -4,6 +4,7 @@ import ChartCdStack from "./ChartCdStack.jsx";
 import ChartPreviewDialog from "./ChartPreviewDialog.jsx";
 import PlaylistCdShelf from "./PlaylistCdShelf.jsx";
 import { shakeEl } from "../fx.js";
+import { useTypewriterPh } from "../useTypewriterPh.js";
 
 const YOURS_PREVIEW = 6;
 
@@ -76,7 +77,7 @@ export default function PlaylistPicker({ onPick, needsLogin = false }) {
   const [note, setNote] = useState(null);
   const [showAllYours, setShowAllYours] = useState(false);
   const [chartQuery, setChartQuery] = useState("");
-  const [chartPh, setChartPh] = useState("");
+  const chartPh = useTypewriterPh(CHART_PH_EXAMPLES, !!chartQuery);
   const [chartFieldError, setChartFieldError] = useState(false);
   const [chartFieldFading, setChartFieldFading] = useState(false);
   const [chartPreview, setChartPreview] = useState(null);
@@ -102,73 +103,6 @@ export default function PlaylistPicker({ onPick, needsLogin = false }) {
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, [showLoginModal]);
-
-  // Empty-field typewriter: drake → spanish 2010s → taylor swift → …
-  useEffect(() => {
-    if (chartQuery) {
-      setChartPh("");
-      return;
-    }
-    const reduced =
-      typeof window !== "undefined" &&
-      window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    if (reduced) {
-      setChartPh(CHART_PH_EXAMPLES[0]);
-      return;
-    }
-
-    let cancelled = false;
-    let wordIdx = 0;
-    let char = 0;
-    let deleting = false;
-    let pauseLeft = 0;
-    let timer = 0;
-
-    function schedule(ms) {
-      timer = window.setTimeout(step, ms);
-    }
-
-    function step() {
-      if (cancelled) return;
-      const word = CHART_PH_EXAMPLES[wordIdx % CHART_PH_EXAMPLES.length];
-
-      if (pauseLeft > 0) {
-        pauseLeft -= 1;
-        schedule(70);
-        return;
-      }
-
-      if (!deleting) {
-        char += 1;
-        setChartPh(word.slice(0, char));
-        if (char >= word.length) {
-          deleting = true;
-          pauseLeft = 14; // ~1s hold
-          schedule(70);
-          return;
-        }
-        schedule(95);
-        return;
-      }
-
-      char -= 1;
-      setChartPh(word.slice(0, Math.max(0, char)));
-      if (char <= 0) {
-        deleting = false;
-        wordIdx += 1;
-        pauseLeft = 5;
-        schedule(70);
-        return;
-      }
-      schedule(45);
-    }
-
-    schedule(400);
-    return () => {
-      cancelled = true;
-      clearTimeout(timer);
-    };
-  }, [chartQuery]);
 
   useEffect(() => {
     // Logged out: the API falls back to the site owner's shared library.
