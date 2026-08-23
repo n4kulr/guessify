@@ -1656,35 +1656,6 @@ button.footer-privacy:hover {
   margin: 0;
   max-width: 400px;
 }
-.playlist-link-form {
-  width: min(100%, 480px);
-  max-width: 480px;
-}
-.playlist-link-input {
-  font-size: 14px;
-}
-.playlist-link-error {
-  margin: 10px 0 0;
-  font-size: 13px;
-  line-height: 1.45;
-  text-align: center;
-  color: color-mix(in srgb, var(--error-color, #e85d5d) 88%, var(--text-color));
-}
-.playlist-link-login {
-  margin: 0;
-  padding: 0;
-  border: none;
-  background: none;
-  font: inherit;
-  font-size: inherit;
-  color: inherit;
-  text-decoration: underline;
-  text-underline-offset: 2px;
-  cursor: pointer;
-}
-.playlist-link-login:hover {
-  color: var(--text-color);
-}
 .chart-search .join-code-row { width: 100%; }
 .chart-search-field {
   position: relative;
@@ -4998,14 +4969,6 @@ button.footer-privacy:hover {
   max-width: 42ch;
   font-size: 13px;
   line-height: 1.55;
-}
-.login-modal-hint--fine {
-  margin-top: -6px;
-  font-size: 12px;
-  opacity: 0.88;
-}
-.login-modal-hint strong {
-  font-weight: 700;
 }
 .login-modal-primary {
   width: 100%;
