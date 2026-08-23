@@ -16,6 +16,7 @@ import GameOverStats from "../components/GameOverStats.jsx";
 import { isNoPreviewError } from "../shareScore.js";
 import { loadLocalProfile } from "../localProfile.js";
 import { useAutoTitleHint } from "../useAutoTitleHint.js";
+import { displayTitle } from "../titleHint.js";
 import { computeGameStats } from "../gameStats.js";
 import { recordPlaylistScore } from "../playlistBests.js";
 import { isFastTest, buildFastPartyEnd } from "../fastTest.js";
@@ -59,6 +60,7 @@ export default function GuestApp({ code }) {
   const titleFieldRef = useRef(null);
   const lastFxGuess = useRef(-1);
   const roundStartedAt = useRef(Date.now());
+  const submitGuessRef = useRef(() => {});
   const loggedRoundRef = useRef(-1);
 
   const joined = !!playerId;
@@ -86,14 +88,14 @@ export default function GuestApp({ code }) {
     value: titleGuess,
     enabled: canSuggest,
     roundArtists,
-    onPick: setTitleGuess,
+    submitPick: (name) => submitGuessRef.current({ title: name }),
   });
   const artistSuggest = useGuessSuggest({
     kind: "artist",
     value: artistGuess,
     enabled: canSuggest && !revealedArtist,
     roundArtists,
-    onPick: setArtistGuess,
+    submitPick: (name) => submitGuessRef.current({ artist: name }),
   });
 
   useEffect(() => {
@@ -499,10 +501,14 @@ export default function GuestApp({ code }) {
   const spinning = localPlaying && (state.phase === "play" || state.phase === "reveal");
   const timed = state.raceMode === "timed";
 
-  function submitGuess() {
+  function submitGuess(overrides = {}) {
     // Title locks after a correct timed solve; artist bonus still scores live.
-    const title = lockedIn ? "" : titleGuess.trim();
-    const artist = artistGuess.trim();
+    const title = lockedIn
+      ? ""
+      : String(overrides.title !== undefined ? overrides.title : titleGuess).trim();
+    const artist = String(
+      overrides.artist !== undefined ? overrides.artist : artistGuess
+    ).trim();
     if (!title && !artist) return;
     titleSuggest.dismiss();
     artistSuggest.dismiss();
@@ -510,6 +516,7 @@ export default function GuestApp({ code }) {
     setTitleGuess("");
     setArtistGuess("");
   }
+  submitGuessRef.current = submitGuess;
 
   return (
     <div className="game mp-guest-game mp-board" ref={rootRef}>
@@ -539,7 +546,7 @@ export default function GuestApp({ code }) {
           revealed={revealed}
           spinning={spinning}
           cover={track?.cover}
-          title={track?.name}
+          title={displayTitle(track?.name)}
           artist={(track?.artists || []).join(", ")}
           canControl={canPlay}
           interactive={canPlay}
@@ -686,7 +693,7 @@ export default function GuestApp({ code }) {
                 {track.cover && <img src={track.cover} alt="" className="reveal-cover" />}
               </div>
               <div className="reveal-text">
-                <span className="reveal-title">{track.name}</span>
+                <span className="reveal-title">{displayTitle(track.name)}</span>
                 <span className="reveal-artist">{(track.artists || []).join(", ")}</span>
                 {state.winnerId === playerId && (
                   <span className="reveal-points">+{state.earnedPts} pts</span>

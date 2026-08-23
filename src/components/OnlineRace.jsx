@@ -20,7 +20,7 @@ import {
   warmTrackPreview,
   patchRoundsPreview,
 } from "../previewWarm.js";
-import { titleHintMask } from "../titleHint.js";
+import { titleHintMask, displayTitle } from "../titleHint.js";
 import { useAutoTitleHint } from "../useAutoTitleHint.js";
 import { computeGameStats } from "../gameStats.js";
 import { recordPlaylistScore } from "../playlistBests.js";
@@ -300,6 +300,7 @@ export default function OnlineRace({ profile, onExit, raceMode: raceModeProp }) 
   const roundKeyRef = useRef(0);
   const advancingRef = useRef(false);
   const roundStartedAt = useRef(Date.now());
+  const submitGuessRef = useRef(() => {});
   const loggedRoundRef = useRef(-1);
   const roundSolvesRef = useRef({});
   const playersRef = useRef(players);
@@ -330,14 +331,14 @@ export default function OnlineRace({ profile, onExit, raceMode: raceModeProp }) 
     value: titleGuess,
     enabled: canSuggest,
     roundArtists,
-    onPick: setTitleGuess,
+    submitPick: (name) => submitGuessRef.current({ title: name }),
   });
   const artistSuggest = useGuessSuggest({
     kind: "artist",
     value: artistGuess,
     enabled: canSuggest && !myRevealedArtist,
     roundArtists,
-    onPick: setArtistGuess,
+    submitPick: (name) => submitGuessRef.current({ artist: name }),
   });
 
   function clearTimedRound() {
@@ -668,7 +669,7 @@ export default function OnlineRace({ profile, onExit, raceMode: raceModeProp }) 
             title: track?.name || null,
             artist: (track?.artists || []).join(", ") || null,
             label: track?.name
-              ? `${track.name}${(track.artists || []).length ? ` · ${track.artists.join(", ")}` : ""}`
+              ? `${displayTitle(track.name)}${(track.artists || []).length ? ` · ${track.artists.join(", ")}` : ""}`
               : null,
           },
         ];
@@ -905,10 +906,14 @@ export default function OnlineRace({ profile, onExit, raceMode: raceModeProp }) 
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [timed, phase, roundEndsAt, roundIdx]);
 
-  function submitGuess() {
+  function submitGuess(overrides = {}) {
     if (phase !== "play" || !track) return;
-    const title = lockedIn ? "" : titleGuess.trim();
-    const artist = artistGuess.trim();
+    const title = lockedIn
+      ? ""
+      : String(overrides.title !== undefined ? overrides.title : titleGuess).trim();
+    const artist = String(
+      overrides.artist !== undefined ? overrides.artist : artistGuess
+    ).trim();
     if (!title && !artist) return;
 
     titleSuggest.dismiss();
@@ -980,6 +985,7 @@ export default function OnlineRace({ profile, onExit, raceMode: raceModeProp }) 
     if (artistAlmost) setAlmostArtist(Date.now());
     if (!artistOk && !titleAlmost && !artistAlmost) shakeEl(rootRef.current);
   }
+  submitGuessRef.current = submitGuess;
 
   function skip() {
     if (phase !== "play") return;
@@ -1001,10 +1007,7 @@ export default function OnlineRace({ profile, onExit, raceMode: raceModeProp }) 
     roundStartedAt: roundStartedAt.current,
     roundEndsAt,
     resetKey: roundIdx,
-    onDue: () => {
-      setTitleHintText(titleHintMask(track.name));
-      shakeEl(titleFieldRef.current);
-    },
+    onDue: () => setTitleHintText(titleHintMask(track.name)),
   });
 
   // Lose only once everyone still in the race has maxed their skip ladder.
@@ -1315,7 +1318,7 @@ export default function OnlineRace({ profile, onExit, raceMode: raceModeProp }) 
           revealed={revealed}
           spinning={spinning}
           cover={track?.cover}
-          title={track?.name}
+          title={displayTitle(track?.name)}
           artist={(track?.artists || []).join(", ")}
           canControl={!!track}
           interactive={!!track}
@@ -1467,7 +1470,7 @@ export default function OnlineRace({ profile, onExit, raceMode: raceModeProp }) 
                 )}
               </div>
               <div className="reveal-text">
-                <span className="reveal-title">{track.name}</span>
+                <span className="reveal-title">{displayTitle(track.name)}</span>
                 <span className="reveal-artist">
                   {(track.artists || []).join(", ")}
                 </span>

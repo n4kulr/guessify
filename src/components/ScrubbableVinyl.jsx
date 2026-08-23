@@ -52,12 +52,22 @@ export default function ScrubbableVinyl({
   const onScrubStartRef = useRef(onScrubStart);
   const onScrubEndRef = useRef(onScrubEnd);
   const onPrimeAudioRef = useRef(onPrimeAudio);
+  const scrollAbortRef = useRef(null);
+
+  function detachScrollAbort() {
+    if (!scrollAbortRef.current) return;
+    window.removeEventListener("scroll", scrollAbortRef.current, true);
+    scrollAbortRef.current = null;
+  }
+
   useEffect(() => {
     onClickRef.current = onClick;
     onScrubStartRef.current = onScrubStart;
     onScrubEndRef.current = onScrubEnd;
     onPrimeAudioRef.current = onPrimeAudio;
   });
+
+  useEffect(() => () => detachScrollAbort(), []);
 
   useLayoutEffect(() => {
     if (scrubbing) return;
@@ -92,6 +102,12 @@ export default function ScrubbableVinyl({
       baseRot: base,
       scrubbing: false,
     };
+    detachScrollAbort();
+    scrollAbortRef.current = () => endPointer(null, { allowClick: false });
+    window.addEventListener("scroll", scrollAbortRef.current, {
+      capture: true,
+      passive: true,
+    });
   }
 
   function onPointerMove(e) {
@@ -131,9 +147,11 @@ export default function ScrubbableVinyl({
     s.lastTime = performance.now();
   }
 
-  function endPointer(e) {
+  function endPointer(e, { allowClick = true } = {}) {
+    detachScrollAbort();
     const s = scrubRef.current;
-    if (!s || (e && s.pointerId !== e.pointerId)) return;
+    if (!s) return;
+    if (e?.pointerId != null && s.pointerId !== e.pointerId) return;
     scrubRef.current = null;
     getScratch().stop();
 
@@ -142,7 +160,7 @@ export default function ScrubbableVinyl({
       onScrubEndRef.current?.();
       return;
     }
-    onClickRef.current?.();
+    if (allowClick) onClickRef.current?.();
   }
 
   const activeSpin = scrubbing ? false : visualSpin;
@@ -169,7 +187,8 @@ export default function ScrubbableVinyl({
       onPointerDown={onPointerDown}
       onPointerMove={onPointerMove}
       onPointerUp={endPointer}
-      onPointerCancel={endPointer}
+      onPointerCancel={(e) => endPointer(e, { allowClick: false })}
+      onLostPointerCapture={(e) => endPointer(e, { allowClick: false })}
       onKeyDown={(e) => {
         if (!onClick) return;
         if (e.key === "Enter" || e.key === " ") {

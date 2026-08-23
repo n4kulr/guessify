@@ -37,7 +37,7 @@ async function fetchSuggestions(kind, q, roundArtists) {
  * the playlist's own tracks would show the player the answer.
  *
  * Returns props to spread onto the input plus the state the drop-up needs.
- * `onPick` receives the chosen string — callers decide whether to submit.
+ * `onPick` fills the field only. Pass `submitPick` to submit a guess attempt.
  */
 export function useGuessSuggest({
   kind,
@@ -45,6 +45,7 @@ export function useGuessSuggest({
   enabled = true,
   roundArtists = [],
   onPick,
+  submitPick,
 }) {
   const [items, setItems] = useState([]);
   const [open, setOpen] = useState(false);
@@ -53,7 +54,9 @@ export function useGuessSuggest({
   // Ignore results for a query the player has already typed past.
   const queryRef = useRef("");
   const onPickRef = useRef(onPick);
+  const submitPickRef = useRef(submitPick);
   onPickRef.current = onPick;
+  submitPickRef.current = submitPick;
 
   const q = value.trim();
   queryRef.current = q;
@@ -80,7 +83,8 @@ export function useGuessSuggest({
   function choose(item) {
     setOpen(false);
     setActive(-1);
-    onPickRef.current?.(item.name);
+    if (submitPickRef.current) submitPickRef.current(item.name);
+    else onPickRef.current?.(item.name);
   }
 
   /**
@@ -168,10 +172,21 @@ export default function GuessSuggest({ suggest }) {
             onMouseDown={(e) => e.preventDefault()}
             onClick={() => choose(item)}
           >
-            <span className="guess-suggest-name">{item.name}</span>
-            {item.artist && (
-              <span className="guess-suggest-by">{item.artist}</span>
-            )}
+            {item.cover ? (
+              <img
+                src={item.cover}
+                alt=""
+                className="guess-suggest-cover"
+                draggable={false}
+                loading="lazy"
+              />
+            ) : null}
+            <span className="guess-suggest-text">
+              <span className="guess-suggest-name">{item.name}</span>
+              {item.artist ? (
+                <span className="guess-suggest-by">{item.artist}</span>
+              ) : null}
+            </span>
           </button>
         </li>
       ))}

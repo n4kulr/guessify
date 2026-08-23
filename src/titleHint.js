@@ -12,6 +12,14 @@ export const HINT_MAX_LETTERS = 10;
 const BLANK = "▢";
 const WORD_GAP = " · ";
 
+/** Strip featured-artist credits for display + hints (matching still uses the raw title). */
+export function displayTitle(title = "") {
+  let s = String(title || "").trim();
+  s = s.replace(/\s*[([]\s*(?:feat\.?|ft\.?|featuring)\b[^)\]]*[)\]]/gi, "");
+  s = s.replace(/\s+(?:feat\.?|ft\.?|featuring)\b.+$/i, "");
+  return s.replace(/\s+/g, " ").trim();
+}
+
 function revealAt(i, len) {
   if (len <= 1) return true;
   if (i === 0) return true;
@@ -38,7 +46,7 @@ function clipTitleLetters(title, maxLetters) {
 
 /** @param {string} title */
 export function titleHintMask(title) {
-  const s = clipTitleLetters(title, HINT_MAX_LETTERS);
+  const s = clipTitleLetters(displayTitle(title), HINT_MAX_LETTERS);
   if (!s) return "";
 
   const words = [];
@@ -58,6 +66,3 @@ export function titleHintMask(title) {
   }
   return words.join(WORD_GAP);
 }
-
-/** Skips before the title hint appears on its own (0-based step index). */
-export const HINT_AFTER_SKIPS = 4;

@@ -5,7 +5,7 @@ import { isHintDue } from "./multiplayer/constants.js";
  * Calls `onDue` once, the moment the free title hint becomes due for a round.
  *
  * Polls rather than using a single timeout because the trigger is a wall-clock
- * moment, not a state change: a classic round gets no broadcast at its 45s mark,
+ * moment, not a state change: a classic round gets no broadcast at its 30s mark,
  * and a timed round's deadline can shift if the host restarts it. Half-second
  * ticks are plenty for a threshold measured in tens of seconds.
  */

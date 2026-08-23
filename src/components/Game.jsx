@@ -11,7 +11,8 @@ import { fireConfetti, shakeEl } from "../fx.js";
 import { loadLocalProfile } from "../localProfile.js";
 import { isNoPreviewError } from "../shareScore.js";
 import { nextSpareTrack } from "../deadPreview.js";
-import { titleHintMask, HINT_AFTER_SKIPS } from "../titleHint.js";
+import { titleHintMask, displayTitle } from "../titleHint.js";
+import { useAutoTitleHint } from "../useAutoTitleHint.js";
 import GuessMedia from "./GuessMedia.jsx";
 import GuessSuggest, { useGuessSuggest } from "./GuessSuggest.jsx";
 import GuessTransport from "./GuessTransport.jsx";
@@ -101,6 +102,8 @@ export default function Game({ playlist, me, onExit, onReplay }) {
   const { errorMsg, setErrorMsg, play, pause, prime } = usePreviewPlayer();
   const roundStartedAt = useRef(Date.now());
 
+  const submitGuessRef = useRef(() => {});
+
   const track = rounds[roundIdx];
   const unlocked = STEPS[Math.min(guessNum, MAX_GUESSES - 1)];
   const resolved = outcome !== null;
@@ -112,14 +115,14 @@ export default function Game({ playlist, me, onExit, onReplay }) {
     value: titleGuess,
     enabled: canSuggest,
     roundArtists,
-    onPick: setTitleGuess,
+    submitPick: (name) => submitGuessRef.current({ title: name }),
   });
   const artistSuggest = useGuessSuggest({
     kind: "artist",
     value: artistGuess,
     enabled: canSuggest && !revealedArtist,
     roundArtists,
-    onPick: setArtistGuess,
+    submitPick: (name) => submitGuessRef.current({ artist: name }),
   });
 
   const players = useMemo(
@@ -329,10 +332,14 @@ export default function Game({ playlist, me, onExit, onReplay }) {
     }
   }
 
-  function submitGuess() {
+  function submitGuess(overrides = {}) {
     if (phase !== "play" || resolved) return;
-    const title = titleGuess.trim();
-    const artist = artistGuess.trim();
+    const title = String(
+      overrides.title !== undefined ? overrides.title : titleGuess
+    ).trim();
+    const artist = String(
+      overrides.artist !== undefined ? overrides.artist : artistGuess
+    ).trim();
     if (!title && !artist) return;
 
     titleSuggest.dismiss();
@@ -382,6 +389,7 @@ export default function Game({ playlist, me, onExit, onReplay }) {
       if (artistPts) setEarnedPts(artistPts);
     }
   }
+  submitGuessRef.current = submitGuess;
 
   function skip() {
     if (phase !== "play" || resolved) return;
@@ -394,14 +402,15 @@ export default function Game({ playlist, me, onExit, onReplay }) {
   }
 
 
-  // Free title hint, handed over automatically once you've skipped enough.
-  useEffect(() => {
-    if (phase !== "play" || resolved) return;
-    if (guessNum < HINT_AFTER_SKIPS || !track?.name) return;
-    if (titleHintText) return;
-    setTitleHintText(titleHintMask(track.name));
-    shakeEl(titleFieldRef.current);
-  }, [phase, resolved, guessNum, track?.name, titleHintText]);
+  // Free title hint on the round clock (30s into the round).
+  useAutoTitleHint({
+    active: phase === "play" && !resolved && !!track?.name && !titleHintText,
+    raceMode: "classic",
+    roundStartedAt: roundStartedAt.current,
+    roundEndsAt: null,
+    resetKey: roundIdx,
+    onDue: () => setTitleHintText(titleHintMask(track.name)),
+  });
 
   function nextRound() {
     stopAudio();
@@ -503,7 +512,7 @@ export default function Game({ playlist, me, onExit, onReplay }) {
           {/* The results screen has its own "pick another playlist" — one is enough. */}
           {phase !== "over" && (
             <button className="btn btn-mini" onClick={onExit}>
-              ← change playlist
+              ← exit
             </button>
           )}
           <div className="scoreboard">
@@ -538,7 +547,7 @@ export default function Game({ playlist, me, onExit, onReplay }) {
               spinning={spinning}
               celebrate={celebrate}
               cover={track.cover}
-              title={track.name}
+              title={displayTitle(track.name)}
               artist={(track.artists || []).join(", ")}
               canControl={canControl}
               interactive={canControl}
@@ -601,7 +610,7 @@ export default function Game({ playlist, me, onExit, onReplay }) {
                     {track.cover && <img src={track.cover} alt="" className="reveal-cover" />}
                   </div>
                   <div className="reveal-text">
-                    <span className="reveal-title">{track.name}</span>
+                    <span className="reveal-title">{displayTitle(track.name)}</span>
                     <span className="reveal-artist">{track.artists.join(", ")}</span>
                     {outcome === "win" && (
                       <span className="reveal-points">

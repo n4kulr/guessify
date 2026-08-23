@@ -23,6 +23,7 @@ import { loadLocalProfile, saveLocalProfile } from "../localProfile.js";
 import { applyThemeForAccent, accentMatchingTheme } from "../themes.js";
 import { isNoPreviewError } from "../shareScore.js";
 import { useAutoTitleHint } from "../useAutoTitleHint.js";
+import { displayTitle } from "../titleHint.js";
 import { computeGameStats } from "../gameStats.js";
 import { recordPlaylistScore } from "../playlistBests.js";
 import { isFastTest, buildFastPartyEnd } from "../fastTest.js";
@@ -91,6 +92,7 @@ export default function HostParty({
   const titleFieldRef = useRef(null);
   const lastFxGuess = useRef(-1);
   const roundStartedAt = useRef(Date.now());
+  const submitGuessRef = useRef(() => {});
   const loggedRoundRef = useRef(-1);
 
   // (host reclaim runs on every socket open — see effect below)
@@ -365,14 +367,14 @@ export default function HostParty({
     value: titleGuess,
     enabled: canSuggest,
     roundArtists,
-    onPick: setTitleGuess,
+    submitPick: (name) => submitGuessRef.current({ title: name }),
   });
   const artistSuggest = useGuessSuggest({
     kind: "artist",
     value: artistGuess,
     enabled: canSuggest && !revealedArtist,
     roundArtists,
-    onPick: setArtistGuess,
+    submitPick: (name) => submitGuessRef.current({ artist: name }),
   });
 
   // Free title hint on the round clock (10s left in timed / 30s into classic).
@@ -647,10 +649,14 @@ export default function HostParty({
     );
   }
 
-  function submitGuess() {
+  function submitGuess(overrides = {}) {
     // Title locks after a correct timed solve; artist bonus still scores live.
-    const title = lockedIn ? "" : titleGuess.trim();
-    const artist = artistGuess.trim();
+    const title = lockedIn
+      ? ""
+      : String(overrides.title !== undefined ? overrides.title : titleGuess).trim();
+    const artist = String(
+      overrides.artist !== undefined ? overrides.artist : artistGuess
+    ).trim();
     if (!title && !artist) return;
     titleSuggest.dismiss();
     artistSuggest.dismiss();
@@ -658,6 +664,7 @@ export default function HostParty({
     setTitleGuess("");
     setArtistGuess("");
   }
+  submitGuessRef.current = submitGuess;
 
   function skipGuess() {
     if (myStep >= MAX_GUESSES - 1) return;
@@ -712,7 +719,7 @@ export default function HostParty({
         revealed={revealed}
         spinning={spinning}
         cover={track?.cover}
-        title={track?.name}
+        title={displayTitle(track?.name)}
         artist={(track?.artists || []).join(", ")}
         canControl={canPlay}
         interactive={canPlay}
@@ -857,7 +864,7 @@ export default function HostParty({
               {track.cover && <img src={track.cover} alt="" className="reveal-cover" />}
             </div>
             <div className="reveal-text">
-              <span className="reveal-title">{track.name}</span>
+              <span className="reveal-title">{displayTitle(track.name)}</span>
               <span className="reveal-artist">{(track.artists || []).join(", ")}</span>
               {state.outcome === "win" && (
                 <span className="reveal-points">

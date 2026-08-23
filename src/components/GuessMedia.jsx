@@ -2,6 +2,7 @@ import ScrubbableVinyl from "./ScrubbableVinyl.jsx";
 import CassetteShell from "./CassetteShell.jsx";
 import SpinMeNudge from "./SpinMeNudge.jsx";
 import { PlayIcon, PauseIcon } from "./icons.jsx";
+import { displayTitle } from "../titleHint.js";
 
 /**
  * In-round media stage: vinyl turntable (default) or shared cassette shell.
@@ -23,10 +24,11 @@ export default function GuessMedia({
   onScrubStart,
   onScrubEnd,
 }) {
+  const shownTitle = displayTitle(title);
   if (mode === "cassette") {
     const label =
-      revealed && title
-        ? `${title}${artist ? ` — ${artist}` : ""}`
+      revealed && shownTitle
+        ? `${shownTitle}${artist ? ` — ${artist}` : ""}`
         : "";
     return (
       <div

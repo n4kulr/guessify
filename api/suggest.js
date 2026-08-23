@@ -61,6 +61,19 @@ function asList(raw) {
   return Array.isArray(raw) ? raw : raw ? [raw] : [];
 }
 
+/** Last.fm's stock placeholder — skip so rows don't all look identical. */
+const LASTFM_PLACEHOLDER = "2a96cbd8b46e442fc41c2b86b821562f";
+
+function pickImage(images) {
+  const list = Array.isArray(images) ? images : [];
+  for (const size of ["medium", "large", "small", "extralarge"]) {
+    const row = list.find((i) => i?.size === size);
+    const url = String(row?.["#text"] || row?.text || "").trim();
+    if (url && !url.includes(LASTFM_PLACEHOLDER)) return url;
+  }
+  return null;
+}
+
 async function searchArtists(key, q) {
   const data = await lastfm(key, {
     method: "artist.search",
@@ -69,6 +82,7 @@ async function searchArtists(key, q) {
   });
   return asList(data?.results?.artistmatches?.artist).map((a) => ({
     name: String(a?.name || "").trim(),
+    cover: pickImage(a?.image),
   }));
 }
 
@@ -81,5 +95,6 @@ async function searchTracks(key, q) {
   return asList(data?.results?.trackmatches?.track).map((t) => ({
     name: String(t?.name || "").trim(),
     artist: String(t?.artist || "").trim(),
+    cover: pickImage(t?.image),
   }));
 }
