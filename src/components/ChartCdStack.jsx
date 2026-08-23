@@ -71,7 +71,7 @@ export default function ChartCdStack({
     <div className="cd-stack-block">
       <h3 className="picker-section-title">make your own playlist!</h3>
       <p className="section-sub chart-search-sub">
-        (add artists &amp; eras — they pile up)
+        (add artists/albums/eras)
       </p>
 
       <form className="chart-search cd-stack-add" onSubmit={submitAdd}>
