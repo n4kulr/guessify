@@ -79,16 +79,19 @@ export default function GuestApp({ code }) {
     state.lockedInIds.includes(playerId)
   );
   const canSuggest = state?.phase === "play" && !lockedIn;
+  const roundArtists = state?.track?.artists || [];
   const titleSuggest = useGuessSuggest({
     kind: "track",
     value: titleGuess,
     enabled: canSuggest,
+    roundArtists,
     onPick: setTitleGuess,
   });
   const artistSuggest = useGuessSuggest({
     kind: "artist",
     value: artistGuess,
     enabled: canSuggest && !state?.revealedArtist,
+    roundArtists,
     onPick: setArtistGuess,
   });
 

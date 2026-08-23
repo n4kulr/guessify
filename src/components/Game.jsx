@@ -106,16 +106,19 @@ export default function Game({ playlist, me, onExit, onReplay }) {
   const resolved = outcome !== null;
   const canControl = !!track;
   const canSuggest = phase === "play" && !resolved;
+  const roundArtists = track?.artists || [];
   const titleSuggest = useGuessSuggest({
     kind: "track",
     value: titleGuess,
     enabled: canSuggest,
+    roundArtists,
     onPick: setTitleGuess,
   });
   const artistSuggest = useGuessSuggest({
     kind: "artist",
     value: artistGuess,
     enabled: canSuggest && !revealedArtist,
+    roundArtists,
     onPick: setArtistGuess,
   });
 

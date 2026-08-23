@@ -7,20 +7,26 @@ const DEBOUNCE_MS = 220;
 // ("dan" → "dani" → "dan"), and the answers never change within a round.
 const cache = new Map();
 
-async function fetchSuggestions(kind, q) {
-  const key = `${kind}:${q.toLowerCase()}`;
+async function fetchSuggestions(kind, q, roundArtists) {
+  const artistsKey = (roundArtists || []).join("\0").toLowerCase();
+  const key = `${kind}:${q.toLowerCase()}:${artistsKey}`;
   if (cache.has(key)) return cache.get(key);
   try {
-    const r = await fetch(
-      `/api/suggest?kind=${kind}&q=${encodeURIComponent(q)}`
-    );
+    const params = new URLSearchParams({
+      kind,
+      q,
+    });
+    if (roundArtists?.length) {
+      params.set("artists", roundArtists.join(","));
+    }
+    const r = await fetch(`/api/suggest?${params}`);
     if (!r.ok) return [];
     const data = await r.json();
     const items = Array.isArray(data?.items) ? data.items : [];
     cache.set(key, items);
     return items;
   } catch {
-    return []; // offline / rate-limited — typing still works fine
+    return [];
   }
 }
 
@@ -33,7 +39,13 @@ async function fetchSuggestions(kind, q) {
  * Returns props to spread onto the input plus the state the drop-up needs.
  * `onPick` receives the chosen string — callers decide whether to submit.
  */
-export function useGuessSuggest({ kind, value, enabled = true, onPick }) {
+export function useGuessSuggest({
+  kind,
+  value,
+  enabled = true,
+  roundArtists = [],
+  onPick,
+}) {
   const [items, setItems] = useState([]);
   const [open, setOpen] = useState(false);
   const [active, setActive] = useState(-1);
@@ -46,6 +58,8 @@ export function useGuessSuggest({ kind, value, enabled = true, onPick }) {
   const q = value.trim();
   queryRef.current = q;
 
+  const artistsKey = (roundArtists || []).join("\0");
+
   useEffect(() => {
     if (!enabled || q.length < MIN_CHARS) {
       setItems([]);
@@ -53,13 +67,13 @@ export function useGuessSuggest({ kind, value, enabled = true, onPick }) {
       return undefined;
     }
     const t = setTimeout(async () => {
-      const found = await fetchSuggestions(kind, q);
+      const found = await fetchSuggestions(kind, q, roundArtists);
       if (queryRef.current !== q) return;
       setItems(found);
       setActive(-1);
     }, DEBOUNCE_MS);
     return () => clearTimeout(t);
-  }, [kind, q, enabled]);
+  }, [kind, q, enabled, artistsKey]);
 
   const visible = enabled && open && items.length > 0;
 

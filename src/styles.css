@@ -3036,7 +3036,7 @@ button.footer-privacy:hover {
   opacity: 0.92;
   transform: translate(-50%, -50%) scale(1);
 }
-.vinyl--scrubbing .vinyl-cue { opacity: 0; pointer-events: none; }
+.vinyl--scrubbing ~ .vinyl-cue { opacity: 0; pointer-events: none; }
 @media (prefers-reduced-motion: reduce) {
   .vinyl-cue { transition: none; }
 }

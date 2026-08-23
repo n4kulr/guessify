@@ -358,16 +358,19 @@ export default function HostParty({
     state.lockedInIds.includes(playerId)
   );
   const canSuggest = phase === "play" && !lockedIn;
+  const roundArtists = state?.track?.artists || hostMeta?.artists || [];
   const titleSuggest = useGuessSuggest({
     kind: "track",
     value: titleGuess,
     enabled: canSuggest,
+    roundArtists,
     onPick: setTitleGuess,
   });
   const artistSuggest = useGuessSuggest({
     kind: "artist",
     value: artistGuess,
     enabled: canSuggest && !state?.revealedArtist,
+    roundArtists,
     onPick: setArtistGuess,
   });
 

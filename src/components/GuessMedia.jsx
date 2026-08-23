@@ -79,25 +79,24 @@ export default function GuessMedia({
         ) : (
           <div className="vinyl-label" aria-hidden="true" />
         )}
-        {canControl && !revealed && (
-          <button
-            type="button"
-            className={`vinyl-cue ${spinning ? "vinyl-cue--playing" : ""}`}
-            aria-label={spinning ? "Pause preview" : "Play preview"}
-            onPointerDown={(e) => e.stopPropagation()}
-            onClick={(e) => {
-              e.stopPropagation();
-              onTogglePlay?.();
-            }}
-          >
-            {spinning ? (
-              <PauseIcon className="vinyl-cue-ico" />
-            ) : (
-              <PlayIcon className="vinyl-cue-ico" />
-            )}
-          </button>
-        )}
       </ScrubbableVinyl>
+      {canControl && !revealed && (
+        <button
+          type="button"
+          className={`vinyl-cue ${spinning ? "vinyl-cue--playing" : ""}`}
+          aria-label={spinning ? "Pause preview" : "Play preview"}
+          onClick={(e) => {
+            e.stopPropagation();
+            onTogglePlay?.();
+          }}
+        >
+          {spinning ? (
+            <PauseIcon className="vinyl-cue-ico" />
+          ) : (
+            <PlayIcon className="vinyl-cue-ico" />
+          )}
+        </button>
+      )}
       <div className={`tonearm ${spinning ? "tonearm--on" : ""}`} />
       {!revealed && interactive && <SpinMeNudge />}
     </div>

@@ -318,16 +318,19 @@ export default function OnlineRace({ profile, onExit, raceMode: raceModeProp }) 
   const iVotedNext = !!nextVotes[youId];
   const lockedIn = lockedInIds.includes(youId);
   const canSuggest = phase === "play" && !lockedIn;
+  const roundArtists = track?.artists || [];
   const titleSuggest = useGuessSuggest({
     kind: "track",
     value: titleGuess,
     enabled: canSuggest,
+    roundArtists,
     onPick: setTitleGuess,
   });
   const artistSuggest = useGuessSuggest({
     kind: "artist",
     value: artistGuess,
     enabled: canSuggest && !revealedArtist,
+    roundArtists,
     onPick: setArtistGuess,
   });
 
