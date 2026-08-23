@@ -19,6 +19,7 @@ export default function GuessMedia({
   interactive = true,
   vinylTitle,
   onTogglePlay,
+  onPrimeAudio,
   onScrubStart,
   onScrubEnd,
 }) {
@@ -71,6 +72,7 @@ export default function GuessMedia({
         enabled={interactive}
         title={vinylTitle}
         onClick={canControl ? onTogglePlay : undefined}
+        onPrimeAudio={canControl ? onPrimeAudio : undefined}
         onScrubStart={onScrubStart}
         onScrubEnd={onScrubEnd}
       >

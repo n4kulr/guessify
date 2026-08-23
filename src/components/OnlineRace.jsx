@@ -270,6 +270,7 @@ export default function OnlineRace({ profile, onExit, raceMode: raceModeProp }) 
   const [bonus, setBonus] = useState(0);
   const [revealedArtist, setRevealedArtist] = useState(null);
   const [artistClaimedBy, setArtistClaimedBy] = useState(null);
+  const [artistByPlayer, setArtistByPlayer] = useState({});
   const [titleGuess, setTitleGuess] = useState("");
   const [artistGuess, setArtistGuess] = useState("");
   const [localPlaying, setLocalPlaying] = useState(false);
@@ -288,13 +289,14 @@ export default function OnlineRace({ profile, onExit, raceMode: raceModeProp }) 
   const [timedPlaces, setTimedPlaces] = useState(null);
   const [solveTimes, setSolveTimes] = useState(null);
 
-  const { errorMsg, setErrorMsg, play, pause } = usePreviewPlayer();
+  const { errorMsg, setErrorMsg, play, pause, prime } = usePreviewPlayer();
   const rootRef = useRef(null);
   const skipWrapRef = useRef(null);
   const titleFieldRef = useRef(null);
   const phaseRef = useRef(phase);
   const timersRef = useRef([]);
   const artistClaimedRef = useRef(null);
+  const artistByPlayerRef = useRef({});
   const roundKeyRef = useRef(0);
   const advancingRef = useRef(false);
   const roundStartedAt = useRef(Date.now());
@@ -307,8 +309,12 @@ export default function OnlineRace({ profile, onExit, raceMode: raceModeProp }) 
 
   phaseRef.current = phase;
   artistClaimedRef.current = artistClaimedBy;
+  artistByPlayerRef.current = artistByPlayer;
 
   const track = rounds[roundIdx];
+  const myRevealedArtist = timed
+    ? artistByPlayer[youId] || null
+    : revealedArtist;
   const myStep = unlockByPlayer[youId] ?? 0;
   const unlocked = STEPS[Math.min(myStep, MAX_GUESSES - 1)];
   const revealed = phase === "reveal";
@@ -329,7 +335,7 @@ export default function OnlineRace({ profile, onExit, raceMode: raceModeProp }) 
   const artistSuggest = useGuessSuggest({
     kind: "artist",
     value: artistGuess,
-    enabled: canSuggest && !revealedArtist,
+    enabled: canSuggest && !myRevealedArtist,
     roundArtists,
     onPick: setArtistGuess,
   });
@@ -384,6 +390,9 @@ export default function OnlineRace({ profile, onExit, raceMode: raceModeProp }) 
     setBonus(0);
     setRevealedArtist(null);
     setArtistClaimedBy(null);
+    setArtistByPlayer({});
+    artistClaimedRef.current = null;
+    artistByPlayerRef.current = {};
     setTitleGuess("");
     setArtistGuess("");
     setTitleHintText("");
@@ -680,9 +689,34 @@ export default function OnlineRace({ profile, onExit, raceMode: raceModeProp }) 
 
   function claimArtist(player, trackRef) {
     if (phaseRef.current !== "play") return false;
-    if (artistClaimedRef.current) return false;
     const artists = trackRef.artists || [];
     const label = artists.join(", ");
+    if (timed) {
+      if (artistByPlayerRef.current[player.id]) return false;
+      artistByPlayerRef.current = {
+        ...artistByPlayerRef.current,
+        [player.id]: label,
+      };
+      setArtistByPlayer((prev) => ({ ...prev, [player.id]: label }));
+      bumpScore(player.id, ARTIST_BONUS);
+      setGuesses((g) => [
+        ...g,
+        {
+          playerId: player.id,
+          name: player.name,
+          color: player.color,
+          avatar: player.avatar,
+          title: null,
+          artist: label,
+          titleOk: false,
+          artistOk: true,
+          win: false,
+          artistPts: ARTIST_BONUS,
+        },
+      ]);
+      return true;
+    }
+    if (artistClaimedRef.current) return false;
     artistClaimedRef.current = player.id;
     setArtistClaimedBy(player.id);
     setRevealedArtist(label);
@@ -717,9 +751,11 @@ export default function OnlineRace({ profile, onExit, raceMode: raceModeProp }) 
         color: player.color,
         avatar: player.avatar,
         title: trackRef.name,
-        artist: artistClaimedRef.current ? (trackRef.artists || []).join(", ") : null,
+        artist: artistByPlayerRef.current[player.id]
+          ? (trackRef.artists || []).join(", ")
+          : null,
         titleOk: true,
-        artistOk: !!artistClaimedRef.current,
+        artistOk: !!artistByPlayerRef.current[player.id],
         win: !timed,
         lockedIn: timed,
         artistPts: artistPtsJustNow,
@@ -878,7 +914,9 @@ export default function OnlineRace({ profile, onExit, raceMode: raceModeProp }) 
     titleSuggest.dismiss();
     artistSuggest.dismiss();
 
-    const artistWasClaimed = !!artistClaimedRef.current;
+    const artistWasClaimed = timed
+      ? !!artistByPlayerRef.current[youId]
+      : !!artistClaimedRef.current;
     const titleOk = title ? isCorrect(title, track.name) : false;
     const artistOk =
       !artistWasClaimed && artist
@@ -901,7 +939,9 @@ export default function OnlineRace({ profile, onExit, raceMode: raceModeProp }) 
     }
 
     // Locked artist stays green on later title tries (wrong → red title + green artist).
-    const artistKnown = artistOk || artistWasClaimed || !!artistClaimedRef.current;
+    const artistKnown = timed
+      ? artistOk || !!artistByPlayerRef.current[youId]
+      : artistOk || artistWasClaimed || !!artistClaimedRef.current;
     const artistLabel = artistKnown
       ? (track.artists || []).join(", ")
       : artist || null;
@@ -954,7 +994,7 @@ export default function OnlineRace({ profile, onExit, raceMode: raceModeProp }) 
     bumpUnlock(youId);
   }
 
-  // Free title hint, handed over on the round clock (10s left / 45s in).
+  // Free title hint, handed over on the round clock (10s left / 30s in).
   useAutoTitleHint({
     active: phase === "play" && !lockedIn && !!track?.name && !titleHintText,
     raceMode: timed ? "timed" : "classic",
@@ -997,7 +1037,9 @@ export default function OnlineRace({ profile, onExit, raceMode: raceModeProp }) 
     setBonus(0);
     setRevealedArtist(null);
     setArtistClaimedBy(null);
+    setArtistByPlayer({});
     artistClaimedRef.current = null;
+    artistByPlayerRef.current = {};
     setTitleGuess("");
     setArtistGuess("");
     setTitleHintText("");
@@ -1279,6 +1321,7 @@ export default function OnlineRace({ profile, onExit, raceMode: raceModeProp }) 
           interactive={!!track}
           vinylTitle="play / pause · drag to scrub"
           onTogglePlay={togglePlay}
+          onPrimeAudio={prime}
           onScrubStart={stopAudio}
         />
         {errorMsg && <div className="error-banner">{errorMsg}</div>}
@@ -1357,10 +1400,10 @@ export default function OnlineRace({ profile, onExit, raceMode: raceModeProp }) 
               <div className="guess-artist-row">
                 <div className="guess-artist-field">
                   <input
-                    className={`guess-input${revealedArtist ? " guess-input--locked" : ""}`}
+                    className={`guess-input${myRevealedArtist ? " guess-input--locked" : ""}`}
                     placeholder="artist…"
-                    value={revealedArtist || artistGuess}
-                    disabled={!!revealedArtist}
+                    value={myRevealedArtist || artistGuess}
+                    disabled={!!myRevealedArtist}
                     {...artistSuggest.inputProps}
                     onChange={(e) => {
                       setAlmostArtist(null);
@@ -1404,7 +1447,7 @@ export default function OnlineRace({ profile, onExit, raceMode: raceModeProp }) 
                 onClick={submitGuess}
                 disabled={
                   lockedIn
-                    ? !artistGuess.trim() || !!revealedArtist
+                    ? !artistGuess.trim() || !!myRevealedArtist
                     : !titleGuess.trim() && !artistGuess.trim()
                 }
               >

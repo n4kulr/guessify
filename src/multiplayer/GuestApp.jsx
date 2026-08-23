@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { usePartyRoom } from "./usePartyRoom.js";
 import { usePreviewPlayer } from "../usePreviewPlayer.js";
 import { isAudioWarm, warmAudioUrl } from "../previewWarm.js";
-import { STEPS, TOTAL, MAX_GUESSES, randomAvatar, normalizeAvatar, unlockSecondsFor, PLAYER_COLORS, nextVotesNeeded, activePlayerCount, SKIP_PENALTY } from "./constants.js";
+import { STEPS, TOTAL, MAX_GUESSES, randomAvatar, normalizeAvatar, unlockSecondsFor, PLAYER_COLORS, nextVotesNeeded, activePlayerCount, SKIP_PENALTY, myRevealedArtist } from "./constants.js";
 import { accentMatchingTheme } from "../themes.js";
 import { fireConfetti, shakeEl } from "../fx.js";
 import GuessMedia from "../components/GuessMedia.jsx";
@@ -49,7 +49,7 @@ export default function GuestApp({ code }) {
   const [playlistBests, setPlaylistBests] = useState(null);
   const [fastEnd, setFastEnd] = useState(null);
   const [cueReady, setCueReady] = useState(false);
-  const { errorMsg, setErrorMsg, play, pause } = usePreviewPlayer();
+  const { errorMsg, setErrorMsg, play, pause, prime } = usePreviewPlayer();
   const [playBusy, setPlayBusy] = useState(false);
   const [localPlaying, setLocalPlaying] = useState(false);
   const lastTrackRef = useRef(null);
@@ -80,6 +80,7 @@ export default function GuestApp({ code }) {
   );
   const canSuggest = state?.phase === "play" && !lockedIn;
   const roundArtists = state?.track?.artists || [];
+  const revealedArtist = myRevealedArtist(state, playerId);
   const titleSuggest = useGuessSuggest({
     kind: "track",
     value: titleGuess,
@@ -90,7 +91,7 @@ export default function GuestApp({ code }) {
   const artistSuggest = useGuessSuggest({
     kind: "artist",
     value: artistGuess,
-    enabled: canSuggest && !state?.revealedArtist,
+    enabled: canSuggest && !revealedArtist,
     roundArtists,
     onPick: setArtistGuess,
   });
@@ -135,7 +136,7 @@ export default function GuestApp({ code }) {
   }, [me?.id, me?.name, me?.avatar?.peep, me?.avatar?.color]);
 
   useEffect(() => {
-    if (!state?.revealedArtist) setArtistGuess("");
+    if (!revealedArtist) setArtistGuess("");
     setTitleHintText("");
     setSkipPop(null);
     setAlmostTitle(null);
@@ -249,7 +250,7 @@ export default function GuestApp({ code }) {
     shakeEl(skipWrapRef.current);
   }
 
-  // Free title hint on the round clock (10s left in timed / 45s into classic).
+  // Free title hint on the round clock (10s left in timed / 30s into classic).
   // The worker owns the title, so ask for it — it re-checks the same condition.
   useAutoTitleHint({
     active: state?.phase === "play" && !lockedIn && !titleHintText,
@@ -544,6 +545,7 @@ export default function GuestApp({ code }) {
           interactive={canPlay}
           vinylTitle={canPlay ? "play / pause · drag to scrub" : undefined}
           onTogglePlay={togglePlay}
+          onPrimeAudio={prime}
           onScrubStart={stopAudio}
         />
         {errorMsg && <div className="error-banner">{errorMsg}</div>}
@@ -619,10 +621,10 @@ export default function GuestApp({ code }) {
               <div className="guess-artist-row">
                 <div className="guess-artist-field">
                   <input
-                    className={`guess-input${state.revealedArtist ? " guess-input--locked" : ""}`}
+                    className={`guess-input${revealedArtist ? " guess-input--locked" : ""}`}
                     placeholder="artist…"
-                    value={state.revealedArtist || artistGuess}
-                    disabled={!!state.revealedArtist}
+                    value={revealedArtist || artistGuess}
+                    disabled={!!revealedArtist}
                     {...artistSuggest.inputProps}
                     onChange={(e) => {
                       setAlmostArtist(null);
@@ -666,7 +668,7 @@ export default function GuestApp({ code }) {
                 onClick={submitGuess}
                 disabled={
                   lockedIn
-                    ? !artistGuess.trim() || !!state.revealedArtist
+                    ? !artistGuess.trim() || !!revealedArtist
                     : !titleGuess.trim() && !artistGuess.trim()
                 }
               >

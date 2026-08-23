@@ -98,7 +98,7 @@ export default function Game({ playlist, me, onExit, onReplay }) {
   const [playlistBests, setPlaylistBests] = useState(null);
   const [cueReady, setCueReady] = useState(false);
 
-  const { errorMsg, setErrorMsg, play, pause } = usePreviewPlayer();
+  const { errorMsg, setErrorMsg, play, pause, prime } = usePreviewPlayer();
   const roundStartedAt = useRef(Date.now());
 
   const track = rounds[roundIdx];
@@ -550,6 +550,7 @@ export default function Game({ playlist, me, onExit, onReplay }) {
                   : undefined
               }
               onTogglePlay={togglePlay}
+              onPrimeAudio={prime}
               onScrubStart={onVinylScrubStart}
               onScrubEnd={onVinylScrubEnd}
             />

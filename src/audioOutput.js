@@ -91,6 +91,9 @@ export function attachVolumeControl(audio) {
         }
       }
     },
+    isContextSuspended() {
+      return ctx?.state === "suspended";
+    },
     detach() {
       unsub();
       wired.delete(audio);

@@ -3,6 +3,7 @@ import { resolvePreview } from "./itunes.js";
 import { attachVolumeControl } from "./audioOutput.js";
 import { pauseGuessifyNowPlaying, setGuessifyNowPlaying } from "./mediaSession.js";
 import { markAudioWarm } from "./previewWarm.js";
+import { previewIsActive, previewPipelineBroken } from "./previewLifecycle.js";
 
 /**
  * Plays iTunes 30s preview MP3s in a plain <audio> element.
@@ -18,27 +19,9 @@ export function usePreviewPlayer() {
   const endedHandlerRef = useRef(null);
   const onStopRef = useRef(null);
   const currentUrlRef = useRef(null);
+  const selfPauseRef = useRef(false);
+  const pauseRef = useRef(() => {});
   const [errorMsg, setErrorMsg] = useState(null);
-
-  useEffect(() => {
-    const audio = new Audio();
-    audio.preload = "none";
-    audio.playsInline = true;
-    audioRef.current = audio;
-    outputRef.current = attachVolumeControl(audio);
-    return () => {
-      outputRef.current?.detach();
-      outputRef.current = null;
-      clearTimeout(stopTimer.current);
-      if (endedHandlerRef.current) {
-        audio.removeEventListener("ended", endedHandlerRef.current);
-        endedHandlerRef.current = null;
-      }
-      audio.pause();
-      audio.removeAttribute("src");
-      audioRef.current = null;
-    };
-  }, []);
 
   function clearStop() {
     clearTimeout(stopTimer.current);
@@ -53,11 +36,30 @@ export function usePreviewPlayer() {
     endedHandlerRef.current = null;
   }
 
+  function activeRefs() {
+    return {
+      onStop: onStopRef.current,
+      stopTimer: stopTimer.current,
+      endedHandler: endedHandlerRef.current,
+    };
+  }
+
+  /** Drop UI + media-session state without touching the element (OS already paused). */
+  function finishPlayback() {
+    clearStop();
+    clearEnded();
+    pauseGuessifyNowPlaying();
+    const cb = onStopRef.current;
+    onStopRef.current = null;
+    cb?.();
+  }
+
   const pause = useCallback(() => {
     clearStop();
     clearEnded();
     const a = audioRef.current;
     if (a) {
+      selfPauseRef.current = true;
       a.pause();
       try {
         a.currentTime = 0;
@@ -69,6 +71,69 @@ export function usePreviewPlayer() {
     const cb = onStopRef.current;
     onStopRef.current = null;
     cb?.();
+  }, []);
+
+  pauseRef.current = pause;
+
+  const prime = useCallback(() => {
+    void outputRef.current?.resume();
+  }, []);
+
+  useEffect(() => {
+    const audio = new Audio();
+    audio.preload = "none";
+    audio.playsInline = true;
+    audioRef.current = audio;
+    outputRef.current = attachVolumeControl(audio);
+
+    function onAudioPause() {
+      if (selfPauseRef.current) {
+        selfPauseRef.current = false;
+        return;
+      }
+      if (!previewIsActive(activeRefs())) return;
+      finishPlayback();
+    }
+
+    function onVisibilityChange() {
+      if (document.hidden) {
+        if (previewIsActive(activeRefs())) pauseRef.current();
+        return;
+      }
+      void outputRef.current?.resume();
+      if (previewPipelineBroken(audio, outputRef.current)) {
+        pauseRef.current();
+      }
+    }
+
+    function onPageShow(e) {
+      if (!e.persisted) return;
+      // bfcache restore — React may still show "playing" while Web Audio is dead.
+      if (previewIsActive(activeRefs()) || !audio.paused) {
+        pauseRef.current();
+      }
+      void outputRef.current?.resume();
+    }
+
+    audio.addEventListener("pause", onAudioPause);
+    document.addEventListener("visibilitychange", onVisibilityChange);
+    window.addEventListener("pageshow", onPageShow);
+
+    return () => {
+      audio.removeEventListener("pause", onAudioPause);
+      document.removeEventListener("visibilitychange", onVisibilityChange);
+      window.removeEventListener("pageshow", onPageShow);
+      outputRef.current?.detach();
+      outputRef.current = null;
+      clearTimeout(stopTimer.current);
+      if (endedHandlerRef.current) {
+        audio.removeEventListener("ended", endedHandlerRef.current);
+        endedHandlerRef.current = null;
+      }
+      audio.pause();
+      audio.removeAttribute("src");
+      audioRef.current = null;
+    };
   }, []);
 
   const play = useCallback(async (track, seconds, { onStop } = {}) => {
@@ -126,13 +191,7 @@ export function usePreviewPlayer() {
 
     const playFull = seconds == null || seconds === Infinity;
     if (playFull) {
-      const onEnded = () => {
-        endedHandlerRef.current = null;
-        pauseGuessifyNowPlaying();
-        const cb = onStopRef.current;
-        onStopRef.current = null;
-        cb?.();
-      };
+      const onEnded = () => pauseRef.current();
       endedHandlerRef.current = onEnded;
       audio.addEventListener("ended", onEnded);
       return;
@@ -140,22 +199,7 @@ export function usePreviewPlayer() {
 
     const secs = Math.max(0.5, Number(seconds) || 1);
     clearStop();
-    stopTimer.current = setTimeout(() => {
-      stopTimer.current = null;
-      const a = audioRef.current;
-      if (a) {
-        a.pause();
-        try {
-          a.currentTime = 0;
-        } catch {
-          /* ignore */
-        }
-      }
-      pauseGuessifyNowPlaying();
-      const cb = onStopRef.current;
-      onStopRef.current = null;
-      cb?.();
-    }, secs * 1000);
+    stopTimer.current = setTimeout(() => pauseRef.current(), secs * 1000);
   }, []);
 
   return {
@@ -163,6 +207,7 @@ export function usePreviewPlayer() {
     setErrorMsg,
     play,
     pause,
+    prime,
     audio: audioRef,
   };
-}
+};

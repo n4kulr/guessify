@@ -48,9 +48,9 @@ export function titlePointsForGuess(skips = 0) {
 /** Timed (45s) rounds: wall-clock length before reveal. */
 export const TIMED_ROUND_MS = 45_000;
 
-/** Auto title hint: last 10s of a timed round, or 45s into an unsolved classic one. */
+/** Auto title hint: last 10s of a timed round, or 30s into an unsolved classic one. */
 export const HINT_BEFORE_TIMED_END_MS = 10_000;
-export const HINT_AFTER_CLASSIC_MS = 45_000;
+export const HINT_AFTER_CLASSIC_MS = 30_000;
 
 /**
  * Is the free title hint due yet? Timed rounds count back from the reveal;
@@ -82,6 +82,15 @@ export function timedTitlePoints(titlePts, placeIndex = 0) {
 
 export function normalizeRaceMode(mode) {
   return mode === "timed" ? "timed" : "classic";
+}
+
+/** Timed: artist lock is per player. Classic: first claim reveals for everyone. */
+export function myRevealedArtist(state, playerId) {
+  if (!state || !playerId) return null;
+  if (normalizeRaceMode(state.raceMode) === "timed") {
+    return state.artistByPlayer?.[playerId] || null;
+  }
+  return state.revealedArtist || null;
 }
 
 /**

@@ -4,7 +4,7 @@ import { usePartyRoom } from "./usePartyRoom.js";
 import { usePreviewPlayer } from "../usePreviewPlayer.js";
 import { resolvePreview } from "../itunes.js";
 import { isAudioWarm, warmAudioUrl, primePlaylistPreviews } from "../previewWarm.js";
-import { STEPS, TOTAL, MAX_GUESSES, randomAvatar, normalizeAvatar, unlockSecondsFor, PLAYER_COLORS, nextVotesNeeded, activePlayerCount, SKIP_PENALTY, ROUND_COUNT } from "./constants.js";
+import { STEPS, TOTAL, MAX_GUESSES, randomAvatar, normalizeAvatar, unlockSecondsFor, PLAYER_COLORS, nextVotesNeeded, activePlayerCount, SKIP_PENALTY, ROUND_COUNT, myRevealedArtist } from "./constants.js";
 import { fireConfetti, shakeEl } from "../fx.js";
 import GuessMedia from "../components/GuessMedia.jsx";
 import GuessSuggest, { useGuessSuggest } from "../components/GuessSuggest.jsx";
@@ -47,6 +47,7 @@ export default function HostParty({
   // leaves unlockByPlayer lookups stuck at 2s while skip popups still show.
   const playerId =
     state?.players?.find((p) => p.isHost)?.id || socketPlayerId || null;
+  const revealedArtist = myRevealedArtist(state, playerId);
   const [qr, setQr] = useState(null);
   const [copied, setCopied] = useState(false);
   const [titleGuess, setTitleGuess] = useState("");
@@ -80,7 +81,7 @@ export default function HostParty({
       color: accentMatchingTheme(PLAYER_COLORS),
     });
   });
-  const { errorMsg, setErrorMsg, play, pause } = usePreviewPlayer();
+  const { errorMsg, setErrorMsg, play, pause, prime } = usePreviewPlayer();
   const [playBusy, setPlayBusy] = useState(false);
   const [localPlaying, setLocalPlaying] = useState(false);
   const lastTrackRef = useRef(null);
@@ -240,7 +241,7 @@ export default function HostParty({
   }, [lobbyRaceMode, status]);
 
   useEffect(() => {
-    if (!state?.revealedArtist) setArtistGuess("");
+    if (!revealedArtist) setArtistGuess("");
     setTitleHintText("");
     setSkipPop(null);
     setAlmostTitle(null);
@@ -369,12 +370,12 @@ export default function HostParty({
   const artistSuggest = useGuessSuggest({
     kind: "artist",
     value: artistGuess,
-    enabled: canSuggest && !state?.revealedArtist,
+    enabled: canSuggest && !revealedArtist,
     roundArtists,
     onPick: setArtistGuess,
   });
 
-  // Free title hint on the round clock (10s left in timed / 45s into classic).
+  // Free title hint on the round clock (10s left in timed / 30s into classic).
   useAutoTitleHint({
     active: state?.phase === "play" && !lockedIn && !titleHintText,
     raceMode: state?.raceMode,
@@ -717,6 +718,7 @@ export default function HostParty({
         interactive={canPlay}
         vinylTitle={canPlay ? "play / pause · drag to scrub" : undefined}
         onTogglePlay={togglePlay}
+        onPrimeAudio={prime}
         onScrubStart={stopAudio}
       />
       {errorMsg && <div className="error-banner">{errorMsg}</div>}
@@ -790,10 +792,10 @@ export default function HostParty({
             <div className="guess-artist-row">
               <div className="guess-artist-field">
                 <input
-                  className={`guess-input${state.revealedArtist ? " guess-input--locked" : ""}`}
+                  className={`guess-input${revealedArtist ? " guess-input--locked" : ""}`}
                   placeholder="artist…"
-                  value={state.revealedArtist || artistGuess}
-                  disabled={!!state.revealedArtist}
+                  value={revealedArtist || artistGuess}
+                  disabled={!!revealedArtist}
                   {...artistSuggest.inputProps}
                   onChange={(e) => {
                     setAlmostArtist(null);
@@ -837,7 +839,7 @@ export default function HostParty({
               onClick={submitGuess}
               disabled={
                 lockedIn
-                  ? !artistGuess.trim() || !!state.revealedArtist
+                  ? !artistGuess.trim() || !!revealedArtist
                   : !titleGuess.trim() && !artistGuess.trim()
               }
             >

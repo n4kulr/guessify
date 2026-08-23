@@ -81,6 +81,13 @@ export function createScratchEngine() {
     toneOsc.start();
   }
 
+  function prime() {
+    ensure();
+    // Must run synchronously inside pointerdown — lazy init on first scrub move
+    // misses iOS Safari's user-gesture window.
+    if (ctx?.state === "suspended") ctx.resume().catch(() => {});
+  }
+
   function setSpeed(radPerMs) {
     ensure();
     if (!ctx || !master) return;
@@ -166,7 +173,7 @@ export function createScratchEngine() {
     lastDir = 0;
   }
 
-  return { setSpeed, stop, dispose };
+  return { setSpeed, stop, dispose, prime };
 }
 
 export function pointerAngle(el, clientX, clientY) {

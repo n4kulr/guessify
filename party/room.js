@@ -322,6 +322,7 @@ export class Room extends Server {
         previewArt: null,
         revealedArtist: null,
         artistClaimedBy: null,
+        artistByPlayer: {},
         roundResults: [],
         roundSolves: {},
         roundStartedAt: null,
@@ -518,6 +519,7 @@ export class Room extends Server {
     this.state.earnedPts = 0;
     this.state.revealedArtist = null;
     this.state.artistClaimedBy = null;
+    this.state.artistByPlayer = {};
     this.state.roundResults = [];
     this.state.roundSolves = {};
     this.state.timedPlaces = null;
@@ -543,9 +545,12 @@ export class Room extends Server {
 
     const title = String(msg.title || "").trim();
     let artist = String(msg.artist || "").trim();
-    const artistLocked = !!this.state.revealedArtist;
+    const timed = this.state.raceMode === "timed";
+    const artistLocked = timed
+      ? !!this.state.artistByPlayer?.[player.id]
+      : !!this.state.revealedArtist;
 
-    // Artist already claimed room-wide — only title guesses matter now.
+    // Artist already claimed (for this player in timed / room-wide in classic).
     if (artistLocked) {
       artist = "";
       if (!title) return;
@@ -562,18 +567,28 @@ export class Room extends Server {
       artist && !artistOk && isAlmostAnyArtist(artist, track.artists);
     const win = titleOk;
 
-    // First correct artist reveals it room-wide + small bonus (title stays full).
-    const artistWasClaimed = !!this.state.artistClaimedBy;
+    const artistLabel = (track.artists || []).join(", ");
     let artistPts = 0;
-    if (artistOk && !artistWasClaimed) {
-      this.state.artistClaimedBy = player.id;
-      this.state.revealedArtist = (track.artists || []).join(", ");
-      artistPts = ARTIST_BONUS;
-      player.score += artistPts;
+    if (artistOk) {
+      if (timed) {
+        if (!this.state.artistByPlayer) this.state.artistByPlayer = {};
+        this.state.artistByPlayer[player.id] = artistLabel;
+        artistPts = ARTIST_BONUS;
+        player.score += artistPts;
+      } else if (!this.state.artistClaimedBy) {
+        this.state.artistClaimedBy = player.id;
+        this.state.revealedArtist = artistLabel;
+        artistPts = ARTIST_BONUS;
+        player.score += artistPts;
+      }
     }
 
-    // Locked / just-claimed artist stays green on later title tries.
-    const artistKnown = artistOk || !!this.state.revealedArtist;
+    const artistKnown = timed
+      ? artistOk || !!this.state.artistByPlayer?.[player.id]
+      : artistOk || !!this.state.revealedArtist;
+    const artistShown = timed
+      ? this.state.artistByPlayer?.[player.id] || null
+      : this.state.revealedArtist;
     const alreadySolved = !!this.state.roundSolves?.[player.id];
     this.state.guesses.push({
       playerId: player.id,
@@ -581,7 +596,7 @@ export class Room extends Server {
       color: player.color,
       avatar: player.avatar,
       title: title || null,
-      artist: artistKnown ? this.state.revealedArtist : artist || null,
+      artist: artistKnown ? artistShown : artist || null,
       titleOk,
       artistOk: artistKnown,
       almostTitle: !!almostTitle,
@@ -820,6 +835,7 @@ export class Room extends Server {
     this.state.earnedPts = 0;
     this.state.revealedArtist = null;
     this.state.artistClaimedBy = null;
+    this.state.artistByPlayer = {};
     this.state.roundSolves = {};
     this.state.timedPlaces = null;
     this.state.solveTimes = null;
@@ -975,6 +991,7 @@ export class Room extends Server {
       earnedPts: this.state.earnedPts,
       revealedArtist: this.state.revealedArtist || null,
       artistClaimedBy: this.state.artistClaimedBy || null,
+      artistByPlayer: { ...(this.state.artistByPlayer || {}) },
       roundResults: this.state.roundResults || [],
       raceMode: this.state.raceMode || "classic",
       roundEndsAt: this.state.roundEndsAt || null,

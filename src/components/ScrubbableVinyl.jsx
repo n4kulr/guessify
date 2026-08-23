@@ -34,6 +34,7 @@ export default function ScrubbableVinyl({
   onClick,
   onScrubStart,
   onScrubEnd,
+  onPrimeAudio,
   enabled = true,
   title,
   children,
@@ -50,10 +51,12 @@ export default function ScrubbableVinyl({
   const onClickRef = useRef(onClick);
   const onScrubStartRef = useRef(onScrubStart);
   const onScrubEndRef = useRef(onScrubEnd);
+  const onPrimeAudioRef = useRef(onPrimeAudio);
   useEffect(() => {
     onClickRef.current = onClick;
     onScrubStartRef.current = onScrubStart;
     onScrubEndRef.current = onScrubEnd;
+    onPrimeAudioRef.current = onPrimeAudio;
   });
 
   useLayoutEffect(() => {
@@ -72,6 +75,8 @@ export default function ScrubbableVinyl({
 
   function onPointerDown(e) {
     if (!enabled) return;
+    getScratch().prime();
+    onPrimeAudioRef.current?.();
     e.preventDefault();
     const el = ref.current;
     if (!el) return;

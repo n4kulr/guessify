@@ -11,6 +11,7 @@ import {
   TIMED_PLACE_STEP,
   isHintDue,
   TIMED_ROUND_MS,
+  myRevealedArtist,
 } from "./multiplayer/constants.js";
 
 assert.equal(titlePointsForGuess(), TITLE_POINTS);
@@ -37,14 +38,24 @@ assert.equal(isHintDue(timed, t0 + 35_000), true, "timed: due at exactly 10s lef
 assert.equal(isHintDue(timed, t0 + TIMED_ROUND_MS), true, "timed: still due at the buzzer");
 
 const classic = { raceMode: "classic", roundStartedAt: t0, roundEndsAt: null };
-assert.equal(isHintDue(classic, t0 + 44_999), false, "classic: not due before 45s");
-assert.equal(isHintDue(classic, t0 + 45_000), true, "classic: due at 45s");
+assert.equal(isHintDue(classic, t0 + 29_999), false, "classic: not due before 30s");
+assert.equal(isHintDue(classic, t0 + 30_000), true, "classic: due at 30s");
 
 assert.equal(isHintDue({}, t0), false, "no round start = never due");
 assert.equal(
   isHintDue({ raceMode: "timed", roundStartedAt: t0, roundEndsAt: null }, t0 + 99_000),
   false,
   "timed without a deadline can't be due"
+);
+
+assert.equal(myRevealedArtist({ raceMode: "classic", revealedArtist: "SZA" }, "p1"), "SZA");
+assert.equal(
+  myRevealedArtist({ raceMode: "timed", artistByPlayer: { p1: "SZA" } }, "p1"),
+  "SZA"
+);
+assert.equal(
+  myRevealedArtist({ raceMode: "timed", artistByPlayer: { p2: "SZA" } }, "p1"),
+  null
 );
 
 console.log("scoring.check: ok");
