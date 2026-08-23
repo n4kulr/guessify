@@ -4,6 +4,7 @@ const UA = { "User-Agent": "Guessify/1.0 (https://guessify.uk)" };
 // Charts via Last.fm (metadata only). Audio still comes from iTunes.
 //
 // ?suggest=drake → tag + artist autocomplete
+// ?q=malcolm todd → smart resolve (artist first, then tag/era)
 // ?tag=pop → tag top tracks (fuzzy near-match on miss)
 // ?artist=Drake → artist top tracks (fuzzy near-match on miss)
 export default async function handler(req, res) {
@@ -41,17 +42,21 @@ export default async function handler(req, res) {
     .trim()
     .toLowerCase()
     .slice(0, 64);
+  const q = String(req.query.q || "").trim().slice(0, 120);
 
-  if (!artist && !tag) {
+  if (!artist && !tag && !q) {
     res.status(400).json({ error: "Enter a tag like pop, 90s, or an artist name." });
     return;
   }
 
   const limit = Math.min(50, Math.max(10, Number(req.query.limit) || 30));
-  const query = artist || tag;
+  const query = artist || tag || q;
 
   try {
-    const hit = await resolveChart(key, { tag, artist, limit });
+    const hit =
+      q && !artist && !tag
+        ? await resolveChartSmart(key, q, limit)
+        : await resolveChart(key, { tag, artist, limit });
     if (!hit) {
       res.status(404).json({
         error: `Couldn't find a chart for “${query}”. Try another pick.`,
@@ -90,12 +95,45 @@ async function resolveChart(apiKey, { tag, artist, limit }) {
   if (artist) {
     const exact = await tryArtist(apiKey, artist, limit);
     if (exact) return exact;
-    return fuzzyFromQuery(apiKey, artist, limit, { preferArtists: true });
+    return fuzzyFromQuery(apiKey, artist, limit, {
+      preferArtists: true,
+      skipExact: artist,
+    });
   }
 
   const exact = await tryTag(apiKey, tag, limit);
   if (exact) return exact;
-  return fuzzyFromQuery(apiKey, tag, limit, { preferArtists: false });
+  return fuzzyFromQuery(apiKey, tag, limit, {
+    preferArtists: false,
+    skipExact: tag,
+  });
+}
+
+/** Free-text: artist first (incl. fuzzy), then tag/era compounds. */
+async function resolveChartSmart(apiKey, raw, limit) {
+  const exactArtist = await tryArtist(apiKey, raw, limit);
+  if (exactArtist) return exactArtist;
+
+  const artists = await searchArtists(apiKey, raw);
+  for (const a of artists.slice(0, 5)) {
+    const hit = await tryArtist(apiKey, a.name, limit, true, raw);
+    if (hit) return hit;
+  }
+
+  const fuzzyArtist = await fuzzyFromQuery(apiKey, raw, limit, {
+    preferArtists: true,
+    skipExact: raw,
+  });
+  if (fuzzyArtist) return fuzzyArtist;
+
+  const tagRaw = String(raw).trim().toLowerCase();
+  const exactTag = await tryTag(apiKey, tagRaw, limit);
+  if (exactTag) return exactTag;
+
+  return fuzzyFromQuery(apiKey, raw, limit, {
+    preferArtists: false,
+    skipExact: tagRaw,
+  });
 }
 
 async function tryTag(apiKey, tag, limit, fuzzy = false, query) {
@@ -105,15 +143,22 @@ async function tryTag(apiKey, tag, limit, fuzzy = false, query) {
 }
 
 async function tryArtist(apiKey, artist, limit, fuzzy = false, query) {
-  const data = await topTracksForArtist(apiKey, artist, limit);
+  let data = await topTracksForArtist(apiKey, artist, limit);
+  if (!data.error && data.tracks.length < 2) {
+    const extra = await tracksFromArtistSearch(apiKey, artist, limit);
+    if (extra.length > data.tracks.length) {
+      data = { ...data, tracks: mergeTrackLists(data.tracks, extra, limit) };
+    }
+  }
   if (data.error || data.tracks.length < 2) return null;
   const name =
     String(data.artistName || artist).trim() || artist;
   return { kind: "artist", name, tracks: data.tracks, fuzzy, query };
 }
 
-async function fuzzyFromQuery(apiKey, raw, limit, { preferArtists }) {
+async function fuzzyFromQuery(apiKey, raw, limit, { preferArtists, skipExact }) {
   const variants = queryVariants(raw);
+  const skip = String(skipExact || raw).trim().toLowerCase();
   for (const q of variants) {
     const [tags, artists] = await Promise.all([
       searchTags(apiKey, q),
@@ -121,7 +166,7 @@ async function fuzzyFromQuery(apiKey, raw, limit, { preferArtists }) {
     ]);
 
     const tagTries = tags.slice(0, 6);
-    const artistTries = artists.slice(0, 4);
+    const artistTries = artists.slice(0, 6);
     const order = preferArtists
       ? [
           ...artistTries.map((a) => ({ kind: "artist", name: a.name })),
@@ -137,8 +182,7 @@ async function fuzzyFromQuery(apiKey, raw, limit, { preferArtists }) {
       const key = `${c.kind}:${c.name.toLowerCase()}`;
       if (seen.has(key)) continue;
       seen.add(key);
-      // Skip exact query we already failed.
-      if (c.name.toLowerCase() === String(raw).trim().toLowerCase()) continue;
+      if (c.name.toLowerCase() === skip) continue;
 
       const hit =
         c.kind === "tag"
@@ -231,6 +275,54 @@ function normalizeTracks(raw, idPrefix, fallbackArtist = "") {
   return tracks;
 }
 
+function mergeTrackLists(a, b, limit) {
+  const out = [];
+  const seen = new Set();
+  for (const t of [...a, ...b]) {
+    const k = `${t.name.toLowerCase()}|${(t.artists?.[0] || "").toLowerCase()}`;
+    if (seen.has(k)) continue;
+    seen.add(k);
+    out.push(t);
+    if (out.length >= limit) break;
+  }
+  return out;
+}
+
+async function tracksFromArtistSearch(apiKey, artist, limit) {
+  const url =
+    `${LASTFM}?method=track.search` +
+    `&track=${encodeURIComponent("*")}` +
+    `&artist=${encodeURIComponent(artist)}` +
+    `&limit=${Math.min(limit, 30)}` +
+    `&api_key=${encodeURIComponent(apiKey)}` +
+    `&format=json`;
+  const r = await fetch(url, { headers: UA });
+  if (!r.ok) return [];
+  const data = await r.json();
+  if (data?.error) return [];
+  const raw = data?.results?.trackmatches?.track;
+  const list = Array.isArray(raw) ? raw : raw ? [raw] : [];
+  const tracks = [];
+  const seen = new Set();
+  for (const t of list) {
+    const name = String(t?.name || "").trim();
+    const who = String(t?.artist || artist).trim();
+    if (!name || !who) continue;
+    const dedupe = `${name.toLowerCase()}|${who.toLowerCase()}`;
+    if (seen.has(dedupe)) continue;
+    seen.add(dedupe);
+    tracks.push({
+      id: `lfm-search-${slug(who)}-${slug(name)}`.slice(0, 120),
+      name,
+      artists: [who],
+      cover: null,
+      previewUrl: null,
+    });
+    if (tracks.length >= limit) break;
+  }
+  return tracks;
+}
+
 async function searchTags(apiKey, q) {
   const url =
     `${LASTFM}?method=tag.search` +
@@ -262,7 +354,7 @@ async function searchArtists(apiKey, q) {
   const url =
     `${LASTFM}?method=artist.search` +
     `&artist=${encodeURIComponent(q)}` +
-    `&limit=8` +
+    `&limit=12` +
     `&api_key=${encodeURIComponent(apiKey)}` +
     `&format=json`;
   const r = await fetch(url, { headers: UA });
@@ -284,6 +376,7 @@ async function searchArtists(apiKey, q) {
       listeners: Number(a?.listeners) || 0,
     });
   }
+  out.sort((a, b) => b.listeners - a.listeners);
   return out;
 }
 

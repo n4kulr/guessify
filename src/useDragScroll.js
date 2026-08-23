@@ -8,12 +8,13 @@ import { useEffect } from "react";
  * Pointermove is bound on window after down so Windows mouse-drag keeps
  * working when the cursor leaves a CD button / the strip.
  */
-export function useDragScroll(scrollRef) {
+export function useDragScroll(scrollRef, { axis = "x" } = {}) {
+  const vertical = axis === "y";
   useEffect(() => {
     const el = scrollRef.current;
     if (!el) return;
     let dragging = false;
-    let startX = 0;
+    let startPos = 0;
     let startScroll = 0;
     let pointerId = null;
     let suppressClick = false;
@@ -21,13 +22,14 @@ export function useDragScroll(scrollRef) {
     function onMove(e) {
       if (pointerId !== e.pointerId) return;
       if (e.pointerType === "touch") return;
-      const dx = e.clientX - startX;
+      const delta = vertical ? e.clientY - startPos : e.clientX - startPos;
       if (!dragging) {
-        if (Math.abs(dx) < 8) return;
+        if (Math.abs(delta) < 8) return;
         dragging = true;
         suppressClick = true;
       }
-      el.scrollLeft = startScroll - dx;
+      if (vertical) el.scrollTop = startScroll - delta;
+      else el.scrollLeft = startScroll - delta;
     }
     function onUp(e) {
       if (pointerId != null && e.pointerId !== pointerId) return;
@@ -46,8 +48,8 @@ export function useDragScroll(scrollRef) {
       if (e.pointerType === "touch") return;
       if (e.button !== 0) return;
       dragging = false;
-      startX = e.clientX;
-      startScroll = el.scrollLeft;
+      startPos = vertical ? e.clientY : e.clientX;
+      startScroll = vertical ? el.scrollTop : el.scrollLeft;
       pointerId = e.pointerId;
       window.addEventListener("pointermove", onMove);
       window.addEventListener("pointerup", onUp);
@@ -55,6 +57,7 @@ export function useDragScroll(scrollRef) {
     }
     function onWheel(e) {
       if (e.ctrlKey) return;
+      if (vertical) return;
       if (Math.abs(e.deltaX) > Math.abs(e.deltaY)) return;
       let dx = e.deltaY;
       if (e.deltaMode === 1) dx *= 40;
@@ -89,5 +92,5 @@ export function useDragScroll(scrollRef) {
       window.removeEventListener("pointerup", onUp);
       window.removeEventListener("pointercancel", onUp);
     };
-  }, [scrollRef]);
+  }, [scrollRef, vertical]);
 }

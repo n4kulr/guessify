@@ -1,5 +1,6 @@
 import { useEffect, useId, useMemo, useRef, useState } from "react";
 import ChartCdSpindle from "./ChartCdSpindle.jsx";
+import ChartCdStack from "./ChartCdStack.jsx";
 import ChartPreviewDialog from "./ChartPreviewDialog.jsx";
 import PlaylistCdShelf from "./PlaylistCdShelf.jsx";
 import { shakeEl } from "../fx.js";
@@ -79,6 +80,8 @@ export default function PlaylistPicker({ onPick, needsLogin = false }) {
   const [chartFieldError, setChartFieldError] = useState(false);
   const [chartFieldFading, setChartFieldFading] = useState(false);
   const [chartPreview, setChartPreview] = useState(null);
+  const [stackLayers, setStackLayers] = useState([]);
+  const [stackBusy, setStackBusy] = useState(false);
   const [yoursView, setYoursView] = useState("cds"); // cds | list
   const [showLoginModal, setShowLoginModal] = useState(false);
   const loginModalTitleId = useId();
@@ -295,7 +298,7 @@ export default function PlaylistPicker({ onPick, needsLogin = false }) {
     setChartFieldFading(false);
     try {
       const res = await fetch(
-        `/api/charts?tag=${encodeURIComponent(clean)}&limit=30`,
+        `/api/charts?q=${encodeURIComponent(clean)}&limit=30`,
         { credentials: "include" }
       );
       const d = await res.json();
@@ -324,6 +327,122 @@ export default function PlaylistPicker({ onPick, needsLogin = false }) {
     const d = chartPreview;
     setChartPreview(null);
     onPick(d);
+  }
+
+  async function addStackLayer(query) {
+    const clean = String(query || "").trim();
+    if (!clean || stackLayers.length >= 8) return false;
+    setStackBusy(true);
+    setNote(null);
+    try {
+      const res = await fetch(
+        `/api/charts?q=${encodeURIComponent(clean)}&limit=12`,
+        { credentials: "include" }
+      );
+      const d = await res.json();
+      if (!res.ok) throw new Error(d.error || "Couldn't find that pick.");
+      const kind = d.artist ? "artist" : "tag";
+      const name = d.artist || d.tag || clean;
+      const label =
+        kind === "artist"
+          ? d.artist || d.name?.replace(/ essentials$/, "") || clean
+          : d.name || clean;
+      const key = `${kind}:${name.toLowerCase()}`;
+      if (stackLayers.some((l) => `${l.kind}:${l.name.toLowerCase()}` === key)) {
+        setNote(`“${label}” is already in the stack.`);
+        return false;
+      }
+      setStackLayers((prev) => [
+        ...prev,
+        {
+          id: `stack-${Date.now()}-${prev.length}`,
+          query: clean,
+          kind,
+          name,
+          label,
+          fuzzy: !!d.fuzzy,
+        },
+      ]);
+      return true;
+    } catch (err) {
+      setNote(err.message || "Couldn't add that to the stack.");
+      return false;
+    } finally {
+      setStackBusy(false);
+    }
+  }
+
+  function removeStackLayer(id) {
+    setStackLayers((prev) => prev.filter((l) => l.id !== id));
+  }
+
+  async function playStackMix() {
+    if (stackLayers.length < 1) return;
+    setLoadingId("stack:mix");
+    setNote(null);
+    try {
+      const per = Math.max(8, Math.ceil(36 / stackLayers.length));
+      const parts = await Promise.all(
+        stackLayers.map(async (layer) => {
+          const qs =
+            layer.kind === "artist"
+              ? `artist=${encodeURIComponent(layer.name)}`
+              : `tag=${encodeURIComponent(layer.name)}`;
+          const res = await fetch(`/api/charts?${qs}&limit=${per}`, {
+            credentials: "include",
+          });
+          const d = await res.json();
+          if (!res.ok) throw new Error(d.error || "mix layer failed");
+          return d;
+        })
+      );
+      const tracks = [];
+      const seen = new Set();
+      for (const part of parts) {
+        for (const t of part.tracks || []) {
+          const k = `${t.name}|${(t.artists?.[0] || "").toLowerCase()}`.toLowerCase();
+          if (seen.has(k)) continue;
+          seen.add(k);
+          tracks.push(t);
+        }
+      }
+      for (let i = tracks.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [tracks[i], tracks[j]] = [tracks[j], tracks[i]];
+      }
+      const sliced = tracks.slice(0, 40);
+      if (sliced.length < 2) {
+        setNote("Need at least 2 tracks across the stack. Add another disc.");
+        setLoadingId(null);
+        return;
+      }
+      const mixName = stackLayers.map((l) => l.label).join(" + ");
+      setChartPreview({
+        id: `lfm-mix-${slugBits(stackLayers.map((l) => l.name))}`,
+        name: mixName.length > 64 ? `${mixName.slice(0, 61)}…` : mixName,
+        owner: "your stack",
+        cover: sliced.find((t) => t.cover)?.cover || parts[0]?.cover || null,
+        total: sliced.length,
+        playableCount: sliced.length,
+        tracks: sliced,
+        source: "lastfm",
+        fuzzy: stackLayers.some((l) => l.fuzzy),
+        query: stackLayers.map((l) => l.query).join(" · "),
+      });
+      setLoadingId(null);
+    } catch (err) {
+      setNote(err.message || "Couldn't build that mix.");
+      setLoadingId(null);
+    }
+  }
+
+  function slugBits(names) {
+    return names
+      .join("-")
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-|-$/g, "")
+      .slice(0, 48);
   }
 
   function toggleYoursView() {
@@ -487,6 +606,15 @@ export default function PlaylistPicker({ onPick, needsLogin = false }) {
           </div>
         </form>
       </div>
+
+      <ChartCdStack
+        layers={stackLayers}
+        loadingId={loadingId}
+        stackBusy={stackBusy}
+        onAdd={addStackLayer}
+        onRemove={removeStackLayer}
+        onPlay={playStackMix}
+      />
 
       <ChartCdSpindle
         packs={CHART_PACKS}
