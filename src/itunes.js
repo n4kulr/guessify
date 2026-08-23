@@ -2,6 +2,8 @@
 // Cache hits only — failed lookups are retried next play.
 
 const cache = new Map();
+/** Cap so a hung /api/preview can't freeze “cueing the record…” forever. */
+const PREVIEW_FETCH_MS = 12_000;
 
 export async function resolvePreview(track) {
   if (!track) return null;
@@ -14,8 +16,10 @@ export async function resolvePreview(track) {
   const artist = (track.artists || [])[0];
   if (artist) params.set("artist", artist);
 
+  const ctrl = typeof AbortController !== "undefined" ? new AbortController() : null;
+  const timer = ctrl ? setTimeout(() => ctrl.abort(), PREVIEW_FETCH_MS) : null;
   try {
-    const r = await fetch(`/api/preview?${params}`);
+    const r = await fetch(`/api/preview?${params}`, ctrl ? { signal: ctrl.signal } : undefined);
     if (!r.ok) return null; // don't cache misses — next attempt may succeed
     const data = await r.json();
     const url = data.previewUrl || null;
@@ -23,6 +27,8 @@ export async function resolvePreview(track) {
     return url;
   } catch {
     return null;
+  } finally {
+    if (timer) clearTimeout(timer);
   }
 }
 

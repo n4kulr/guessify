@@ -155,8 +155,10 @@ export default function HostParty({
     }
     const url = state?.track?.previewUrl;
     if (!url) {
+      // Host may still resolve + setPreview; don't hold the board forever.
       setCueReady(false);
-      return;
+      const timer = setTimeout(() => setCueReady(true), 15_000);
+      return () => clearTimeout(timer);
     }
     let cancelled = false;
     if (!isAudioWarm(url)) setCueReady(false);

@@ -486,7 +486,10 @@ export default function OnlineRace({ profile, onExit, raceMode: raceModeProp }) 
 
       if (!url) {
         const ok = await replaceDeadTrack(track);
-        if (!cancelled && !ok) endRoundLose();
+        if (!cancelled && !ok) {
+          setCueReady(true);
+          endRoundLose();
+        }
         return;
       }
 

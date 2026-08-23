@@ -106,8 +106,10 @@ export default function GuestApp({ code }) {
     }
     const url = playTrack?.previewUrl;
     if (!url) {
+      // Room may still publish previewUrl; don't hold the board forever.
       setCueReady(false);
-      return;
+      const timer = setTimeout(() => setCueReady(true), 15_000);
+      return () => clearTimeout(timer);
     }
     let cancelled = false;
     if (!isAudioWarm(url)) setCueReady(false);
