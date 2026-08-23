@@ -490,7 +490,7 @@ button.footer-privacy:hover {
   background: var(--main-color) !important;
 }
 .look-btn .mp-avatar img {
-  transform: translateX(-1px) translateY(-2px) scale(1.7);
+  transform: translateX(-1px) translateY(-4px) scale(1.7);
   transform-origin: 50% 18%;
 }
 .look-menu {
