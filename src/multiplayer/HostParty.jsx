@@ -60,6 +60,8 @@ export default function HostParty({
   const [roundLog, setRoundLog] = useState([]);
   const [playlistBests, setPlaylistBests] = useState(null);
   const [cueReady, setCueReady] = useState(false);
+  /** After the first cue, keep the board up and spin the vinyl center instead. */
+  const [boardReady, setBoardReady] = useState(false);
   /** Dev-only fake wrap: bypasses the Worker and paints end screen locally. */
   const [fastEnd, setFastEnd] = useState(null);
   const [lobbyRaceMode, setLobbyRaceMode] = useState(() =>
@@ -158,14 +160,20 @@ export default function HostParty({
       // Worker swaps spares / drops the slot; keep a short hold so we don't
       // flash the board while resolve is still in flight.
       setCueReady(false);
-      const timer = setTimeout(() => setCueReady(true), 15_000);
+      const timer = setTimeout(() => {
+        setCueReady(true);
+        setBoardReady(true);
+      }, 15_000);
       return () => clearTimeout(timer);
     }
     let cancelled = false;
     if (!isAudioWarm(url)) setCueReady(false);
     (async () => {
       await warmAudioUrl(url);
-      if (!cancelled) setCueReady(true);
+      if (!cancelled) {
+        setCueReady(true);
+        setBoardReady(true);
+      }
     })();
     return () => {
       cancelled = true;
@@ -363,7 +371,7 @@ export default function HostParty({
     Array.isArray(state?.lockedInIds) &&
     state.lockedInIds.includes(playerId)
   );
-  const canSuggest = phase === "play" && !lockedIn;
+  const canSuggest = phase === "play" && !lockedIn && cueReady;
   const roundArtists = state?.track?.artists || hostMeta?.artists || [];
   const titleSuggest = useGuessSuggest({
     kind: "track",
@@ -713,7 +721,7 @@ export default function HostParty({
         timed={timed}
       />
 
-      {!cueReady ? (
+      {!cueReady && !boardReady ? (
         <div className="loader cue-loader">cueing the record…</div>
       ) : (
         <>
@@ -724,9 +732,10 @@ export default function HostParty({
         cover={track?.cover}
         title={displayTitle(track?.name)}
         artist={(track?.artists || []).join(", ")}
-        canControl={canPlay}
-        interactive={canPlay}
-        vinylTitle={canPlay ? "play / pause · drag to scrub" : undefined}
+        canControl={canPlay && cueReady}
+        interactive={canPlay && cueReady}
+        cueing={phase === "play" && !cueReady}
+        vinylTitle={canPlay && cueReady ? "play / pause · drag to scrub" : undefined}
         onTogglePlay={togglePlay}
         onPrimeAudio={prime}
         onScrubStart={stopAudio}
@@ -781,7 +790,7 @@ export default function HostParty({
                     lockedIn ? "locked in — waiting…" : titleHintText || "song title…"
                   }
                   value={lockedIn ? "" : titleGuess}
-                  disabled={lockedIn}
+                  disabled={lockedIn || !cueReady}
                   {...titleSuggest.inputProps}
                   onChange={(e) => {
                     setAlmostTitle(null);
@@ -805,7 +814,7 @@ export default function HostParty({
                   className={`guess-input${revealedArtist ? " guess-input--locked" : ""}`}
                   placeholder="artist…"
                   value={revealedArtist || artistGuess}
-                  disabled={!!revealedArtist}
+                  disabled={!!revealedArtist || !cueReady}
                   {...artistSuggest.inputProps}
                   onChange={(e) => {
                     setAlmostArtist(null);
@@ -825,8 +834,8 @@ export default function HostParty({
               <GuessTransport
                 playing={localPlaying}
                 busy={playBusy}
-                canPlay={canPlay}
-                playLabel={canPlay ? `Play ${unlocked}s` : "Loading audio"}
+                canPlay={canPlay && cueReady}
+                playLabel={canPlay && cueReady ? `Play ${unlocked}s` : "Loading audio"}
                 onPlay={startPlay}
                 onPause={stopAudio}
               />
@@ -834,7 +843,11 @@ export default function HostParty({
           </div>
           <div className="guess-actions">
             <div className="btn-skip-wrap" ref={skipWrapRef}>
-              <button className="btn btn-skip" onClick={skipGuess}>
+              <button
+                className="btn btn-skip"
+                onClick={skipGuess}
+                disabled={!cueReady || lockedIn}
+              >
                 <span className="btn-label">skip</span>
                 <span className="btn-hint">+audio</span>
               </button>
@@ -848,9 +861,10 @@ export default function HostParty({
               className="btn btn-guess"
               onClick={submitGuess}
               disabled={
-                lockedIn
+                !cueReady ||
+                (lockedIn
                   ? !artistGuess.trim() || !!revealedArtist
-                  : !titleGuess.trim() && !artistGuess.trim()
+                  : !titleGuess.trim() && !artistGuess.trim())
               }
             >
               <span className="btn-label">guess</span>

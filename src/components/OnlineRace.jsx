@@ -284,6 +284,8 @@ export default function OnlineRace({ profile, onExit, raceMode: raceModeProp }) 
   const [playlistBests, setPlaylistBests] = useState(null);
   const [chartKey, setChartKey] = useState(null);
   const [cueReady, setCueReady] = useState(false);
+  /** After the first cue, keep the board up and spin the vinyl center instead. */
+  const [boardReady, setBoardReady] = useState(false);
   const [roundEndsAt, setRoundEndsAt] = useState(null);
   const [lockedInIds, setLockedInIds] = useState([]);
   const [timedPlaces, setTimedPlaces] = useState(null);
@@ -324,7 +326,7 @@ export default function OnlineRace({ profile, onExit, raceMode: raceModeProp }) 
   const voteHave = Object.keys(nextVotes).length;
   const iVotedNext = !!nextVotes[youId];
   const lockedIn = lockedInIds.includes(youId);
-  const canSuggest = phase === "play" && !lockedIn;
+  const canSuggest = phase === "play" && !lockedIn && cueReady;
   const roundArtists = track?.artists || [];
   const titleSuggest = useGuessSuggest({
     kind: "track",
@@ -488,13 +490,17 @@ export default function OnlineRace({ profile, onExit, raceMode: raceModeProp }) 
         const ok = await replaceDeadTrack(track);
         if (!cancelled && !ok) {
           setCueReady(true);
+          setBoardReady(true);
           endRoundLose();
         }
         return;
       }
 
       setRounds((rs) => patchRoundsPreview(rs, roundIdx, url));
-      if (!cancelled) setCueReady(true);
+      if (!cancelled) {
+        setCueReady(true);
+        setBoardReady(true);
+      }
 
       const nextIdx = roundIdx + 1;
       const next = roundsRef.current[nextIdx];
@@ -565,6 +571,7 @@ export default function OnlineRace({ profile, onExit, raceMode: raceModeProp }) 
         clearTimedRound();
         armTimedClock();
         setCueReady(Boolean(tracks[0]?.previewUrl && isAudioWarm(tracks[0].previewUrl)));
+        setBoardReady(false);
         setPhase("play");
       } catch {
         if (!cancelled) {
@@ -1312,7 +1319,7 @@ export default function OnlineRace({ profile, onExit, raceMode: raceModeProp }) 
           timed={timed}
         />
 
-        {phase === "play" && !cueReady ? (
+        {phase === "play" && !cueReady && !boardReady ? (
           <div className="loader cue-loader">cueing the record…</div>
         ) : (
           <>
@@ -1323,9 +1330,10 @@ export default function OnlineRace({ profile, onExit, raceMode: raceModeProp }) 
           cover={track?.cover}
           title={displayTitle(track?.name)}
           artist={(track?.artists || []).join(", ")}
-          canControl={!!track}
-          interactive={!!track}
-          vinylTitle="play / pause · drag to scrub"
+          canControl={!!track && cueReady}
+          interactive={!!track && cueReady}
+          cueing={phase === "play" && !cueReady}
+          vinylTitle={cueReady ? "play / pause · drag to scrub" : undefined}
           onTogglePlay={togglePlay}
           onPrimeAudio={prime}
           onScrubStart={stopAudio}
@@ -1385,7 +1393,7 @@ export default function OnlineRace({ profile, onExit, raceMode: raceModeProp }) 
                         : titleHintText || "song title…"
                     }
                     value={lockedIn ? "" : titleGuess}
-                    disabled={lockedIn}
+                    disabled={lockedIn || !cueReady}
                     {...titleSuggest.inputProps}
                     onChange={(e) => {
                       setAlmostTitle(null);
@@ -1409,7 +1417,7 @@ export default function OnlineRace({ profile, onExit, raceMode: raceModeProp }) 
                     className={`guess-input${myRevealedArtist ? " guess-input--locked" : ""}`}
                     placeholder="artist…"
                     value={myRevealedArtist || artistGuess}
-                    disabled={!!myRevealedArtist}
+                    disabled={!!myRevealedArtist || !cueReady}
                     {...artistSuggest.inputProps}
                     onChange={(e) => {
                       setAlmostArtist(null);
@@ -1429,7 +1437,7 @@ export default function OnlineRace({ profile, onExit, raceMode: raceModeProp }) 
                 <GuessTransport
                   playing={localPlaying}
                   busy={playBusy}
-                  canPlay={!!track}
+                  canPlay={!!track && cueReady}
                   playLabel={`Play ${unlocked}s`}
                   onPlay={startPlay}
                   onPause={stopAudio}
@@ -1438,7 +1446,11 @@ export default function OnlineRace({ profile, onExit, raceMode: raceModeProp }) 
             </div>
             <div className="guess-actions">
               <div className="btn-skip-wrap" ref={skipWrapRef}>
-                <button className="btn btn-skip" onClick={skip}>
+                <button
+                  className="btn btn-skip"
+                  onClick={skip}
+                  disabled={!cueReady || lockedIn}
+                >
                   <span className="btn-label">skip</span>
                   <span className="btn-hint">+audio</span>
                 </button>
@@ -1452,9 +1464,10 @@ export default function OnlineRace({ profile, onExit, raceMode: raceModeProp }) 
                 className="btn btn-guess"
                 onClick={submitGuess}
                 disabled={
-                  lockedIn
+                  !cueReady ||
+                  (lockedIn
                     ? !artistGuess.trim() || !!myRevealedArtist
-                    : !titleGuess.trim() && !artistGuess.trim()
+                    : !titleGuess.trim() && !artistGuess.trim())
                 }
               >
                 <span className="btn-label">guess</span>

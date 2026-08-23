@@ -3171,6 +3171,21 @@ button.footer-privacy:hover {
 .vinyl-cue:hover {
   filter: brightness(1.08);
 }
+.vinyl-cue--loading {
+  cursor: wait;
+  pointer-events: none;
+}
+.vinyl-cue--loading:hover {
+  filter: none;
+}
+.vinyl-cue-spin {
+  width: 20px;
+  height: 20px;
+  border: 2.5px solid color-mix(in srgb, var(--main-color) 28%, transparent);
+  border-top-color: var(--main-color);
+  border-radius: 50%;
+  animation: vinyl-cue-spin 0.65s linear infinite;
+}
 .vinyl-cue-ico {
   width: 24px;
   height: 24px;
@@ -3178,6 +3193,11 @@ button.footer-privacy:hover {
 }
 @media (prefers-reduced-motion: reduce) {
   .vinyl-cue { transition: none; }
+  .vinyl-cue-spin { animation: none; border-top-color: var(--main-color); opacity: 0.7; }
+}
+
+@keyframes vinyl-cue-spin {
+  to { transform: rotate(360deg); }
 }
 
 .media-stage-vote {

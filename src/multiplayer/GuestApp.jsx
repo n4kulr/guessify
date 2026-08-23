@@ -50,6 +50,8 @@ export default function GuestApp({ code }) {
   const [playlistBests, setPlaylistBests] = useState(null);
   const [fastEnd, setFastEnd] = useState(null);
   const [cueReady, setCueReady] = useState(false);
+  /** After the first cue, keep the board up and spin the vinyl center instead. */
+  const [boardReady, setBoardReady] = useState(false);
   const { errorMsg, setErrorMsg, play, pause, prime } = usePreviewPlayer();
   const [playBusy, setPlayBusy] = useState(false);
   const [localPlaying, setLocalPlaying] = useState(false);
@@ -80,7 +82,7 @@ export default function GuestApp({ code }) {
     Array.isArray(state?.lockedInIds) &&
     state.lockedInIds.includes(playerId)
   );
-  const canSuggest = state?.phase === "play" && !lockedIn;
+  const canSuggest = state?.phase === "play" && !lockedIn && cueReady;
   const roundArtists = state?.track?.artists || [];
   const revealedArtist = myRevealedArtist(state, playerId);
   const titleSuggest = useGuessSuggest({
@@ -109,14 +111,20 @@ export default function GuestApp({ code }) {
       // Worker swaps spares / drops the slot; keep a short hold so we don't
       // flash the board while resolve is still in flight.
       setCueReady(false);
-      const timer = setTimeout(() => setCueReady(true), 15_000);
+      const timer = setTimeout(() => {
+        setCueReady(true);
+        setBoardReady(true);
+      }, 15_000);
       return () => clearTimeout(timer);
     }
     let cancelled = false;
     if (!isAudioWarm(url)) setCueReady(false);
     (async () => {
       await warmAudioUrl(url);
-      if (!cancelled) setCueReady(true);
+      if (!cancelled) {
+        setCueReady(true);
+        setBoardReady(true);
+      }
     })();
     return () => {
       cancelled = true;
@@ -540,7 +548,7 @@ export default function GuestApp({ code }) {
           timed={timed}
         />
 
-        {!cueReady ? (
+        {!cueReady && !boardReady ? (
           <div className="loader cue-loader">cueing the record…</div>
         ) : (
           <>
@@ -551,9 +559,10 @@ export default function GuestApp({ code }) {
           cover={track?.cover}
           title={displayTitle(track?.name)}
           artist={(track?.artists || []).join(", ")}
-          canControl={canPlay}
-          interactive={canPlay}
-          vinylTitle={canPlay ? "play / pause · drag to scrub" : undefined}
+          canControl={canPlay && cueReady}
+          interactive={canPlay && cueReady}
+          cueing={state?.phase === "play" && !cueReady}
+          vinylTitle={canPlay && cueReady ? "play / pause · drag to scrub" : undefined}
           onTogglePlay={togglePlay}
           onPrimeAudio={prime}
           onScrubStart={stopAudio}
@@ -610,7 +619,7 @@ export default function GuestApp({ code }) {
                         : titleHintText || "song title…"
                     }
                     value={lockedIn ? "" : titleGuess}
-                    disabled={lockedIn}
+                    disabled={lockedIn || !cueReady}
                     {...titleSuggest.inputProps}
                     onChange={(e) => {
                       setAlmostTitle(null);
@@ -634,7 +643,7 @@ export default function GuestApp({ code }) {
                     className={`guess-input${revealedArtist ? " guess-input--locked" : ""}`}
                     placeholder="artist…"
                     value={revealedArtist || artistGuess}
-                    disabled={!!revealedArtist}
+                    disabled={!!revealedArtist || !cueReady}
                     {...artistSuggest.inputProps}
                     onChange={(e) => {
                       setAlmostArtist(null);
@@ -654,8 +663,8 @@ export default function GuestApp({ code }) {
                 <GuessTransport
                   playing={localPlaying}
                   busy={playBusy}
-                  canPlay={canPlay}
-                  playLabel={canPlay ? `Play ${unlocked}s` : "Loading audio"}
+                  canPlay={canPlay && cueReady}
+                  playLabel={canPlay && cueReady ? `Play ${unlocked}s` : "Loading audio"}
                   onPlay={startPlay}
                   onPause={stopAudio}
                 />
@@ -663,7 +672,11 @@ export default function GuestApp({ code }) {
             </div>
             <div className="guess-actions">
               <div className="btn-skip-wrap" ref={skipWrapRef}>
-                <button className="btn btn-skip" onClick={skipGuess}>
+                <button
+                  className="btn btn-skip"
+                  onClick={skipGuess}
+                  disabled={!cueReady || lockedIn}
+                >
                   <span className="btn-label">skip</span>
                   <span className="btn-hint">+audio</span>
                 </button>
@@ -677,9 +690,10 @@ export default function GuestApp({ code }) {
                 className="btn btn-guess"
                 onClick={submitGuess}
                 disabled={
-                  lockedIn
+                  !cueReady ||
+                  (lockedIn
                     ? !artistGuess.trim() || !!revealedArtist
-                    : !titleGuess.trim() && !artistGuess.trim()
+                    : !titleGuess.trim() && !artistGuess.trim())
                 }
               >
                 <span className="btn-label">guess</span>

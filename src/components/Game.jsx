@@ -98,6 +98,8 @@ export default function Game({ playlist, me, onExit, onReplay }) {
   const [roundLog, setRoundLog] = useState([]);
   const [playlistBests, setPlaylistBests] = useState(null);
   const [cueReady, setCueReady] = useState(false);
+  /** After the first cue, keep the board up and spin the vinyl center instead. */
+  const [boardReady, setBoardReady] = useState(false);
 
   const { errorMsg, setErrorMsg, play, pause, prime } = usePreviewPlayer();
   const roundStartedAt = useRef(Date.now());
@@ -108,7 +110,7 @@ export default function Game({ playlist, me, onExit, onReplay }) {
   const unlocked = STEPS[Math.min(guessNum, MAX_GUESSES - 1)];
   const resolved = outcome !== null;
   const canControl = !!track;
-  const canSuggest = phase === "play" && !resolved;
+  const canSuggest = phase === "play" && !resolved && cueReady;
   const roundArtists = track?.artists || [];
   const titleSuggest = useGuessSuggest({
     kind: "track",
@@ -231,6 +233,7 @@ export default function Game({ playlist, me, onExit, onReplay }) {
         const ok = await replaceDeadTrack(track);
         if (!cancelled && !ok) {
           setCueReady(true);
+          setBoardReady(true);
           window.setTimeout(() => {
             if (!cancelled) nextRound();
           }, 700);
@@ -239,7 +242,10 @@ export default function Game({ playlist, me, onExit, onReplay }) {
       }
 
       setRounds((rs) => patchRoundsPreview(rs, roundIdx, url));
-      if (!cancelled) setCueReady(true);
+      if (!cancelled) {
+        setCueReady(true);
+        setBoardReady(true);
+      }
 
       const nextIdx = roundIdx + 1;
       const next = roundsRef.current[nextIdx];
@@ -530,11 +536,11 @@ export default function Game({ playlist, me, onExit, onReplay }) {
           </div>
         )}
 
-        {phase === "play" && !cueReady && (
+        {phase === "play" && !cueReady && !boardReady && (
           <div className="loader cue-loader">cueing the record…</div>
         )}
 
-        {phase === "play" && cueReady && (
+        {phase === "play" && (cueReady || boardReady) && (
           <>
             <PlayerRail
               players={players}
@@ -549,10 +555,11 @@ export default function Game({ playlist, me, onExit, onReplay }) {
               cover={track.cover}
               title={displayTitle(track.name)}
               artist={(track.artists || []).join(", ")}
-              canControl={canControl}
-              interactive={canControl}
+              canControl={canControl && cueReady}
+              interactive={canControl && cueReady}
+              cueing={!cueReady}
               vinylTitle={
-                canControl
+                canControl && cueReady
                   ? playing
                     ? "click to pause · drag to scrub"
                     : "click to play · drag to scrub"
@@ -634,6 +641,7 @@ export default function Game({ playlist, me, onExit, onReplay }) {
                         className={`guess-input${titleHintText ? " guess-input--hint" : ""}`}
                         placeholder={titleHintText || "song title…"}
                         value={titleGuess}
+                        disabled={!cueReady}
                         {...titleSuggest.inputProps}
                         onChange={(e) => {
                           setAlmostTitle(null);
@@ -657,7 +665,7 @@ export default function Game({ playlist, me, onExit, onReplay }) {
                         className={`guess-input${revealedArtist ? " guess-input--locked" : ""}`}
                         placeholder="artist…"
                         value={revealedArtist || artistGuess}
-                        disabled={!!revealedArtist}
+                        disabled={!!revealedArtist || !cueReady}
                         {...artistSuggest.inputProps}
                         onChange={(e) => {
                           setAlmostArtist(null);
@@ -677,7 +685,7 @@ export default function Game({ playlist, me, onExit, onReplay }) {
                     <GuessTransport
                       playing={playing}
                       busy={playBusy}
-                      canPlay={canControl && !resolved}
+                      canPlay={canControl && cueReady && !resolved}
                       playLabel={`Play ${unlocked}s`}
                       onPlay={startPlay}
                       onPause={stopAudio}
@@ -686,7 +694,11 @@ export default function Game({ playlist, me, onExit, onReplay }) {
                 </div>
                 <div className="guess-actions">
                   <div className="btn-skip-wrap" ref={skipWrapRef}>
-                    <button className="btn btn-skip" onClick={skip}>
+                    <button
+                      className="btn btn-skip"
+                      onClick={skip}
+                      disabled={!cueReady}
+                    >
                       <span className="btn-label">skip</span>
                       <span className="btn-hint">+audio</span>
                     </button>
@@ -699,7 +711,9 @@ export default function Game({ playlist, me, onExit, onReplay }) {
                   <button
                     className="btn btn-guess"
                     onClick={submitGuess}
-                    disabled={!titleGuess.trim() && !artistGuess.trim()}
+                    disabled={
+                      !cueReady || (!titleGuess.trim() && !artistGuess.trim())
+                    }
                   >
                     <span className="btn-label">guess</span>
                     <span className="btn-hint">enter</span>

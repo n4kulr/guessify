@@ -18,6 +18,7 @@ export default function GuessMedia({
   artist = "",
   canControl = false,
   interactive = true,
+  cueing = false,
   vinylTitle,
   onTogglePlay,
   onPrimeAudio,
@@ -48,11 +49,13 @@ export default function GuessMedia({
           spinning={spinning || celebrate}
           cover={cover}
           label={label}
-          onActivate={canControl ? onTogglePlay : undefined}
+          onActivate={canControl && !cueing ? onTogglePlay : undefined}
         />
       </div>
     );
   }
+
+  const live = canControl && !cueing;
 
   return (
     <div
@@ -71,10 +74,10 @@ export default function GuessMedia({
       <ScrubbableVinyl
         className={`vinyl--md ${revealed ? "vinyl--revealed" : ""}`}
         spin={spinning ? "fast" : false}
-        enabled={interactive}
-        title={vinylTitle}
-        onClick={canControl ? onTogglePlay : undefined}
-        onPrimeAudio={canControl ? onPrimeAudio : undefined}
+        enabled={interactive && !cueing}
+        title={cueing ? "cueing the record…" : vinylTitle}
+        onClick={live ? onTogglePlay : undefined}
+        onPrimeAudio={live ? onPrimeAudio : undefined}
         onScrubStart={onScrubStart}
         onScrubEnd={onScrubEnd}
       >
@@ -84,25 +87,36 @@ export default function GuessMedia({
           <div className="vinyl-label" aria-hidden="true" />
         )}
       </ScrubbableVinyl>
-      {canControl && !revealed && (
-        <button
-          type="button"
-          className="vinyl-cue"
-          aria-label={spinning ? "Pause preview" : "Play preview"}
-          onClick={(e) => {
-            e.stopPropagation();
-            onTogglePlay?.();
-          }}
+      {cueing && !revealed ? (
+        <span
+          className="vinyl-cue vinyl-cue--loading"
+          role="status"
+          aria-live="polite"
+          aria-label="cueing the record"
         >
-          {spinning ? (
-            <PauseIcon className="vinyl-cue-ico" />
-          ) : (
-            <PlayIcon className="vinyl-cue-ico" />
-          )}
-        </button>
+          <span className="vinyl-cue-spin" aria-hidden="true" />
+        </span>
+      ) : (
+        live && (
+          <button
+            type="button"
+            className="vinyl-cue"
+            aria-label={spinning ? "Pause preview" : "Play preview"}
+            onClick={(e) => {
+              e.stopPropagation();
+              onTogglePlay?.();
+            }}
+          >
+            {spinning ? (
+              <PauseIcon className="vinyl-cue-ico" />
+            ) : (
+              <PlayIcon className="vinyl-cue-ico" />
+            )}
+          </button>
+        )
       )}
       <div className={`tonearm ${spinning ? "tonearm--on" : ""}`} />
-      {!revealed && interactive && <SpinMeNudge />}
+      {!revealed && interactive && !cueing && <SpinMeNudge />}
     </div>
   );
 }
