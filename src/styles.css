@@ -122,31 +122,9 @@ button { font-family: var(--font); }
 .volume-control.is-open .volume-btn {
   color: var(--text-color);
 }
-.theme-mode-btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  box-sizing: border-box;
-  width: 33px;
-  height: 33px;
-  padding: 0;
-  color: var(--sub-color);
-  background: var(--sub-alt-color);
-  border: none;
-  border-radius: var(--radius);
-  cursor: pointer;
-  transition: color 0.15s ease;
-  flex: none;
-}
-.theme-mode-btn:hover,
-.theme-mode-btn.is-on {
-  color: var(--text-color);
-}
-.theme-mode-btn.is-on {
-  color: var(--main-color);
-}
 .theme-mode-ico {
   display: block;
+  flex: none;
 }
 .volume-ico {
   display: block;
@@ -527,6 +505,19 @@ button.footer-privacy:hover {
   box-shadow: 0 10px 24px color-mix(in srgb, #000 28%, transparent);
 }
 .look-menu > .profile-dd-label { margin-bottom: 8px; }
+/* Theme picker folded into "your look" — phones only (see the 820px block). */
+.look-menu-theme { display: none; margin-top: 12px; }
+.theme-switcher--inline { display: block; width: 100%; }
+.theme-switcher--inline .theme-btn { width: 100%; max-width: none; }
+.theme-switcher--inline .theme-menu {
+  position: static;
+  width: 100%;
+  max-height: 210px;
+  margin-top: 6px;
+  padding: 0;
+  background: transparent;
+  box-shadow: none;
+}
 .theme-btn {
   display: inline-flex; align-items: center; gap: 8px;
   box-sizing: border-box;
@@ -588,6 +579,14 @@ button.footer-privacy:hover {
 }
 .theme-option:hover { background: var(--bg-color); color: var(--text-color); }
 .theme-option.active { color: var(--main-color); }
+/* light/dark switch, first row of the theme menu */
+.theme-mode-row {
+  margin-bottom: 4px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid color-mix(in srgb, var(--text-color) 12%, transparent);
+  border-radius: 7px 7px 0 0;
+}
+.theme-mode-row.is-on { color: var(--main-color); }
 .swatches { display: inline-flex; border-radius: 5px; overflow: hidden; border: 1px solid var(--sub-color); }
 .swatches span { width: 12px; height: 18px; display: block; }
 
@@ -4900,18 +4899,13 @@ button.footer-privacy:hover {
     gap: 12px;
     margin-bottom: 20px;
   }
-  .hero-vinyl-row .steps {
-    font-size: 12px;
-    gap: 6px;
-  }
-  .hero-vinyl-row .steps b {
-    width: 20px;
-    height: 20px;
-    font-size: 10px;
-  }
-  .hero-vinyl-row .steps li {
-    gap: 8px;
-  }
+  /* Phones: hero carries the turntable alone — the 1/2/3 steps are cut. */
+  .hero-vinyl-row .steps { display: none; }
+  /* "Your playlists. One-second snippets." trims to just the snippet half. */
+  .hero-tagline-lead-long { display: none; }
+  /* Theme picker moves out of the topbar and into the "your look" dropdown. */
+  .topbar-right > .theme-switcher { display: none; }
+  .look-menu-theme { display: block; }
   .hero-title { font-size: clamp(48px, 16vw, 80px); }
   /* Clear the peeked live-demo strip + horizontal "pull me" tab on the right */
   .hero-left {

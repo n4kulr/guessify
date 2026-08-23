@@ -26,7 +26,8 @@ export default function Login({ error, onStartSolo, onStartMulti, onStartOnline 
           guess<span className="hero-title-accent">ify</span>
         </h1>
         <p className="hero-tagline">
-          <span className="hero-tagline-lead">Your playlists. One-second snippets.</span>
+          {/* Phones show just "One-second snippets." — see .hero-tagline-lead-long */}
+          <span className="hero-tagline-lead"><span className="hero-tagline-lead-long">Your playlists. </span>One-second snippets.</span>
           <em className="hero-tagline-hook">name that song!</em>
         </p>
 

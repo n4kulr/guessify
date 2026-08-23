@@ -1,10 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import {
-  THEMES,
-  applyTheme,
-  paletteFor,
-  currentThemeKey,
-} from "../themes.js";
+import { THEMES, applyTheme, paletteFor } from "../themes.js";
 import ThemeNudge from "./ThemeNudge.jsx";
 import { SunIcon } from "./icons.jsx";
 
@@ -15,29 +10,13 @@ function isLandingPath() {
   return p === "/";
 }
 
-export function ThemeModeButton({ mode, onChange }) {
-  function toggle() {
-    const next = mode === "light" ? "dark" : "light";
-    applyTheme(currentThemeKey(), { mode: next, safariReload: isLandingPath() });
-    onChange(next);
-    window.dispatchEvent(new CustomEvent("guessify:theme-picked"));
-  }
-
-  return (
-    <button
-      type="button"
-      className={`theme-mode-btn${mode === "light" ? " is-on" : ""}`}
-      title={mode === "light" ? "dark mode" : "light mode"}
-      aria-pressed={mode === "light"}
-      aria-label={mode === "light" ? "Switch to dark mode" : "Switch to light mode"}
-      onClick={toggle}
-    >
-      <SunIcon className="theme-mode-ico" width="16" height="16" />
-    </button>
-  );
-}
-
-export default function ThemeSwitcher({ current, mode = "dark", onChange }) {
+export default function ThemeSwitcher({
+  current,
+  mode = "dark",
+  onChange,
+  onModeChange,
+  inline = false,
+}) {
   const [open, setOpen] = useState(false);
   const [flash, setFlash] = useState(false);
   const ref = useRef(null);
@@ -80,17 +59,40 @@ export default function ThemeSwitcher({ current, mode = "dark", onChange }) {
     applyTheme(currentRef.current, { persist: false, mode: modeRef.current });
   }
 
+  function toggleMode() {
+    const next = mode === "light" ? "dark" : "light";
+    applyTheme(current, { mode: next, safariReload: isLandingPath() });
+    onModeChange?.(next);
+    window.dispatchEvent(new CustomEvent("guessify:theme-picked"));
+  }
+
   return (
-    <div className={`theme-switcher${flash ? " theme-switcher--flash" : ""}`} ref={ref}>
+    <div
+      className={`theme-switcher${flash ? " theme-switcher--flash" : ""}${
+        inline ? " theme-switcher--inline" : ""
+      }`}
+      ref={ref}
+    >
       <button className="theme-btn" onClick={() => setOpen((o) => !o)} title="change theme">
         <span className="theme-dot" style={{ background: "var(--main-color)" }} />
         <span className="theme-btn-label">
           {open ? THEMES[current]?.name || "theme" : "theme"}
         </span>
       </button>
-      {!open && <ThemeNudge />}
+      {!open && !inline && <ThemeNudge />}
       {open && (
         <div className="theme-menu" onMouseLeave={restore}>
+          <button
+            type="button"
+            className={`theme-option theme-mode-row${mode === "light" ? " is-on" : ""}`}
+            role="switch"
+            aria-checked={mode === "light"}
+            onMouseEnter={restore}
+            onClick={toggleMode}
+          >
+            <SunIcon className="theme-mode-ico" width="16" height="16" />
+            light mode
+          </button>
           {Object.entries(THEMES).map(([key, t]) => {
             const face = paletteFor(key, mode);
             return (

@@ -1,13 +1,14 @@
 import { useEffect, useRef, useState } from "react";
 import PlayerAvatar from "../multiplayer/PlayerAvatar.jsx";
 import ProfileEditor from "../multiplayer/ProfileEditor.jsx";
+import ThemeSwitcher from "./ThemeSwitcher.jsx";
 import { loadLocalProfile, saveLocalProfile } from "../localProfile.js";
 
 /**
  * Topbar squircle: current Open Peep, opens look editor anytime.
  * First visit seeds a random avatar into localStorage.
  */
-export default function LookButton() {
+export default function LookButton({ theme, themeMode, onTheme, onThemeMode }) {
   const [open, setOpen] = useState(false);
   const [draft, setDraft] = useState(loadLocalProfile);
   const ref = useRef(null);
@@ -70,6 +71,16 @@ export default function LookButton() {
             avatar={draft.avatar}
             onChange={onChange}
           />
+          {/* Phones drop the topbar theme button; it lives here instead. */}
+          <div className="look-menu-theme">
+            <ThemeSwitcher
+              inline
+              current={theme}
+              mode={themeMode}
+              onChange={onTheme}
+              onModeChange={onThemeMode}
+            />
+          </div>
         </div>
       )}
     </div>
