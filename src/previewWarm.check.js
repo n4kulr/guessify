@@ -8,6 +8,7 @@ import {
   markAudioWarm,
   warmAudioUrl,
   patchRoundsPreview,
+  warmUpcomingRounds,
 } from "./previewWarm.js";
 
 assert.equal(isAudioWarm(null), false);
@@ -23,5 +24,8 @@ const patched = patchRoundsPreview(rounds, 0, "https://example.com/a.mp3");
 assert.equal(patched[0].previewUrl, "https://example.com/a.mp3");
 assert.equal(rounds[0].previewUrl, undefined);
 assert.equal(patchRoundsPreview(patched, 0, "https://example.com/a.mp3"), patched);
+
+assert.equal(typeof warmUpcomingRounds, "function");
+warmUpcomingRounds(() => [], () => {}, 0, 1);
 
 console.log("previewWarm.check: ok");

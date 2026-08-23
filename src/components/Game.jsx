@@ -6,6 +6,7 @@ import {
   warmAudioUrl,
   warmTrackPreview,
   patchRoundsPreview,
+  warmUpcomingRounds,
 } from "../previewWarm.js";
 import { fireConfetti, shakeEl } from "../fx.js";
 import { loadLocalProfile } from "../localProfile.js";
@@ -212,14 +213,15 @@ export default function Game({ playlist, me, onExit, onReplay }) {
     }
   }
 
-  // Cue current track (hold UI if cold) and keep one ahead warm.
+  // Cue current track (hold UI if cold) and keep upcoming rounds warm.
   useEffect(() => {
     if (phase !== "play" || !track?.id) return;
     let cancelled = false;
     (async () => {
       const hot =
         track.previewUrl && isAudioWarm(track.previewUrl);
-      if (!hot) setCueReady(false);
+      // First song: full “cueing…” text. Later: stay ready while we top up.
+      if (!hot && !boardReady) setCueReady(false);
 
       let url = track.previewUrl || null;
       if (url) {
@@ -247,13 +249,7 @@ export default function Game({ playlist, me, onExit, onReplay }) {
         setBoardReady(true);
       }
 
-      const nextIdx = roundIdx + 1;
-      const next = roundsRef.current[nextIdx];
-      if (!next || cancelled) return;
-      const nurl = await warmTrackPreview(next);
-      if (!cancelled && nurl) {
-        setRounds((rs) => patchRoundsPreview(rs, nextIdx, nurl));
-      }
+      warmUpcomingRounds(() => roundsRef.current, setRounds, roundIdx, 2);
     })();
     return () => {
       cancelled = true;

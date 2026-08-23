@@ -895,7 +895,11 @@ export class Room extends Server {
       }
 
       if (await this.bindPreviewForCurrent()) {
-        void this.prefetchNextPreview();
+        void this.prefetchNextPreview().then(() => {
+          if (!this.state) return;
+          this.broadcastState();
+          void this.persist();
+        });
         return;
       }
 
@@ -904,7 +908,11 @@ export class Room extends Server {
         this.state.tracks[this.state.roundIdx] = this.state.spareTracks.shift();
         foundSpare = true;
         if (await this.bindPreviewForCurrent()) {
-          void this.prefetchNextPreview();
+          void this.prefetchNextPreview().then(() => {
+            if (!this.state) return;
+            this.broadcastState();
+            void this.persist();
+          });
           return;
         }
       }
@@ -959,19 +967,22 @@ export class Room extends Server {
 
   async prefetchNextPreview() {
     if (!this.state) return;
-    const next = this.state.tracks[this.state.roundIdx + 1];
-    if (!next?.name || next.previewUrl) return;
-    try {
-      const pick = await resolveItunesPreview(
-        next.name,
-        (next.artists || [])[0] || ""
-      );
-      if (pick) {
-        next.previewUrl = pick.previewUrl;
-        next.previewArt = pick.artworkUrl;
+    // Resolve the next two so clients can silent-warm while this round plays.
+    for (let ahead = 1; ahead <= 2; ahead++) {
+      const next = this.state.tracks[this.state.roundIdx + ahead];
+      if (!next?.name || next.previewUrl) continue;
+      try {
+        const pick = await resolveItunesPreview(
+          next.name,
+          (next.artists || [])[0] || ""
+        );
+        if (pick) {
+          next.previewUrl = pick.previewUrl;
+          next.previewArt = pick.artworkUrl;
+        }
+      } catch (e) {
+        console.error("preview prefetch failed", e);
       }
-    } catch (e) {
-      console.error("preview prefetch failed", e);
     }
   }
 
@@ -1054,6 +1065,9 @@ export class Room extends Server {
       lockedInIds: Object.keys(this.state.roundSolves || {}),
       track: this.publicTrack(),
       trackId: this.state.tracks[this.state.roundIdx]?.id || null,
+      // URL only — no title/artist — so clients can warm the next MP3 silently.
+      nextPreviewUrl:
+        this.state.tracks[this.state.roundIdx + 1]?.previewUrl || null,
     };
   }
 

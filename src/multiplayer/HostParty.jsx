@@ -157,9 +157,8 @@ export default function HostParty({
     }
     const url = state?.track?.previewUrl;
     if (!url) {
-      // Worker swaps spares / drops the slot; keep a short hold so we don't
-      // flash the board while resolve is still in flight.
-      setCueReady(false);
+      // First song only — later rounds keep the board while the worker resolves.
+      if (!boardReady) setCueReady(false);
       const timer = setTimeout(() => {
         setCueReady(true);
         setBoardReady(true);
@@ -167,7 +166,8 @@ export default function HostParty({
       return () => clearTimeout(timer);
     }
     let cancelled = false;
-    if (!isAudioWarm(url)) setCueReady(false);
+    // Don't flash the vinyl spinner if we've already played a song.
+    if (!isAudioWarm(url) && !boardReady) setCueReady(false);
     (async () => {
       await warmAudioUrl(url);
       if (!cancelled) {
@@ -178,7 +178,13 @@ export default function HostParty({
     return () => {
       cancelled = true;
     };
-  }, [state?.phase, state?.trackId, state?.track?.previewUrl, state?.roundIdx]);
+  }, [state?.phase, state?.trackId, state?.track?.previewUrl, state?.roundIdx]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Silently buffer the next round's MP3 while this one plays.
+  useEffect(() => {
+    const url = state?.nextPreviewUrl;
+    if (url) void warmAudioUrl(url);
+  }, [state?.nextPreviewUrl]);
 
   useEffect(() => {
     let cancelled = false;

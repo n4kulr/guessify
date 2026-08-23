@@ -69,6 +69,27 @@ export async function warmTrackPreview(track) {
 }
 
 /**
+ * Silently resolve + buffer upcoming rounds. Survives effect cleanup so a fast
+ * “next song” still hits a warm clip instead of flashing the cue loader.
+ */
+export function warmUpcomingRounds(getRounds, setRounds, fromIdx, count = 2) {
+  void (async () => {
+    for (let i = fromIdx + 1; i <= fromIdx + count; i++) {
+      const rounds = typeof getRounds === "function" ? getRounds() : getRounds;
+      const t = rounds?.[i];
+      if (!t) break;
+      if (t.previewUrl && isAudioWarm(t.previewUrl)) continue;
+      try {
+        const url = await warmTrackPreview(t);
+        if (url) setRounds((rs) => patchRoundsPreview(rs, i, url));
+      } catch {
+        /* ignore */
+      }
+    }
+  })();
+}
+
+/**
  * Fire-and-forget: resolve (+ warm) up to `limit` tracks so a later shuffle
  * still hits a hot iTunes + HTTP cache.
  */
