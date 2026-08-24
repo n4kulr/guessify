@@ -1667,67 +1667,12 @@ button.footer-privacy:hover {
   position: relative;
   display: block;
 }
-.chart-suggest {
-  position: absolute;
-  left: 0;
-  right: 0;
+/* Same list as in-game guesses, dropped below so it doesn't cover the heading. */
+.chart-search-field .guess-suggest {
   top: calc(100% + 6px);
+  bottom: auto;
   z-index: 30;
-  margin: 0;
-  padding: 6px;
-  list-style: none;
-  border-radius: var(--radius);
-  background: var(--bg-color);
-  border: 1px solid color-mix(in srgb, var(--text-color) 18%, transparent);
   box-shadow: 0 10px 24px color-mix(in srgb, #000 28%, transparent);
-  /* 3 rows: item min-height + list padding */
-  max-height: calc(3 * 40px + 12px);
-  overflow-y: auto;
-  scrollbar-width: thin;
-  scrollbar-color: color-mix(in srgb, var(--text-color) 28%, transparent) transparent;
-}
-.chart-suggest::-webkit-scrollbar { width: 6px; }
-.chart-suggest::-webkit-scrollbar-thumb {
-  background: color-mix(in srgb, var(--text-color) 25%, transparent);
-  border-radius: 99px;
-}
-.chart-suggest::-webkit-scrollbar-track { background: transparent; }
-.chart-suggest-item {
-  width: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 10px;
-  box-sizing: border-box;
-  min-height: 40px;
-  padding: 8px 12px;
-  border: none;
-  border-radius: calc(var(--radius) - 2px);
-  background: transparent;
-  color: var(--text-color);
-  font: inherit;
-  font-size: 14px;
-  text-align: left;
-  cursor: pointer;
-}
-.chart-suggest-item:hover,
-.chart-suggest-item.is-active {
-  background: color-mix(in srgb, var(--main-color) 16%, var(--sub-alt-color));
-}
-.chart-suggest-name {
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-.chart-suggest-badge {
-  flex: none;
-  font-size: 11px;
-  font-weight: 600;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-  color: var(--main-color);
-  opacity: 0.85;
 }
 .chart-search-ph {
   position: absolute;
@@ -1776,6 +1721,12 @@ button.footer-privacy:hover {
   letter-spacing: 0.02em;
   font-weight: 500;
   text-transform: none;
+}
+/* Beat .join-code-input's uppercase (same specificity, later in the sheet). */
+.chart-search .join-code-input {
+  text-transform: none;
+  letter-spacing: 0.02em;
+  font-weight: 500;
 }
 .chart-search-input.chart-search-input--error {
   color: var(--error-color);

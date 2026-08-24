@@ -5,6 +5,7 @@ import ChartPreviewDialog from "./ChartPreviewDialog.jsx";
 import PlaylistCdShelf from "./PlaylistCdShelf.jsx";
 import { shakeEl } from "../fx.js";
 import { useTypewriterPh } from "../useTypewriterPh.js";
+import GuessSuggest, { useGuessSuggest } from "./GuessSuggest.jsx";
 
 const YOURS_PREVIEW = 6;
 
@@ -223,7 +224,7 @@ export default function PlaylistPicker({ onPick, needsLogin = false }) {
   }
 
   /** Free-text “describe it” → load chart, show paper preview, then play. */
-  async function previewChartSearch(query) {
+  async function previewChartSearch(query, { artist = false } = {}) {
     const clean = String(query || "").trim();
     if (!clean || chartFieldError) return;
     const id = `chart:${clean.toLowerCase()}`;
@@ -233,10 +234,11 @@ export default function PlaylistPicker({ onPick, needsLogin = false }) {
     setChartFieldError(false);
     setChartFieldFading(false);
     try {
-      const res = await fetch(
-        `/api/charts?q=${encodeURIComponent(clean)}&limit=30`,
-        { credentials: "include" }
-      );
+      let qs = `q=${encodeURIComponent(clean)}`;
+      if (artist) qs = `artist=${encodeURIComponent(clean)}`;
+      const res = await fetch(`/api/charts?${qs}&limit=30`, {
+        credentials: "include",
+      });
       const d = await res.json();
       if (!res.ok) {
         throw new Error(d.error || "chart miss");
@@ -255,8 +257,19 @@ export default function PlaylistPicker({ onPick, needsLogin = false }) {
   function submitChartSearch(e) {
     e.preventDefault();
     if (chartFieldError) return;
+    chartSuggest.dismiss();
     previewChartSearch(chartQuery);
   }
+
+  const chartSuggest = useGuessSuggest({
+    kind: "artist",
+    value: chartQuery,
+    enabled: !chartFieldError && loadingId === null,
+    submitPick: (name) => {
+      setChartQuery(name);
+      previewChartSearch(name, { artist: true });
+    },
+  });
 
   function confirmChartPreview() {
     if (!chartPreview) return;
@@ -331,16 +344,17 @@ export default function PlaylistPicker({ onPick, needsLogin = false }) {
     }
   }
 
-  async function addStackLayer(query) {
+  async function addStackLayer(query, { artist = false } = {}) {
     const clean = String(query || "").trim();
     if (!clean || stackLayers.length >= 8) return false;
     setStackBusy(true);
     setNote(null);
     try {
-      const res = await fetch(
-        `/api/charts?q=${encodeURIComponent(clean)}&limit=12`,
-        { credentials: "include" }
-      );
+      let qs = `q=${encodeURIComponent(clean)}`;
+      if (artist) qs = `artist=${encodeURIComponent(clean)}`;
+      const res = await fetch(`/api/charts?${qs}&limit=12`, {
+        credentials: "include",
+      });
       const d = await res.json();
       if (!res.ok) throw new Error(d.error || "Couldn't find that pick.");
       const kind = d.artist ? "artist" : "tag";
@@ -519,6 +533,7 @@ export default function PlaylistPicker({ onPick, needsLogin = false }) {
                   }
                   placeholder=""
                   value={chartQuery}
+                  {...chartSuggest.inputProps}
                   onChange={(e) => {
                     if (chartFieldError) {
                       clearTimeout(chartErrorTimer.current);
@@ -528,8 +543,11 @@ export default function PlaylistPicker({ onPick, needsLogin = false }) {
                     setChartQuery(e.target.value);
                   }}
                   onFocus={() => {
-                    if (!chartFieldError) return;
-                    resetChartField();
+                    if (chartFieldError) resetChartField();
+                    chartSuggest.inputProps.onFocus?.();
+                  }}
+                  onKeyDown={(e) => {
+                    chartSuggest.handleKeyDown(e);
                   }}
                   disabled={loadingId !== null}
                   autoCorrect="off"
@@ -538,6 +556,7 @@ export default function PlaylistPicker({ onPick, needsLogin = false }) {
                   aria-label="type your pick, artist, era, or album"
                 />
               </label>
+              <GuessSuggest suggest={chartSuggest} />
             </div>
             <button
               type="submit"

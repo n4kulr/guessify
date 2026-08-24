@@ -2,6 +2,7 @@ import { useLayoutEffect, useRef, useState } from "react";
 import { useDragScroll } from "../useDragScroll.js";
 import { spineMeta } from "../cdSpineMeta.js";
 import { useTypewriterPh } from "../useTypewriterPh.js";
+import GuessSuggest, { useGuessSuggest } from "./GuessSuggest.jsx";
 
 const STACK_PH_EXAMPLES = ["daniel caesar", "brent faiyaz", "adele"];
 
@@ -50,10 +51,22 @@ export default function ChartCdStack({
     };
   }, [panelOpen, layers.length]);
 
+  const stackSuggest = useGuessSuggest({
+    kind: "artist",
+    value: stackQuery,
+    enabled: !busy,
+    submitPick: async (name) => {
+      setStackQuery(name);
+      const ok = await onAdd?.(name, { artist: true });
+      if (ok) setStackQuery("");
+    },
+  });
+
   async function submitAdd(e) {
     e.preventDefault();
     const clean = stackQuery.trim();
     if (!clean || busy) return;
+    stackSuggest.dismiss();
     const ok = await onAdd?.(clean);
     if (ok) setStackQuery("");
   }
@@ -81,13 +94,18 @@ export default function ChartCdStack({
                 className="guess-input join-code-input chart-search-input"
                 placeholder=""
                 value={stackQuery}
+                {...stackSuggest.inputProps}
                 onChange={(e) => setStackQuery(e.target.value)}
+                onKeyDown={(e) => {
+                  stackSuggest.handleKeyDown(e);
+                }}
                 disabled={busy}
                 autoCorrect="off"
                 spellCheck={false}
                 aria-label="Add artist or era to the stack"
               />
             </label>
+            <GuessSuggest suggest={stackSuggest} />
           </div>
           <button
             type="submit"
