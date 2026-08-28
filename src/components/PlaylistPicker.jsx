@@ -495,14 +495,14 @@ export default function PlaylistPicker({ onPick, needsLogin = false }) {
   if (touring) tour = PICKER_TOUR[tourStep];
   let pickerClass = "picker";
   if (touring) pickerClass += " is-touring";
-  let tourBody = "Stack artists into a mix, then put it in the player.";
+  let tourBody = "add multiple artists/albums";
   if (tour && tour.id === "record") {
-    tourBody = "Tap a CD from your Spotify playlists to start a game.";
+    tourBody = "Choose a playlist to start a game";
     if (needsLogin) {
-      tourBody = "Tap a CD from these shared playlists to start a game.";
+      tourBody = "Choose a playlist to start a game (my curated list)";
     }
   } else if (tour && tour.id === "describe") {
-    tourBody = "Type an artist, era, or album and we’ll find a chart to play.";
+    tourBody = "Type an artist, era, or album";
   }
   let tourBtn = "next";
   if (tourStep === PICKER_TOUR.length - 1) tourBtn = "got it";
