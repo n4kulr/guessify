@@ -16,6 +16,7 @@ import { isFastTest } from "./fastTest.js";
 import { useDebugActions } from "./debugRegistry.js";
 import OnlineJoinDialog from "./components/OnlineJoinDialog.jsx";
 import PrivacyDialog from "./components/PrivacyDialog.jsx";
+import VersionHistoryDialog from "./components/VersionHistoryDialog.jsx";
 import RaceModeDialog from "./components/RaceModeDialog.jsx";
 import PlayHowto, {
   hasSeenPlayHowto,
@@ -79,6 +80,7 @@ export default function App() {
   const [hostProfile, setHostProfile] = useState(null);
   const [howtoMode, setHowtoMode] = useState(null); // null | solo | multi | online
   const [privacyOpen, setPrivacyOpen] = useState(false);
+  const [versionOpen, setVersionOpen] = useState(false);
   const [raceModePrompt, setRaceModePrompt] = useState(null); // null | "online"
   const [raceMode, setRaceMode] = useState("classic"); // classic | timed
   // Capture ?fast=1 before history seeding strips the query.
@@ -697,6 +699,7 @@ export default function App() {
           mode={howtoMode}
           onDone={finishHowto}
           onPrivacy={() => setPrivacyOpen(true)}
+          onVersion={() => setVersionOpen(true)}
         />
       )}
 
@@ -742,7 +745,14 @@ export default function App() {
         <PrivacyDialog onClose={() => setPrivacyOpen(false)} />
       )}
 
-      <FabDock onPrivacy={() => setPrivacyOpen(true)} />
+      {versionOpen && (
+        <VersionHistoryDialog onClose={() => setVersionOpen(false)} />
+      )}
+
+      <FabDock
+        onPrivacy={() => setPrivacyOpen(true)}
+        onVersion={() => setVersionOpen(true)}
+      />
       <DebugPanel />
     </div>
   );

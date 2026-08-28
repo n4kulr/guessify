@@ -1,5 +1,6 @@
 import { useEffect, useId, useRef } from "react";
 import { PauseIcon, PlayIcon } from "./icons.jsx";
+import { APP_VERSION } from "../versionHistory.js";
 
 function HowtoPlayCtrl() {
   return (
@@ -51,7 +52,7 @@ export function PlayHowtoSteps({ race = true }) {
 /**
  * First-run tips shown once before solo / host / online starts.
  */
-export default function PlayHowto({ mode, onDone, onPrivacy }) {
+export default function PlayHowto({ mode, onDone, onPrivacy, onVersion }) {
   const titleId = useId();
   const okRef = useRef(null);
 
@@ -106,15 +107,29 @@ export default function PlayHowto({ mode, onDone, onPrivacy }) {
           </button>
         </div>
 
-        {onPrivacy && (
+        {(onPrivacy || onVersion) && (
           <p className="play-howto-foot">
-            <button
-              type="button"
-              className="footer-credit footer-privacy"
-              onClick={onPrivacy}
-            >
-              privacy
-            </button>
+            {onPrivacy && (
+              <button
+                type="button"
+                className="footer-credit footer-privacy"
+                onClick={onPrivacy}
+              >
+                privacy
+              </button>
+            )}
+            {onPrivacy && onVersion && (
+              <span className="help-foot-dot" aria-hidden="true"> · </span>
+            )}
+            {onVersion && (
+              <button
+                type="button"
+                className="footer-credit footer-privacy footer-version"
+                onClick={onVersion}
+              >
+                {APP_VERSION}
+              </button>
+            )}
           </p>
         )}
       </div>

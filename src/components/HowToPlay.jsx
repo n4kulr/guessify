@@ -1,7 +1,8 @@
 import { useEffect, useId, useRef } from "react";
 import { PlayHowtoSteps } from "./PlayHowto.jsx";
+import { APP_VERSION } from "../versionHistory.js";
 
-export default function HowToPlay({ open, onOpen, onClose, onPrivacy }) {
+export default function HowToPlay({ open, onOpen, onClose, onPrivacy, onVersion }) {
   const titleId = useId();
   const closeRef = useRef(null);
 
@@ -66,15 +67,29 @@ export default function HowToPlay({ open, onOpen, onClose, onPrivacy }) {
           <PlayHowtoSteps race />
         </div>
 
-        {onPrivacy && (
+        {(onPrivacy || onVersion) && (
           <p className="help-panel-foot">
-            <button
-              type="button"
-              className="footer-credit footer-privacy"
-              onClick={onPrivacy}
-            >
-              privacy
-            </button>
+            {onPrivacy && (
+              <button
+                type="button"
+                className="footer-credit footer-privacy"
+                onClick={onPrivacy}
+              >
+                privacy
+              </button>
+            )}
+            {onPrivacy && onVersion && (
+              <span className="help-foot-dot" aria-hidden="true"> · </span>
+            )}
+            {onVersion && (
+              <button
+                type="button"
+                className="footer-credit footer-privacy footer-version"
+                onClick={onVersion}
+              >
+                {APP_VERSION}
+              </button>
+            )}
           </p>
         )}
       </div>

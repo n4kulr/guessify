@@ -4870,6 +4870,105 @@ button.footer-privacy:hover {
   justify-content: flex-end;
 }
 
+/* Version history timeline modal */
+.version-dialog {
+  position: relative;
+  width: min(560px, 100%);
+  max-height: min(86vh, 740px);
+  gap: 14px;
+}
+.version-dialog .spotlight-actions {
+  justify-content: flex-end;
+}
+.version-timeline {
+  min-height: 0;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  display: flex;
+  flex-direction: column;
+  padding: 4px 6px 4px 2px;
+  scrollbar-width: thin;
+  scrollbar-color: color-mix(in srgb, var(--text-color) 28%, transparent) transparent;
+}
+.timeline-entry {
+  display: flex;
+  gap: 14px;
+  position: relative;
+}
+.timeline-marker {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  flex-shrink: 0;
+  width: 12px;
+  padding-top: 4px;
+}
+.timeline-dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--text-color) 35%, transparent);
+  flex-shrink: 0;
+}
+.timeline-dot.is-latest {
+  background: var(--main-color);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--main-color) 25%, transparent);
+}
+.timeline-line {
+  width: 2px;
+  flex: 1;
+  background: color-mix(in srgb, var(--text-color) 14%, transparent);
+  margin: 4px 0;
+}
+.timeline-content {
+  flex: 1;
+  padding-bottom: 20px;
+}
+.timeline-header {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+.timeline-badge {
+  font-size: 11px;
+  font-weight: 700;
+  padding: 2px 7px;
+  border-radius: 6px;
+  background: color-mix(in srgb, var(--main-color) 18%, transparent);
+  color: var(--main-color);
+  letter-spacing: 0.02em;
+}
+.timeline-title {
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--text-color);
+}
+.timeline-date {
+  font-size: 11px;
+  color: var(--sub-color);
+  margin-left: auto;
+}
+.timeline-list {
+  margin: 0;
+  padding-left: 18px;
+  font-size: 12.5px;
+  line-height: 1.5;
+  color: color-mix(in srgb, var(--text-color) 88%, transparent);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.timeline-list li::marker {
+  color: var(--main-color);
+}
+.help-foot-dot {
+  color: var(--sub-color);
+  opacity: 0.6;
+  user-select: none;
+}
+
 /* Race mode picker (host / online) */
 .race-mode-card {
   width: min(420px, 100%);
