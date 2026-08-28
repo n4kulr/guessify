@@ -5552,6 +5552,8 @@ button.footer-privacy:hover {
      sits on — tinting against --bg-color instead left near-invisible
      contrast in themes where bg and sub-alt are close (e.g. matrix). */
   background: color-mix(in srgb, var(--text-color) 6%, var(--sub-alt-color));
+}
+.play-howto-steps li:has(.howto-ctrl) {
   display: flex;
   align-items: center;
   gap: 10px;
