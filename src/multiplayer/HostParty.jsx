@@ -23,6 +23,7 @@ import { loadLocalProfile, saveLocalProfile } from "../localProfile.js";
 import { applyThemeForAccent, accentMatchingTheme } from "../themes.js";
 import { isNoPreviewError } from "../shareScore.js";
 import { useAutoTitleHint } from "../useAutoTitleHint.js";
+import { useRoundNudge } from "../useRoundNudge.js";
 import { displayTitle } from "../titleHint.js";
 import { computeGameStats } from "../gameStats.js";
 import { recordPlaylistScore } from "../playlistBests.js";
@@ -377,6 +378,14 @@ export default function HostParty({
     Array.isArray(state?.lockedInIds) &&
     state.lockedInIds.includes(playerId)
   );
+  const { playNudge, skipNudge } = useRoundNudge({
+    active: phase === "play" && !lockedIn,
+    playing: localPlaying,
+    skipCount: myStep,
+    resetKey: state?.roundIdx,
+  });
+  let skipWrapClass = "btn-skip-wrap";
+  if (skipNudge) skipWrapClass += " is-nudging";
   const canSuggest = phase === "play" && !lockedIn && cueReady;
   const roundArtists = state?.track?.artists || hostMeta?.artists || [];
   const titleSuggest = useGuessSuggest({
@@ -842,13 +851,14 @@ export default function HostParty({
                 busy={playBusy}
                 canPlay={canPlay && cueReady}
                 playLabel={canPlay && cueReady ? `Play ${unlocked}s` : "Loading audio"}
+                nudge={playNudge}
                 onPlay={startPlay}
                 onPause={stopAudio}
               />
             </div>
           </div>
           <div className="guess-actions">
-            <div className="btn-skip-wrap" ref={skipWrapRef}>
+            <div className={skipWrapClass} ref={skipWrapRef}>
               <button
                 className="btn btn-skip"
                 onClick={skipGuess}

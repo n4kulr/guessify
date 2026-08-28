@@ -18,6 +18,7 @@ export default function GuessTransport({
   busy = false,
   canPlay = true,
   playLabel = "Play",
+  nudge = false,
   onPlay,
   onPause,
 }) {
@@ -50,13 +51,21 @@ export default function GuessTransport({
     else goPlay();
   }
 
+  let switchClass = "guess-transport-switch";
+  if (playing) switchClass += " is-playing";
+  else switchClass += " is-paused";
+  if (nudge) switchClass += " is-nudging";
+
+  let label = playLabel;
+  if (playing) label = "Pause";
+
   return (
     <button
       type="button"
-      className={`guess-transport-switch ${playing ? "is-playing" : "is-paused"}`}
+      className={switchClass}
       disabled={disabled}
-      aria-label={playing ? "Pause" : playLabel}
-      title={playing ? "Pause" : playLabel}
+      aria-label={label}
+      title={label}
       aria-pressed={playing}
       onPointerDown={onPointerDown}
       onPointerUp={onPointerUp}

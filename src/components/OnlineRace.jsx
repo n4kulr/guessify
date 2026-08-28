@@ -23,6 +23,7 @@ import {
 } from "../previewWarm.js";
 import { titleHintMask, displayTitle } from "../titleHint.js";
 import { useAutoTitleHint } from "../useAutoTitleHint.js";
+import { useRoundNudge } from "../useRoundNudge.js";
 import { computeGameStats } from "../gameStats.js";
 import { recordPlaylistScore } from "../playlistBests.js";
 import { isFastTest, FAST_ROUND_LOG } from "../fastTest.js";
@@ -327,6 +328,14 @@ export default function OnlineRace({ profile, onExit, raceMode: raceModeProp }) 
   const voteHave = Object.keys(nextVotes).length;
   const iVotedNext = !!nextVotes[youId];
   const lockedIn = lockedInIds.includes(youId);
+  const { playNudge, skipNudge } = useRoundNudge({
+    active: phase === "play" && !lockedIn,
+    playing: localPlaying,
+    skipCount: myStep,
+    resetKey: roundIdx,
+  });
+  let skipWrapClass = "btn-skip-wrap";
+  if (skipNudge) skipWrapClass += " is-nudging";
   const canSuggest = phase === "play" && !lockedIn && cueReady;
   const roundArtists = track?.artists || [];
   const titleSuggest = useGuessSuggest({
@@ -1435,13 +1444,14 @@ export default function OnlineRace({ profile, onExit, raceMode: raceModeProp }) 
                   busy={playBusy}
                   canPlay={!!track && cueReady}
                   playLabel={`Play ${unlocked}s`}
+                  nudge={playNudge}
                   onPlay={startPlay}
                   onPause={stopAudio}
                 />
               </div>
             </div>
             <div className="guess-actions">
-              <div className="btn-skip-wrap" ref={skipWrapRef}>
+              <div className={skipWrapClass} ref={skipWrapRef}>
                 <button
                   className="btn btn-skip"
                   onClick={skip}

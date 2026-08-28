@@ -16,6 +16,7 @@ import GameOverStats from "../components/GameOverStats.jsx";
 import { isNoPreviewError } from "../shareScore.js";
 import { loadLocalProfile } from "../localProfile.js";
 import { useAutoTitleHint } from "../useAutoTitleHint.js";
+import { useRoundNudge } from "../useRoundNudge.js";
 import { displayTitle } from "../titleHint.js";
 import { computeGameStats } from "../gameStats.js";
 import { recordPlaylistScore } from "../playlistBests.js";
@@ -279,6 +280,15 @@ export default function GuestApp({ code }) {
     resetKey: state?.roundIdx,
     onDue: () => send({ type: "hint" }),
   });
+
+  const { playNudge, skipNudge } = useRoundNudge({
+    active: state?.phase === "play" && !lockedIn,
+    playing: localPlaying,
+    skipCount: state?.unlockByPlayer?.[playerId] ?? 0,
+    resetKey: state?.roundIdx,
+  });
+  let skipWrapClass = "btn-skip-wrap";
+  if (skipNudge) skipWrapClass += " is-nudging";
 
   useEffect(() => {
     if (!titleHint) return;
@@ -671,13 +681,14 @@ export default function GuestApp({ code }) {
                   busy={playBusy}
                   canPlay={canPlay && cueReady}
                   playLabel={canPlay && cueReady ? `Play ${unlocked}s` : "Loading audio"}
+                  nudge={playNudge}
                   onPlay={startPlay}
                   onPause={stopAudio}
                 />
               </div>
             </div>
             <div className="guess-actions">
-              <div className="btn-skip-wrap" ref={skipWrapRef}>
+              <div className={skipWrapClass} ref={skipWrapRef}>
                 <button
                   className="btn btn-skip"
                   onClick={skipGuess}

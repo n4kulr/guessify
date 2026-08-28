@@ -3725,6 +3725,30 @@ button.footer-privacy:hover {
 .guess-transport-switch.is-playing .guess-transport-slot--play {
   color: color-mix(in srgb, var(--text-color) 55%, transparent);
 }
+/* Filter/outline so skip's translateY hover isn't fighting a transform pulse. */
+@keyframes round-nudge-pulse {
+  0%, 100% {
+    filter: brightness(1);
+    outline-color: transparent;
+  }
+  50% {
+    filter: brightness(1.28);
+    outline-color: var(--main-color);
+  }
+}
+.guess-transport-switch.is-nudging,
+.btn-skip-wrap.is-nudging .btn-skip {
+  outline: 2px solid transparent;
+  outline-offset: 3px;
+  animation: round-nudge-pulse 1.15s ease-in-out infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .guess-transport-switch.is-nudging,
+  .btn-skip-wrap.is-nudging .btn-skip {
+    animation: none;
+    outline-color: var(--main-color);
+  }
+}
 .guess-input {
   width: 100%; font-family: var(--font); font-size: 16px; padding: 13px 15px;
   border: 2px solid transparent; border-radius: var(--radius);

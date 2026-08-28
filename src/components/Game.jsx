@@ -14,6 +14,7 @@ import { isNoPreviewError } from "../shareScore.js";
 import { nextSpareTrack } from "../deadPreview.js";
 import { titleHintMask, displayTitle } from "../titleHint.js";
 import { useAutoTitleHint } from "../useAutoTitleHint.js";
+import { useRoundNudge } from "../useRoundNudge.js";
 import GuessMedia from "./GuessMedia.jsx";
 import GuessSuggest, { useGuessSuggest } from "./GuessSuggest.jsx";
 import GuessTransport from "./GuessTransport.jsx";
@@ -110,6 +111,14 @@ export default function Game({ playlist, me, onExit, onReplay }) {
   const track = rounds[roundIdx];
   const unlocked = STEPS[Math.min(guessNum, MAX_GUESSES - 1)];
   const resolved = outcome !== null;
+  const { playNudge, skipNudge } = useRoundNudge({
+    active: phase === "play" && !resolved,
+    playing,
+    skipCount: guessNum,
+    resetKey: roundIdx,
+  });
+  let skipWrapClass = "btn-skip-wrap";
+  if (skipNudge) skipWrapClass += " is-nudging";
   const canControl = !!track;
   const canSuggest = phase === "play" && !resolved && cueReady;
   const roundArtists = track?.artists || [];
@@ -683,13 +692,14 @@ export default function Game({ playlist, me, onExit, onReplay }) {
                       busy={playBusy}
                       canPlay={canControl && cueReady && !resolved}
                       playLabel={`Play ${unlocked}s`}
+                      nudge={playNudge}
                       onPlay={startPlay}
                       onPause={stopAudio}
                     />
                   </div>
                 </div>
                 <div className="guess-actions">
-                  <div className="btn-skip-wrap" ref={skipWrapRef}>
+                  <div className={skipWrapClass} ref={skipWrapRef}>
                     <button
                       className="btn btn-skip"
                       onClick={skip}
