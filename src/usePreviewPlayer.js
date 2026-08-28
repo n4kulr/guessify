@@ -138,6 +138,7 @@ export function usePreviewPlayer() {
 
   const play = useCallback(async (track, seconds, { onStop } = {}) => {
     setErrorMsg(null);
+    void outputRef.current?.resume();
     const url = await resolvePreview(track);
     if (!url) {
       throw new Error("no preview");
@@ -158,6 +159,12 @@ export function usePreviewPlayer() {
           resolve();
           return;
         }
+        let timer = null;
+        const cleanup = () => {
+          if (timer) clearTimeout(timer);
+          audio.removeEventListener("canplay", onReady);
+          audio.removeEventListener("error", onErr);
+        };
         const onReady = () => {
           cleanup();
           resolve();
@@ -168,10 +175,12 @@ export function usePreviewPlayer() {
           setErrorMsg("Couldn't load preview audio.");
           reject(new Error("audio load failed"));
         };
-        const cleanup = () => {
-          audio.removeEventListener("canplay", onReady);
-          audio.removeEventListener("error", onErr);
-        };
+        timer = setTimeout(() => {
+          cleanup();
+          currentUrlRef.current = null;
+          setErrorMsg("Couldn't load preview audio.");
+          reject(new Error("audio load timed out"));
+        }, 8000);
         audio.addEventListener("canplay", onReady, { once: true });
         audio.addEventListener("error", onErr, { once: true });
         audio.load();
@@ -184,8 +193,18 @@ export function usePreviewPlayer() {
     try {
       await audio.play();
     } catch (e) {
-      setErrorMsg("Couldn't play preview — check autoplay / sound settings.");
-      throw e;
+      if (outputRef.current?.isContextSuspended?.()) {
+        try {
+          await outputRef.current.resume();
+          await audio.play();
+        } catch {
+          setErrorMsg("Couldn't play preview — check autoplay / sound settings.");
+          throw e;
+        }
+      } else {
+        setErrorMsg("Couldn't play preview — check autoplay / sound settings.");
+        throw e;
+      }
     }
     setGuessifyNowPlaying();
 
