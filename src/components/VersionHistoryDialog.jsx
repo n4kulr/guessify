@@ -42,7 +42,7 @@ export default function VersionHistoryDialog({ onClose }) {
           <h2 id={titleId} className="spotlight-title">
             version history
           </h2>
-          <p className="spotlight-hint">{APP_VERSION} · timeline of features & updates</p>
+          <p className="spotlight-hint">{APP_VERSION} · what was added and changed</p>
         </div>
 
         <div className="version-timeline">
