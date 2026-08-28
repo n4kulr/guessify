@@ -1,4 +1,4 @@
-import { useEffect, useId, useMemo, useRef, useState } from "react";
+import { useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from "react";
 import ChartCdSpindle from "./ChartCdSpindle.jsx";
 import ChartCdStack from "./ChartCdStack.jsx";
 import ChartPreviewDialog from "./ChartPreviewDialog.jsx";
@@ -107,9 +107,7 @@ export default function PlaylistPicker({ onPick, needsLogin = false }) {
   const loginModalTitleId = useId();
   const chartFieldRef = useRef(null);
   const chartErrorTimer = useRef(0);
-  const recordTourRef = useRef(null);
-  const stackTourRef = useRef(null);
-  const describeTourRef = useRef(null);
+  const tourCardRef = useRef(null);
   const [tourStep, setTourStep] = useState(-1);
 
   useEffect(() => {
@@ -124,13 +122,23 @@ export default function PlaylistPicker({ onPick, needsLogin = false }) {
     setTourStep(0);
   }, [data, ownerUnavailable, error, tourStep]);
 
-  useEffect(() => {
-    if (tourStep < 0) return;
-    const id = PICKER_TOUR[tourStep]?.id;
-    let el = recordTourRef.current;
-    if (id === "stack") el = stackTourRef.current;
-    else if (id === "describe") el = describeTourRef.current;
-    el?.scrollIntoView({ behavior: "smooth", block: "center" });
+  useLayoutEffect(() => {
+    if (tourStep < 0) return undefined;
+    const card = tourCardRef.current;
+    if (!card) return undefined;
+    const btn = card.querySelector("button");
+    if (btn) btn.focus({ preventScroll: true });
+
+    let behavior = "smooth";
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      behavior = "auto";
+    }
+
+    function go() {
+      card.scrollIntoView({ behavior, block: "center", inline: "nearest" });
+    }
+    const frame = requestAnimationFrame(go);
+    return () => cancelAnimationFrame(frame);
   }, [tourStep]);
 
   useEffect(() => {
@@ -496,25 +504,38 @@ export default function PlaylistPicker({ onPick, needsLogin = false }) {
   let tourBtn = "next";
   if (tourStep === PICKER_TOUR.length - 1) tourBtn = "got it";
 
+  const tourIndex = tourStep + 1;
+  const tourCount = PICKER_TOUR.length;
   let tourCard = null;
   if (tour) {
     tourCard = (
       <div
         key={tourStep}
+        ref={tourCardRef}
         className="picker-tour-card"
         role="dialog"
         aria-modal="true"
         aria-labelledby="picker-tour-title"
+        aria-describedby="picker-tour-step picker-tour-body"
       >
-        <h2 id="picker-tour-title" className="spotlight-title">
-          {tour.title}
-        </h2>
-        <p className="spotlight-hint">{tourBody}</p>
+        <div className="spotlight-head">
+          <span className="picker-tour-mark" aria-hidden="true">
+            ?
+          </span>
+          <h2 id="picker-tour-title" className="spotlight-title">
+            {tour.title}
+          </h2>
+          <span id="picker-tour-step" className="picker-tour-step">
+            {tourIndex}/{tourCount}
+          </span>
+        </div>
+        <p id="picker-tour-body" className="spotlight-hint">
+          {tourBody}
+        </p>
         <div className="spotlight-actions">
           <button
             type="button"
             className="btn btn-big btn-play"
-            autoFocus
             onClick={advancePickerTour}
           >
             <span className="btn-play-icon" aria-hidden="true" />
@@ -525,11 +546,13 @@ export default function PlaylistPicker({ onPick, needsLogin = false }) {
     );
   }
 
+  let stackTourSlot = null;
+  if (tour && tour.id === "stack") stackTourSlot = tourCard;
+
   return (
     <div className={pickerClass}>
       <div
         className={`picker-tour-section ${pickerTourClass(tourStep, "record")}`.trim()}
-        ref={recordTourRef}
       >
       <div className="picker-heading">
         {yours.length > 0 && (
@@ -632,7 +655,6 @@ export default function PlaylistPicker({ onPick, needsLogin = false }) {
 
       <div
         className={`picker-tour-section picker-tour-describe ${pickerTourClass(tourStep, "describe")}`.trim()}
-        ref={describeTourRef}
       >
       <div className="chart-search-block">
         <h3 className="picker-section-title">or describe it!</h3>
@@ -705,7 +727,6 @@ export default function PlaylistPicker({ onPick, needsLogin = false }) {
 
       <div
         className={`picker-tour-section picker-tour-stack ${pickerTourClass(tourStep, "stack")}`.trim()}
-        ref={stackTourRef}
       >
       <ChartCdStack
         layers={stackLayers}
@@ -715,8 +736,8 @@ export default function PlaylistPicker({ onPick, needsLogin = false }) {
         onAdd={addStackLayer}
         onPutBack={() => setStackInsertOpen(false)}
         onPutInPlayer={putStackInPlayer}
+        tourSlot={stackTourSlot}
       />
-      {tour && tour.id === "stack" && tourCard}
       </div>
 
       {chartPreview && (

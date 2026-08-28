@@ -4,15 +4,9 @@ import { useEffect, useId, useRef } from "react";
 export function PlayHowtoSteps({ race = true }) {
   return (
     <ol className="play-howto-steps">
-      <li>
-        <b>Play</b> a short snippet of a song.
-      </li>
-      <li>
-        Type the <b>song title</b> for most points. Artist is a small bonus.
-      </li>
-      <li>
-        <b>Skip</b> when you’re stuck — more audio, easier to guess.
-      </li>
+      <li>Play a short snippet of a song.</li>
+      <li>Guess the song title or the artist.</li>
+      <li>Skip if you’re stuck — unlocks more audio.</li>
       {race && (
         <li>
           First person to nail the <b>title</b> wins the round.

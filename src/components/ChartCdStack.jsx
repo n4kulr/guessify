@@ -15,6 +15,7 @@ export default function ChartCdStack({
   onAdd,
   onPutBack,
   onPutInPlayer,
+  tourSlot = null,
 }) {
   const busy = stackBusy;
   const [stackQuery, setStackQuery] = useState("");
@@ -79,6 +80,7 @@ export default function ChartCdStack({
     <div className="cd-stack-block">
       <h3 className="picker-section-title">make your own playlist!</h3>
       <p className="section-sub chart-search-sub">(add artists/albums/eras)</p>
+      {tourSlot}
 
       <form className="chart-search cd-stack-add" onSubmit={submitAdd}>
         <div className="join-code-row">

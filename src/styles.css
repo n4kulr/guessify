@@ -1645,6 +1645,37 @@ button.footer-privacy:hover {
 .picker.is-touring .picker-tour-card {
   pointer-events: auto;
 }
+.picker-tour-card .spotlight-head {
+  justify-content: space-between;
+  flex-wrap: nowrap;
+  gap: 8px;
+}
+.picker-tour-card .spotlight-title {
+  flex: 1;
+  min-width: 0;
+  text-align: center;
+}
+.picker-tour-mark {
+  flex: none;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  border: 2px solid color-mix(in srgb, var(--text-color) 22%, transparent);
+  display: grid;
+  place-items: center;
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 1;
+  color: var(--main-color);
+}
+.picker-tour-step {
+  flex: none;
+  min-width: 26px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--sub-color);
+  font-variant-numeric: tabular-nums;
+}
 .picker-tour-card .spotlight-actions { justify-content: stretch; }
 .picker-tour-card .spotlight-actions .btn { width: 100%; justify-content: center; }
 .picker-heading {
