@@ -3750,14 +3750,20 @@ button.footer-privacy:hover {
   }
 }
 .guess-transport-switch.is-nudging,
-.btn-skip-wrap.is-nudging .btn-skip {
+.btn-skip-wrap.is-nudging .btn-skip,
+.btn-guess.is-nudging,
+.inline-reveal .btn-play.is-nudging,
+.media-stage-vote .btn-play.is-nudging {
   outline: 2px solid transparent;
   outline-offset: 3px;
   animation: round-nudge-pulse 1.15s ease-in-out infinite;
 }
 @media (prefers-reduced-motion: reduce) {
   .guess-transport-switch.is-nudging,
-  .btn-skip-wrap.is-nudging .btn-skip {
+  .btn-skip-wrap.is-nudging .btn-skip,
+  .btn-guess.is-nudging,
+  .inline-reveal .btn-play.is-nudging,
+  .media-stage-vote .btn-play.is-nudging {
     animation: none;
     outline-color: var(--main-color);
   }

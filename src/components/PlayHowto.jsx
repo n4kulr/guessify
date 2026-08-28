@@ -34,7 +34,7 @@ export function PlayHowtoSteps({ race = true }) {
         <HowtoPlayCtrl />
         Play a short snippet of a song.
       </li>
-      <li>Guess the song title or the artist.</li>
+      <li>Guess the song title or the artist (even being close works!)</li>
       <li>
         <HowtoSkipCtrl />
         Skip if you’re stuck — unlocks more audio.

@@ -111,11 +111,14 @@ export default function Game({ playlist, me, onExit, onReplay }) {
   const track = rounds[roundIdx];
   const unlocked = STEPS[Math.min(guessNum, MAX_GUESSES - 1)];
   const resolved = outcome !== null;
-  const { playNudge, skipNudge } = useRoundNudge({
+  const hasDraft = !resolved && (titleGuess.trim().length >= 2 || artistGuess.trim().length >= 2);
+  const { playNudge, skipNudge, guessNudge, revealNudge } = useRoundNudge({
     active: phase === "play" && !resolved,
     playing,
     skipCount: guessNum,
     resetKey: roundIdx,
+    hasDraft,
+    revealed: resolved,
   });
   let skipWrapClass = "btn-skip-wrap";
   if (skipNudge) skipWrapClass += " is-nudging";
@@ -632,7 +635,7 @@ export default function Game({ playlist, me, onExit, onReplay }) {
                     )}
                   </div>
                 </div>
-                <button className="btn btn-big btn-play" onClick={nextRound}>
+                <button className={`btn btn-big btn-play${revealNudge ? " is-nudging" : ""}`} onClick={nextRound}>
                   <span className="btn-play-icon" aria-hidden="true" />
                   {roundIdx + 1 >= rounds.length ? "see results →" : "next song →"}
                 </button>
@@ -715,7 +718,7 @@ export default function Game({ playlist, me, onExit, onReplay }) {
                     />
                   </div>
                   <button
-                    className="btn btn-guess"
+                    className={`btn btn-guess${guessNudge ? " is-nudging" : ""}`}
                     onClick={submitGuess}
                     disabled={
                       !cueReady || (!titleGuess.trim() && !artistGuess.trim())

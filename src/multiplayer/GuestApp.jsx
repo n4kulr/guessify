@@ -281,11 +281,17 @@ export default function GuestApp({ code }) {
     onDue: () => send({ type: "hint" }),
   });
 
-  const { playNudge, skipNudge } = useRoundNudge({
+  const revealed = state?.phase === "reveal";
+  const myStep = state?.unlockByPlayer?.[playerId] ?? 0;
+  const hasDraft =
+    !lockedIn && (titleGuess.trim().length >= 2 || artistGuess.trim().length >= 2);
+  const { playNudge, skipNudge, guessNudge, revealNudge } = useRoundNudge({
     active: state?.phase === "play" && !lockedIn,
     playing: localPlaying,
-    skipCount: state?.unlockByPlayer?.[playerId] ?? 0,
+    skipCount: myStep,
     resetKey: state?.roundIdx,
+    hasDraft,
+    revealed,
   });
   let skipWrapClass = "btn-skip-wrap";
   if (skipNudge) skipWrapClass += " is-nudging";
@@ -703,16 +709,16 @@ export default function GuestApp({ code }) {
                   onDone={() => setSkipPop(null)}
                 />
               </div>
-              <button
-                className="btn btn-guess"
-                onClick={submitGuess}
-                disabled={
-                  !cueReady ||
-                  (lockedIn
-                    ? !artistGuess.trim() || !!revealedArtist
-                    : !titleGuess.trim() && !artistGuess.trim())
-                }
-              >
+            <button
+              className={`btn btn-guess${guessNudge ? " is-nudging" : ""}`}
+              onClick={submitGuess}
+              disabled={
+                !cueReady ||
+                (lockedIn
+                  ? !artistGuess.trim() || !!revealedArtist
+                  : !titleGuess.trim() && !artistGuess.trim())
+              }
+            >
                 <span className="btn-label">guess</span>
                 <span className="btn-hint">enter</span>
               </button>
@@ -734,13 +740,13 @@ export default function GuestApp({ code }) {
                 )}
               </div>
             </div>
-            <div className="media-stage-vote">
-              <button
-                type="button"
-                className={`btn btn-big btn-play media-stage-btn ${
-                  playerId && (state.nextVotes || []).includes(playerId) ? "is-voted" : ""
-                }`}
-                onClick={(e) => {
+          <div className="media-stage-vote">
+            <button
+              type="button"
+              className={`btn btn-big btn-play media-stage-btn ${
+                playerId && (state.nextVotes || []).includes(playerId) ? "is-voted" : ""
+              }${revealNudge && !(playerId && (state.nextVotes || []).includes(playerId)) ? " is-nudging" : ""}`}
+              onClick={(e) => {
                   if (playerId && (state.nextVotes || []).includes(playerId)) return;
                   stopAudio();
                   send({ type: "next" });

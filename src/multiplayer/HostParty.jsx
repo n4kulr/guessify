@@ -373,16 +373,21 @@ export default function HostParty({
   const phase = state?.phase || "lobby";
   const spinning = localPlaying && (phase === "play" || phase === "reveal");
   const timed = (state?.raceMode || raceMode) === "timed";
+  const revealed = phase === "reveal";
   const lockedIn = !!(
     playerId &&
     Array.isArray(state?.lockedInIds) &&
     state.lockedInIds.includes(playerId)
   );
-  const { playNudge, skipNudge } = useRoundNudge({
+  const hasDraft =
+    !lockedIn && (titleGuess.trim().length >= 2 || artistGuess.trim().length >= 2);
+  const { playNudge, skipNudge, guessNudge, revealNudge } = useRoundNudge({
     active: phase === "play" && !lockedIn,
     playing: localPlaying,
     skipCount: myStep,
     resetKey: state?.roundIdx,
+    hasDraft,
+    revealed,
   });
   let skipWrapClass = "btn-skip-wrap";
   if (skipNudge) skipWrapClass += " is-nudging";
@@ -874,7 +879,7 @@ export default function HostParty({
               />
             </div>
             <button
-              className="btn btn-guess"
+              className={`btn btn-guess${guessNudge ? " is-nudging" : ""}`}
               onClick={submitGuess}
               disabled={
                 !cueReady ||
@@ -913,7 +918,7 @@ export default function HostParty({
               type="button"
               className={`btn btn-big btn-play media-stage-btn ${
                 playerId && (state.nextVotes || []).includes(playerId) ? "is-voted" : ""
-              }`}
+              }${revealNudge && !(playerId && (state.nextVotes || []).includes(playerId)) ? " is-nudging" : ""}`}
               onClick={(e) => {
                 if (playerId && (state.nextVotes || []).includes(playerId)) return;
                 stopAudio();

@@ -328,11 +328,15 @@ export default function OnlineRace({ profile, onExit, raceMode: raceModeProp }) 
   const voteHave = Object.keys(nextVotes).length;
   const iVotedNext = !!nextVotes[youId];
   const lockedIn = lockedInIds.includes(youId);
-  const { playNudge, skipNudge } = useRoundNudge({
+  const hasDraft =
+    !lockedIn && (titleGuess.trim().length >= 2 || artistGuess.trim().length >= 2);
+  const { playNudge, skipNudge, guessNudge, revealNudge } = useRoundNudge({
     active: phase === "play" && !lockedIn,
     playing: localPlaying,
     skipCount: myStep,
     resetKey: roundIdx,
+    hasDraft,
+    revealed,
   });
   let skipWrapClass = "btn-skip-wrap";
   if (skipNudge) skipWrapClass += " is-nudging";
@@ -1467,7 +1471,7 @@ export default function OnlineRace({ profile, onExit, raceMode: raceModeProp }) 
                 />
               </div>
               <button
-                className="btn btn-guess"
+                className={`btn btn-guess${guessNudge ? " is-nudging" : ""}`}
                 onClick={submitGuess}
                 disabled={
                   !cueReady ||
@@ -1508,7 +1512,9 @@ export default function OnlineRace({ profile, onExit, raceMode: raceModeProp }) 
             <div className="media-stage-vote">
               <button
                 type="button"
-                className={`btn btn-big btn-play media-stage-btn ${iVotedNext ? "is-voted" : ""}`}
+                className={`btn btn-big btn-play media-stage-btn ${iVotedNext ? "is-voted" : ""}${
+                  revealNudge && !iVotedNext ? " is-nudging" : ""
+                }`}
                 onClick={voteNext}
                 disabled={iVotedNext}
                 aria-label={
