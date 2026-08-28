@@ -297,18 +297,18 @@ export default function Feedback({ open, onOpen, onClose }) {
                   : "add screenshot"}
               </button>
               <span className="feedback-attach-hint">
-                paste or drag and drop
+                paste or drag n drop
               </span>
+              <button
+                type="submit"
+                className="btn btn-mini btn-play feedback-send"
+                disabled={!canSend}
+              >
+                {status === "sending" ? "sending…" : "send"}
+              </button>
             </div>
 
             {error && <p className="feedback-error">{error}</p>}
-            <button
-              type="submit"
-              className="btn btn-big feedback-send"
-              disabled={!canSend}
-            >
-              {status === "sending" ? "sending…" : "send"}
-            </button>
           </form>
         )}
       </div>

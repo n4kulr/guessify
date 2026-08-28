@@ -1493,8 +1493,8 @@ button.footer-privacy:hover {
 .feedback-attach-row {
   display: flex;
   align-items: center;
-  gap: 10px;
-  flex-wrap: wrap;
+  gap: 8px;
+  flex-wrap: nowrap;
 }
 .feedback-file {
   position: absolute;
@@ -1514,8 +1514,15 @@ button.footer-privacy:hover {
   color: var(--text-color);
 }
 .feedback-attach-hint {
+  flex: 1 1 auto;
+  min-width: 0;
   font-size: 11px;
   color: color-mix(in srgb, var(--sub-color) 75%, transparent);
+}
+.feedback-send {
+  flex: none;
+  margin-left: auto;
+  font-weight: 600;
 }
 .feedback-shots {
   list-style: none;
@@ -1558,11 +1565,6 @@ button.footer-privacy:hover {
 .feedback-shot-remove:hover {
   background: var(--error-color);
   color: #fff;
-}
-.feedback-send {
-  align-self: stretch;
-  justify-content: center;
-  margin-top: 2px;
 }
 .feedback-error {
   margin: 0;
