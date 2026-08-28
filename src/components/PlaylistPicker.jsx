@@ -383,10 +383,9 @@ export default function PlaylistPicker({ onPick, needsLogin = false }) {
         [tracks[i], tracks[j]] = [tracks[j], tracks[i]];
       }
       const sliced = tracks.slice(0, 40);
-      const mixName = layers.map((l) => l.label).join(" + ");
       const playlist = {
         id: `lfm-mix-${slugBits(layers.map((l) => l.name))}`,
-        name: mixName.length > 64 ? `${mixName.slice(0, 61)}…` : mixName,
+        name: "mashup",
         owner: "your stack",
         cover: sliced.find((t) => t.cover)?.cover || parts[0]?.cover || null,
         total: sliced.length,
