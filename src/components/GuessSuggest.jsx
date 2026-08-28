@@ -182,9 +182,18 @@ export function useGuessSuggest({
 /** The drop-up itself. Renders nothing unless there's something to show. */
 export default function GuessSuggest({ suggest }) {
   const { items, active, visible, listId, choose } = suggest;
+  const listRef = useRef(null);
+
+  useEffect(() => {
+    if (active >= 0 && listRef.current) {
+      const el = listRef.current.querySelector(`#${listId}-${active}`);
+      el?.scrollIntoView({ block: "nearest" });
+    }
+  }, [active, listId]);
+
   if (!visible) return null;
   return (
-    <ul className="guess-suggest" id={listId} role="listbox">
+    <ul className="guess-suggest" id={listId} role="listbox" ref={listRef}>
       {items.map((item, i) => (
         <li key={`${item.name}-${item.artist || i}`} role="presentation">
           <button
