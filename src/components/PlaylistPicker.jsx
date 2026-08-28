@@ -82,9 +82,7 @@ const PICKER_TOUR = [
 
 function pickerTourClass(step, id) {
   if (step < 0) return "";
-  const idx = PICKER_TOUR.findIndex((s) => s.id === id);
-  if (idx === step) return "picker-tour-focus";
-  if (idx >= 0 && idx < step) return "";
+  if (PICKER_TOUR[step] && PICKER_TOUR[step].id === id) return "picker-tour-focus";
   return "picker-tour-dim";
 }
 

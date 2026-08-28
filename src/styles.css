@@ -1589,7 +1589,6 @@ button.footer-privacy:hover {
 
 /* ---------------- playlist picker ---------------- */
 .picker { width: min(var(--maxw), 100%); position: relative; }
-.picker.is-touring { padding-bottom: 160px; }
 .picker-tour-section {
   border-radius: 14px;
 }
@@ -1604,9 +1603,8 @@ button.footer-privacy:hover {
   opacity: 0.4;
 }
 .picker.is-touring .picker-tour-focus {
-  filter: blur(5px);
-  outline: 2px solid color-mix(in srgb, var(--main-color) 65%, transparent);
-  outline-offset: 8px;
+  filter: none;
+  opacity: 1;
 }
 @media (prefers-reduced-motion: reduce) {
   .picker.is-touring .picker-tour-dim,
@@ -1618,19 +1616,20 @@ button.footer-privacy:hover {
 }
 .picker-tour-card {
   position: fixed;
+  top: 50%;
   left: 50%;
-  bottom: 72px;
-  transform: translateX(-50%);
+  transform: translate(-50%, -50%);
   z-index: 85;
-  width: min(420px, calc(100% - 24px));
+  width: min(260px, calc(100% - 48px));
   background: color-mix(in srgb, var(--sub-alt-color) 94%, transparent);
   border: 1px solid color-mix(in srgb, var(--text-color) 12%, transparent);
   border-radius: 16px;
   box-shadow: 0 16px 40px color-mix(in srgb, #000 40%, transparent);
-  padding: 16px 16px 14px;
+  padding: 14px 14px 12px;
   display: flex;
   flex-direction: column;
   gap: 10px;
+  text-align: center;
 }
 .picker-tour-card .spotlight-actions { justify-content: stretch; }
 .picker-tour-card .spotlight-actions .btn { width: 100%; justify-content: center; }
