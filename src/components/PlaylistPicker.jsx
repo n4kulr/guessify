@@ -6,6 +6,10 @@ import PlaylistCdShelf from "./PlaylistCdShelf.jsx";
 import { shakeEl } from "../fx.js";
 import { useTypewriterPh } from "../useTypewriterPh.js";
 import GuessSuggest, { useGuessSuggest } from "./GuessSuggest.jsx";
+import {
+  pickerTourPending,
+  markPickerTourSeen,
+} from "./PlayHowto.jsx";
 
 const YOURS_PREVIEW = 6;
 
@@ -70,6 +74,20 @@ const CHART_PH_EXAMPLES = [
   "gemini rights",
 ];
 
+const PICKER_TOUR = [
+  { id: "record", title: "Pick a record" },
+  { id: "stack", title: "Make your own playlist" },
+  { id: "describe", title: "Or describe it" },
+];
+
+function pickerTourClass(step, id) {
+  if (step < 0) return "";
+  const idx = PICKER_TOUR.findIndex((s) => s.id === id);
+  if (idx === step) return "picker-tour-focus";
+  if (idx >= 0 && idx < step) return "";
+  return "picker-tour-dim";
+}
+
 export default function PlaylistPicker({ onPick, needsLogin = false }) {
   const [data, setData] = useState(null); // { playlists, liked }
   const [error, setError] = useState(null);
@@ -91,10 +109,49 @@ export default function PlaylistPicker({ onPick, needsLogin = false }) {
   const loginModalTitleId = useId();
   const chartFieldRef = useRef(null);
   const chartErrorTimer = useRef(0);
+  const recordTourRef = useRef(null);
+  const stackTourRef = useRef(null);
+  const describeTourRef = useRef(null);
+  const [tourStep, setTourStep] = useState(-1);
 
   useEffect(() => {
     return () => clearTimeout(chartErrorTimer.current);
   }, []);
+
+  useEffect(() => {
+    if (error) return;
+    if (!ownerUnavailable && !data) return;
+    if (tourStep >= 0) return;
+    if (!pickerTourPending()) return;
+    setTourStep(0);
+  }, [data, ownerUnavailable, error, tourStep]);
+
+  useEffect(() => {
+    if (tourStep < 0) return;
+    const id = PICKER_TOUR[tourStep]?.id;
+    let el = recordTourRef.current;
+    if (id === "stack") el = stackTourRef.current;
+    else if (id === "describe") el = describeTourRef.current;
+    el?.scrollIntoView({ behavior: "smooth", block: "center" });
+  }, [tourStep]);
+
+  useEffect(() => {
+    if (tourStep < 0) return undefined;
+    function onKey(e) {
+      if (e.key !== "Escape") return;
+      setTourStep((step) => {
+        if (step < 0) return step;
+        const next = step + 1;
+        if (next >= PICKER_TOUR.length) {
+          markPickerTourSeen();
+          return -1;
+        }
+        return next;
+      });
+    }
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [tourStep]);
 
   useEffect(() => {
     if (!showLoginModal) return;
@@ -408,15 +465,45 @@ export default function PlaylistPicker({ onPick, needsLogin = false }) {
     setYoursView((v) => (v === "cds" ? "list" : "cds"));
   }
 
+  function advancePickerTour() {
+    const next = tourStep + 1;
+    if (next >= PICKER_TOUR.length) {
+      markPickerTourSeen();
+      setTourStep(-1);
+      return;
+    }
+    setTourStep(next);
+  }
+
   if (!ownerUnavailable) {
     if (error) return <div className="panel">{error}</div>;
     if (!data) return <div className="loader">loading{needsLogin ? "" : " your"} playlists…</div>;
   }
 
   const cdsMode = yoursView === "cds";
+  const touring = tourStep >= 0;
+  let tour = null;
+  if (touring) tour = PICKER_TOUR[tourStep];
+  let pickerClass = "picker";
+  if (touring) pickerClass += " is-touring";
+  let tourBody = "Stack artists into a mix, then put it in the player.";
+  if (tour && tour.id === "record") {
+    tourBody = "Tap a CD from your Spotify playlists to start a game.";
+    if (needsLogin) {
+      tourBody = "Tap a CD from these shared playlists to start a game.";
+    }
+  } else if (tour && tour.id === "describe") {
+    tourBody = "Type an artist, era, or album and we’ll find a chart to play.";
+  }
+  let tourBtn = "next";
+  if (tourStep === PICKER_TOUR.length - 1) tourBtn = "got it";
 
   return (
-    <div className="picker">
+    <div className={pickerClass}>
+      <div
+        className={`picker-tour-section ${pickerTourClass(tourStep, "record")}`.trim()}
+        ref={recordTourRef}
+      >
       <div className="picker-heading">
         {yours.length > 0 && (
           <button
@@ -512,6 +599,12 @@ export default function PlaylistPicker({ onPick, needsLogin = false }) {
         </>
       )}
 
+      </div>
+
+      <div
+        className={`picker-tour-section ${pickerTourClass(tourStep, "describe")}`.trim()}
+        ref={describeTourRef}
+      >
       <div className="chart-search-block">
         <h3 className="picker-section-title">or describe it!</h3>
         <p className="section-sub chart-search-sub">(artist/era/album)</p>
@@ -570,13 +663,20 @@ export default function PlaylistPicker({ onPick, needsLogin = false }) {
           </div>
         </form>
       </div>
+      </div>
 
+      <div className={`picker-tour-section ${pickerTourClass(tourStep, "spindle")}`.trim()}>
       <ChartCdSpindle
         packs={CHART_PACKS}
         loadingId={loadingId}
         onChoose={chooseChart}
       />
+      </div>
 
+      <div
+        className={`picker-tour-section ${pickerTourClass(tourStep, "stack")}`.trim()}
+        ref={stackTourRef}
+      >
       <ChartCdStack
         layers={stackLayers}
         mix={stackMix}
@@ -586,6 +686,33 @@ export default function PlaylistPicker({ onPick, needsLogin = false }) {
         onPutBack={() => setStackInsertOpen(false)}
         onPutInPlayer={putStackInPlayer}
       />
+      </div>
+
+      {tour && (
+        <div
+          key={tourStep}
+          className="picker-tour-card"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="picker-tour-title"
+        >
+          <h2 id="picker-tour-title" className="spotlight-title">
+            {tour.title}
+          </h2>
+          <p className="spotlight-hint">{tourBody}</p>
+          <div className="spotlight-actions">
+            <button
+              type="button"
+              className="btn btn-big btn-play"
+              autoFocus
+              onClick={advancePickerTour}
+            >
+              <span className="btn-play-icon" aria-hidden="true" />
+              {tourBtn}
+            </button>
+          </div>
+        </div>
+      )}
 
       {chartPreview && (
         <ChartPreviewDialog

@@ -20,7 +20,9 @@ import RaceModeDialog from "./components/RaceModeDialog.jsx";
 import PlayHowto, {
   hasSeenPlayHowto,
   markPlayHowtoSeen,
+  markPickerTourPending,
   HOWTO_KEY,
+  PICKER_TOUR_KEY,
 } from "./components/PlayHowto.jsx";
 import { makeRoomCode, normalizeRaceMode } from "./multiplayer/constants.js";
 import { loadLocalProfile, saveLocalProfile, hasSavedLocalProfile } from "./localProfile.js";
@@ -399,6 +401,7 @@ export default function App() {
   function finishHowto() {
     const next = howtoMode;
     markPlayHowtoSeen();
+    markPickerTourPending();
     setHowtoMode(null);
     // Replace howto entry with the real next screen.
     if (next === "solo") {
@@ -536,6 +539,7 @@ export default function App() {
           run: () => {
             try {
               localStorage.removeItem(HOWTO_KEY);
+              localStorage.removeItem(PICKER_TOUR_KEY);
             } catch {
               /* ignore */
             }

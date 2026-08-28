@@ -1589,6 +1589,51 @@ button.footer-privacy:hover {
 
 /* ---------------- playlist picker ---------------- */
 .picker { width: min(var(--maxw), 100%); position: relative; }
+.picker.is-touring { padding-bottom: 160px; }
+.picker-tour-section {
+  border-radius: 14px;
+}
+.picker.is-touring .picker-tour-dim,
+.picker.is-touring .picker-tour-focus {
+  pointer-events: none;
+  user-select: none;
+  transition: filter 0.35s ease, opacity 0.35s ease;
+}
+.picker.is-touring .picker-tour-dim {
+  filter: blur(7px);
+  opacity: 0.4;
+}
+.picker.is-touring .picker-tour-focus {
+  filter: blur(5px);
+  outline: 2px solid color-mix(in srgb, var(--main-color) 65%, transparent);
+  outline-offset: 8px;
+}
+@media (prefers-reduced-motion: reduce) {
+  .picker.is-touring .picker-tour-dim,
+  .picker.is-touring .picker-tour-focus {
+    filter: none;
+    transition: none;
+  }
+  .picker.is-touring .picker-tour-dim { opacity: 0.35; }
+}
+.picker-tour-card {
+  position: fixed;
+  left: 50%;
+  bottom: 72px;
+  transform: translateX(-50%);
+  z-index: 85;
+  width: min(420px, calc(100% - 24px));
+  background: color-mix(in srgb, var(--sub-alt-color) 94%, transparent);
+  border: 1px solid color-mix(in srgb, var(--text-color) 12%, transparent);
+  border-radius: 16px;
+  box-shadow: 0 16px 40px color-mix(in srgb, #000 40%, transparent);
+  padding: 16px 16px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.picker-tour-card .spotlight-actions { justify-content: stretch; }
+.picker-tour-card .spotlight-actions .btn { width: 100%; justify-content: center; }
 .picker-heading {
   display: flex;
   align-items: center;

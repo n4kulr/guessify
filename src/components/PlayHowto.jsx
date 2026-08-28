@@ -11,7 +11,7 @@ export function PlayHowtoSteps({ race = true }) {
         Type the <b>song title</b> for most points. Artist is a small bonus.
       </li>
       <li>
-        <b>Skip</b> when you’re stuck — more audio, smaller title payout.
+        <b>Skip</b> when you’re stuck — more audio, easier to guess.
       </li>
       {race && (
         <li>
@@ -97,6 +97,7 @@ export default function PlayHowto({ mode, onDone, onPrivacy }) {
 }
 
 export const HOWTO_KEY = "guessify-howto-seen";
+export const PICKER_TOUR_KEY = "guessify-picker-tour";
 
 export function hasSeenPlayHowto() {
   try {
@@ -109,6 +110,32 @@ export function hasSeenPlayHowto() {
 export function markPlayHowtoSeen() {
   try {
     localStorage.setItem(HOWTO_KEY, "1");
+  } catch {
+    /* ignore */
+  }
+}
+
+/** First-run only: set when howto finishes, before they hit the picker. */
+export function markPickerTourPending() {
+  try {
+    if (localStorage.getItem(PICKER_TOUR_KEY) === "1") return;
+    localStorage.setItem(PICKER_TOUR_KEY, "pending");
+  } catch {
+    /* ignore */
+  }
+}
+
+export function pickerTourPending() {
+  try {
+    return localStorage.getItem(PICKER_TOUR_KEY) === "pending";
+  } catch {
+    return false;
+  }
+}
+
+export function markPickerTourSeen() {
+  try {
+    localStorage.setItem(PICKER_TOUR_KEY, "1");
   } catch {
     /* ignore */
   }

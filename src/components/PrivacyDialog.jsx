@@ -76,9 +76,9 @@ export default function PrivacyDialog({ onClose }) {
           <section>
             <h3>on your device</h3>
             <p>
-              Theme, volume, nickname/avatar, personal bests, and “seen howto”
-              flags stay in your browser (localStorage / similar). Clearing
-              site data clears them.
+              Theme, volume, nickname/avatar, personal bests, and first-run
+              “seen howto” / picker-tour flags stay in your browser
+              (localStorage / similar). Clearing site data clears them.
             </p>
           </section>
 
