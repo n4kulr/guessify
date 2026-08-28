@@ -1616,6 +1616,11 @@ button.footer-privacy:hover {
   opacity: 1;
   z-index: 4;
 }
+/* Stack tour is about the add field — blur the case the same way describe blurs the spindle. */
+.picker.is-touring .picker-tour-stack.picker-tour-focus .cd-stack-row {
+  filter: blur(7px);
+  opacity: 0.4;
+}
 @media (prefers-reduced-motion: reduce) {
   .picker.is-touring .picker-tour-dim,
   .picker.is-touring .picker-tour-focus {
@@ -1623,6 +1628,10 @@ button.footer-privacy:hover {
     transition: none;
   }
   .picker.is-touring .picker-tour-dim { opacity: 0.35; }
+  .picker.is-touring .picker-tour-stack.picker-tour-focus .cd-stack-row {
+    filter: none;
+    opacity: 0.35;
+  }
 }
 .picker-tour-card {
   position: absolute;
