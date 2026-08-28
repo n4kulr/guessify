@@ -23,6 +23,9 @@ export async function resolvePreview(track) {
     if (!r.ok) return null; // don't cache misses — next attempt may succeed
     const data = await r.json();
     const url = data.previewUrl || null;
+    if (data.artworkUrl && !track.cover) {
+      track.cover = data.artworkUrl;
+    }
     if (url) cache.set(key, url);
     return url;
   } catch {

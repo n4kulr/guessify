@@ -122,7 +122,8 @@ export async function enrichArtistCovers(items, q) {
   if (!items.length) return items;
   const rows = await itunesRows({
     term: q,
-    entity: "musicArtist",
+    media: "music",
+    entity: "album",
     limit: "15",
   });
   return items.map((item) => ({
