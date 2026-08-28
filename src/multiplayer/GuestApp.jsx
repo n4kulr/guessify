@@ -527,9 +527,7 @@ export default function GuestApp({ code }) {
     );
   }
 
-  const revealed = state.phase === "reveal";
   const unlocked = unlockSecondsFor(state.unlockByPlayer, playerId, state);
-  const myStep = state.unlockByPlayer?.[playerId] ?? 0;
   const track = state.track;
   const spinning = localPlaying && (state.phase === "play" || state.phase === "reveal");
   const timed = state.raceMode === "timed";

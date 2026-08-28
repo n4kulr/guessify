@@ -708,7 +708,6 @@ export default function HostParty({
   }
 
   // ---- play / reveal board ----
-  const revealed = phase === "reveal";
   const track = state.track;
   const lastGuesser = state.guesses?.[state.guesses.length - 1];
 
