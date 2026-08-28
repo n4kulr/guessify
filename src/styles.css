@@ -5572,8 +5572,8 @@ button.footer-privacy:hover {
   padding: 4px 8px 3px;
   border-radius: calc(var(--radius) - 2px);
   border: 1.5px solid color-mix(in srgb, var(--text-color) 22%, transparent);
-  background: var(--main-color);
-  color: var(--bg-color);
+  background: transparent;
+  color: var(--text-color);
   box-shadow: none;
   font-size: 9px;
   font-weight: 700;
