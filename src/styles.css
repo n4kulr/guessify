@@ -1590,6 +1590,7 @@ button.footer-privacy:hover {
 /* ---------------- playlist picker ---------------- */
 .picker { width: min(var(--maxw), 100%); position: relative; }
 .picker-tour-section {
+  position: relative;
   border-radius: 14px;
   --shelf-case: 132px;
   --shelf-gap: 10px;
@@ -1613,6 +1614,7 @@ button.footer-privacy:hover {
 .picker.is-touring .picker-tour-focus {
   filter: none;
   opacity: 1;
+  z-index: 4;
 }
 @media (prefers-reduced-motion: reduce) {
   .picker.is-touring .picker-tour-dim,
@@ -1623,12 +1625,14 @@ button.footer-privacy:hover {
   .picker.is-touring .picker-tour-dim { opacity: 0.35; }
 }
 .picker-tour-card {
-  position: relative;
-  z-index: 3;
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 6;
   width: var(--tour-card-w, 100%);
   max-width: 100%;
   box-sizing: border-box;
-  margin: 16px auto 8px;
+  margin: 10px 0 0;
   pointer-events: auto;
   background: color-mix(in srgb, var(--sub-alt-color) 94%, transparent);
   border: 1px solid color-mix(in srgb, var(--text-color) 12%, transparent);
@@ -1639,6 +1643,13 @@ button.footer-privacy:hover {
   flex-direction: column;
   gap: 10px;
   text-align: center;
+}
+.chart-search .picker-tour-card {
+  top: calc(100% + 10px);
+  left: 0;
+  transform: none;
+  width: 100%;
+  margin: 0;
 }
 .picker.is-touring .picker-tour-card {
   pointer-events: auto;
@@ -1739,6 +1750,7 @@ button.footer-privacy:hover {
   margin-bottom: 18px;
 }
 .chart-search {
+  position: relative;
   width: min(100%, 400px);
   margin: 0;
   max-width: 400px;
@@ -5531,8 +5543,49 @@ button.footer-privacy:hover {
      sits on — tinting against --bg-color instead left near-invisible
      contrast in themes where bg and sub-alt are close (e.g. matrix). */
   background: color-mix(in srgb, var(--text-color) 6%, var(--sub-alt-color));
+  display: flex;
+  align-items: center;
+  gap: 10px;
 }
 .play-howto-steps b { color: var(--main-color); font-weight: 600; }
+.howto-ctrl {
+  flex: none;
+  pointer-events: none;
+}
+.play-howto-steps .guess-transport-switch {
+  width: 52px;
+  min-width: 52px;
+  height: 26px;
+  padding: 2px;
+}
+.play-howto-steps .guess-transport-thumb {
+  top: 2px;
+  left: 2px;
+  height: calc(100% - 4px);
+  width: calc(50% - 2px);
+}
+.howto-ctrl--skip {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1px;
+  padding: 5px 8px 4px;
+  border-radius: 8px;
+  background: var(--bg-color);
+  color: var(--text-color);
+  box-shadow: 0 2px 0 var(--sub-color);
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  line-height: 1.1;
+}
+.howto-ctrl--skip .btn-hint {
+  font-size: 7px;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  opacity: 0.7;
+}
 .play-howto .spotlight-actions { justify-content: stretch; }
 .play-howto .spotlight-actions .btn { width: 100%; justify-content: center; }
 .play-howto-foot {

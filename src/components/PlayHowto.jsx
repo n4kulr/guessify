@@ -1,12 +1,44 @@
 import { useEffect, useId, useRef } from "react";
+import { PauseIcon, PlayIcon } from "./icons.jsx";
+
+function HowtoPlayCtrl() {
+  return (
+    <span className="howto-ctrl howto-ctrl--play" aria-hidden="true">
+      <span className="guess-transport-switch is-paused">
+        <span className="guess-transport-thumb" />
+        <span className="guess-transport-slot guess-transport-slot--play">
+          <PlayIcon className="guess-transport-glyph" width="11" height="11" />
+        </span>
+        <span className="guess-transport-slot guess-transport-slot--pause">
+          <PauseIcon className="guess-transport-glyph" width="11" height="11" />
+        </span>
+      </span>
+    </span>
+  );
+}
+
+function HowtoSkipCtrl() {
+  return (
+    <span className="howto-ctrl howto-ctrl--skip" aria-hidden="true">
+      <span className="btn-label">skip</span>
+      <span className="btn-hint">+audio</span>
+    </span>
+  );
+}
 
 /** Shared how-to steps (first-run splash + ? fab). */
 export function PlayHowtoSteps({ race = true }) {
   return (
     <ol className="play-howto-steps">
-      <li>Play a short snippet of a song.</li>
+      <li>
+        <HowtoPlayCtrl />
+        Play a short snippet of a song.
+      </li>
       <li>Guess the song title or the artist.</li>
-      <li>Skip if you’re stuck — unlocks more audio.</li>
+      <li>
+        <HowtoSkipCtrl />
+        Skip if you’re stuck — unlocks more audio.
+      </li>
       {race && (
         <li>
           First person to nail the <b>title</b> wins the round.

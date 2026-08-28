@@ -116,8 +116,8 @@ export default function ChartCdStack({
             {stackBusy ? "…" : "add"}
           </button>
         </div>
+        {tourSlot}
       </form>
-      {tourSlot}
 
       <div
         ref={rowRef}

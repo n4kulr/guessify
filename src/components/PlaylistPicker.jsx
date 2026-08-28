@@ -712,9 +712,9 @@ export default function PlaylistPicker({ onPick, needsLogin = false }) {
               {loadingId?.startsWith("chart:") ? "…" : "play"}
             </button>
           </div>
+          {tour && tour.id === "describe" && tourCard}
         </form>
       </div>
-      {tour && tour.id === "describe" && tourCard}
       </div>
 
       <div className={`picker-tour-section ${pickerTourClass(tourStep, "spindle")}`.trim()}>
