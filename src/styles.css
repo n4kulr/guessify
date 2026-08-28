@@ -1596,11 +1596,9 @@ button.footer-privacy:hover {
   --shelf-tray-w: calc((3 * var(--shelf-case)) + (2 * var(--shelf-gap)) + 48px);
   --tour-card-w: min(var(--shelf-tray-w), 100%);
 }
-.picker-tour-section.picker-tour-describe {
-  --tour-card-w: min(400px, 100%);
-}
+.picker-tour-section.picker-tour-describe,
 .picker-tour-section.picker-tour-stack {
-  --tour-card-w: min(300px, 100%);
+  --tour-card-w: min(400px, 100%);
 }
 .picker.is-touring .picker-tour-dim,
 .picker.is-touring .picker-tour-focus {
