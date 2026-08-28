@@ -1591,6 +1591,16 @@ button.footer-privacy:hover {
 .picker { width: min(var(--maxw), 100%); position: relative; }
 .picker-tour-section {
   border-radius: 14px;
+  --shelf-case: 132px;
+  --shelf-gap: 10px;
+  --shelf-tray-w: calc((3 * var(--shelf-case)) + (2 * var(--shelf-gap)) + 48px);
+  --tour-card-w: min(var(--shelf-tray-w), 100%);
+}
+.picker-tour-section.picker-tour-describe {
+  --tour-card-w: min(400px, 100%);
+}
+.picker-tour-section.picker-tour-stack {
+  --tour-card-w: min(300px, 100%);
 }
 .picker.is-touring .picker-tour-dim,
 .picker.is-touring .picker-tour-focus {
@@ -1615,12 +1625,13 @@ button.footer-privacy:hover {
   .picker.is-touring .picker-tour-dim { opacity: 0.35; }
 }
 .picker-tour-card {
-  position: fixed;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  z-index: 85;
-  width: min(260px, calc(100% - 48px));
+  position: relative;
+  z-index: 3;
+  width: var(--tour-card-w, 100%);
+  max-width: 100%;
+  box-sizing: border-box;
+  margin: 16px auto 8px;
+  pointer-events: auto;
   background: color-mix(in srgb, var(--sub-alt-color) 94%, transparent);
   border: 1px solid color-mix(in srgb, var(--text-color) 12%, transparent);
   border-radius: 16px;
@@ -1630,6 +1641,9 @@ button.footer-privacy:hover {
   flex-direction: column;
   gap: 10px;
   text-align: center;
+}
+.picker.is-touring .picker-tour-card {
+  pointer-events: auto;
 }
 .picker-tour-card .spotlight-actions { justify-content: stretch; }
 .picker-tour-card .spotlight-actions .btn { width: 100%; justify-content: center; }

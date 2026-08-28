@@ -496,6 +496,35 @@ export default function PlaylistPicker({ onPick, needsLogin = false }) {
   let tourBtn = "next";
   if (tourStep === PICKER_TOUR.length - 1) tourBtn = "got it";
 
+  let tourCard = null;
+  if (tour) {
+    tourCard = (
+      <div
+        key={tourStep}
+        className="picker-tour-card"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="picker-tour-title"
+      >
+        <h2 id="picker-tour-title" className="spotlight-title">
+          {tour.title}
+        </h2>
+        <p className="spotlight-hint">{tourBody}</p>
+        <div className="spotlight-actions">
+          <button
+            type="button"
+            className="btn btn-big btn-play"
+            autoFocus
+            onClick={advancePickerTour}
+          >
+            <span className="btn-play-icon" aria-hidden="true" />
+            {tourBtn}
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className={pickerClass}>
       <div
@@ -597,10 +626,12 @@ export default function PlaylistPicker({ onPick, needsLogin = false }) {
         </>
       )}
 
+      {tour && tour.id === "record" && tourCard}
+
       </div>
 
       <div
-        className={`picker-tour-section ${pickerTourClass(tourStep, "describe")}`.trim()}
+        className={`picker-tour-section picker-tour-describe ${pickerTourClass(tourStep, "describe")}`.trim()}
         ref={describeTourRef}
       >
       <div className="chart-search-block">
@@ -661,6 +692,7 @@ export default function PlaylistPicker({ onPick, needsLogin = false }) {
           </div>
         </form>
       </div>
+      {tour && tour.id === "describe" && tourCard}
       </div>
 
       <div className={`picker-tour-section ${pickerTourClass(tourStep, "spindle")}`.trim()}>
@@ -672,7 +704,7 @@ export default function PlaylistPicker({ onPick, needsLogin = false }) {
       </div>
 
       <div
-        className={`picker-tour-section ${pickerTourClass(tourStep, "stack")}`.trim()}
+        className={`picker-tour-section picker-tour-stack ${pickerTourClass(tourStep, "stack")}`.trim()}
         ref={stackTourRef}
       >
       <ChartCdStack
@@ -684,33 +716,8 @@ export default function PlaylistPicker({ onPick, needsLogin = false }) {
         onPutBack={() => setStackInsertOpen(false)}
         onPutInPlayer={putStackInPlayer}
       />
+      {tour && tour.id === "stack" && tourCard}
       </div>
-
-      {tour && (
-        <div
-          key={tourStep}
-          className="picker-tour-card"
-          role="dialog"
-          aria-modal="true"
-          aria-labelledby="picker-tour-title"
-        >
-          <h2 id="picker-tour-title" className="spotlight-title">
-            {tour.title}
-          </h2>
-          <p className="spotlight-hint">{tourBody}</p>
-          <div className="spotlight-actions">
-            <button
-              type="button"
-              className="btn btn-big btn-play"
-              autoFocus
-              onClick={advancePickerTour}
-            >
-              <span className="btn-play-icon" aria-hidden="true" />
-              {tourBtn}
-            </button>
-          </div>
-        </div>
-      )}
 
       {chartPreview && (
         <ChartPreviewDialog
