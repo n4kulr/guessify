@@ -128,6 +128,9 @@ export default function PlaylistPicker({ onPick, needsLogin = false }) {
     if (!card) return undefined;
     const btn = card.querySelector("button");
     if (btn) btn.focus({ preventScroll: true });
+    // Record step is already at the top — scrolling the card to center
+    // hides “Pick a record…”. Later steps still need the jump.
+    if (tourStep === 0) return undefined;
 
     let behavior = "smooth";
     if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
