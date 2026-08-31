@@ -96,8 +96,9 @@ export default function PrivacyDialog({ onClose }) {
             <p>
               Depending on what you play, Guessify may talk to Last.fm
               (charts), iTunes / Deezer (preview URLs), Spotify (library if
-              you’re logged in), and Discord (only if you send feedback —
-              including any screenshot you attach).
+              you’re logged in), Discord (only if you send feedback —
+              including any screenshot you attach), and Vercel (anonymous
+              page views).
             </p>
           </section>
 
