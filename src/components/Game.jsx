@@ -111,13 +111,11 @@ export default function Game({ playlist, me, onExit, onReplay }) {
   const track = rounds[roundIdx];
   const unlocked = STEPS[Math.min(guessNum, MAX_GUESSES - 1)];
   const resolved = outcome !== null;
-  const hasDraft = !resolved && (titleGuess.trim().length >= 2 || artistGuess.trim().length >= 2);
-  const { playNudge, skipNudge, guessNudge, revealNudge } = useRoundNudge({
+  const { playNudge, skipNudge, revealNudge } = useRoundNudge({
     active: phase === "play" && !resolved,
     playing,
     skipCount: guessNum,
     resetKey: roundIdx,
-    hasDraft,
     revealed: resolved,
   });
   let skipWrapClass = "btn-skip-wrap";
@@ -718,7 +716,7 @@ export default function Game({ playlist, me, onExit, onReplay }) {
                     />
                   </div>
                   <button
-                    className={`btn btn-guess${guessNudge ? " is-nudging" : ""}`}
+                    className="btn btn-guess"
                     onClick={submitGuess}
                     disabled={
                       !cueReady || (!titleGuess.trim() && !artistGuess.trim())

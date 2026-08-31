@@ -3751,7 +3751,6 @@ button.footer-privacy:hover {
 }
 .guess-transport-switch.is-nudging,
 .btn-skip-wrap.is-nudging .btn-skip,
-.btn-guess.is-nudging,
 .inline-reveal .btn-play.is-nudging,
 .media-stage-vote .btn-play.is-nudging {
   outline: 2px solid transparent;
@@ -3761,7 +3760,6 @@ button.footer-privacy:hover {
 @media (prefers-reduced-motion: reduce) {
   .guess-transport-switch.is-nudging,
   .btn-skip-wrap.is-nudging .btn-skip,
-  .btn-guess.is-nudging,
   .inline-reveal .btn-play.is-nudging,
   .media-stage-vote .btn-play.is-nudging {
     animation: none;

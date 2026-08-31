@@ -6,21 +6,18 @@ import { roundNudgeWaitMs } from "./skipNudge.js";
  * Pulses per round:
  * - Play switch after 3s idle
  * - Skip after 15s of hearing with no skip
- * - Guess button after 2.5s idle when draft text is typed
  * - Next song after 4s un-advanced on reveal screen
- * Play, skip, guess, and reveal nudge independently. No label — CSS pulse only.
+ * Play, skip, and reveal nudge independently. No label — CSS pulse only.
  */
 export function useRoundNudge({
   active,
   playing,
   skipCount,
   resetKey,
-  hasDraft = false,
   revealed = false,
 }) {
   const [playNudge, setPlayNudge] = useState(false);
   const [skipNudge, setSkipNudge] = useState(false);
-  const [guessNudge, setGuessNudge] = useState(false);
   const [revealNudge, setRevealNudge] = useState(false);
   const [heard, setHeard] = useState(false);
   const [armedKey, setArmedKey] = useState(resetKey);
@@ -32,7 +29,6 @@ export function useRoundNudge({
     setHeard(false);
     setPlayNudge(false);
     setSkipNudge(false);
-    setGuessNudge(false);
     setRevealNudge(false);
     playUsedRef.current = false;
     skipUsedRef.current = false;
@@ -85,18 +81,6 @@ export function useRoundNudge({
   }, [active, heard, skipCount, resetKey]);
 
   useEffect(() => {
-    if (!active || !hasDraft || revealed) {
-      setGuessNudge(false);
-      return undefined;
-    }
-    setGuessNudge(false);
-    const timer = window.setTimeout(() => {
-      setGuessNudge(true);
-    }, roundNudgeWaitMs("guess", isFastTest()));
-    return () => window.clearTimeout(timer);
-  }, [active, hasDraft, revealed]);
-
-  useEffect(() => {
     if (!revealed) {
       setRevealNudge(false);
       return undefined;
@@ -107,5 +91,5 @@ export function useRoundNudge({
     return () => window.clearTimeout(timer);
   }, [revealed, resetKey]);
 
-  return { playNudge, skipNudge, guessNudge, revealNudge };
+  return { playNudge, skipNudge, revealNudge };
 }

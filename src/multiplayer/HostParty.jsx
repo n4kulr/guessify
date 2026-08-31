@@ -379,14 +379,11 @@ export default function HostParty({
     Array.isArray(state?.lockedInIds) &&
     state.lockedInIds.includes(playerId)
   );
-  const hasDraft =
-    !lockedIn && (titleGuess.trim().length >= 2 || artistGuess.trim().length >= 2);
-  const { playNudge, skipNudge, guessNudge, revealNudge } = useRoundNudge({
+  const { playNudge, skipNudge, revealNudge } = useRoundNudge({
     active: phase === "play" && !lockedIn,
     playing: localPlaying,
     skipCount: myStep,
     resetKey: state?.roundIdx,
-    hasDraft,
     revealed,
   });
   let skipWrapClass = "btn-skip-wrap";
@@ -878,7 +875,7 @@ export default function HostParty({
               />
             </div>
             <button
-              className={`btn btn-guess${guessNudge ? " is-nudging" : ""}`}
+              className="btn btn-guess"
               onClick={submitGuess}
               disabled={
                 !cueReady ||

@@ -283,14 +283,11 @@ export default function GuestApp({ code }) {
 
   const revealed = state?.phase === "reveal";
   const myStep = state?.unlockByPlayer?.[playerId] ?? 0;
-  const hasDraft =
-    !lockedIn && (titleGuess.trim().length >= 2 || artistGuess.trim().length >= 2);
-  const { playNudge, skipNudge, guessNudge, revealNudge } = useRoundNudge({
+  const { playNudge, skipNudge, revealNudge } = useRoundNudge({
     active: state?.phase === "play" && !lockedIn,
     playing: localPlaying,
     skipCount: myStep,
     resetKey: state?.roundIdx,
-    hasDraft,
     revealed,
   });
   let skipWrapClass = "btn-skip-wrap";
@@ -708,7 +705,7 @@ export default function GuestApp({ code }) {
                 />
               </div>
             <button
-              className={`btn btn-guess${guessNudge ? " is-nudging" : ""}`}
+              className="btn btn-guess"
               onClick={submitGuess}
               disabled={
                 !cueReady ||

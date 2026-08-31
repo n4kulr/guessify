@@ -328,14 +328,11 @@ export default function OnlineRace({ profile, onExit, raceMode: raceModeProp }) 
   const voteHave = Object.keys(nextVotes).length;
   const iVotedNext = !!nextVotes[youId];
   const lockedIn = lockedInIds.includes(youId);
-  const hasDraft =
-    !lockedIn && (titleGuess.trim().length >= 2 || artistGuess.trim().length >= 2);
-  const { playNudge, skipNudge, guessNudge, revealNudge } = useRoundNudge({
+  const { playNudge, skipNudge, revealNudge } = useRoundNudge({
     active: phase === "play" && !lockedIn,
     playing: localPlaying,
     skipCount: myStep,
     resetKey: roundIdx,
-    hasDraft,
     revealed,
   });
   let skipWrapClass = "btn-skip-wrap";
@@ -1471,7 +1468,7 @@ export default function OnlineRace({ profile, onExit, raceMode: raceModeProp }) 
                 />
               </div>
               <button
-                className={`btn btn-guess${guessNudge ? " is-nudging" : ""}`}
+                className="btn btn-guess"
                 onClick={submitGuess}
                 disabled={
                   !cueReady ||
