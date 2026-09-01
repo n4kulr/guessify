@@ -22,6 +22,66 @@ export function formatSolveSec(wallMs) {
   return `${Math.round(sec)}s`;
 }
 
+/** Stopwatch with milliseconds: 3847 → "3.847s". */
+export function formatSolveClock(wallMs) {
+  if (wallMs == null || !Number.isFinite(wallMs) || wallMs < 0) return "—";
+  const total = Math.round(wallMs);
+  const sec = Math.floor(total / 1000);
+  const ms = total % 1000;
+  return `${sec}.${String(ms).padStart(3, "0")}s`;
+}
+
+/**
+ * Wall-clock to show on the round reveal. Prefers this player's solve,
+ * then the winner's, then elapsed since `startedAt`.
+ */
+export function resolveRevealMs({
+  solveTimes,
+  playerId,
+  winnerId,
+  startedAt,
+  now = Date.now(),
+} = {}) {
+  const mine = playerId != null ? solveTimes?.[playerId] : null;
+  if (mine != null && Number.isFinite(mine) && mine >= 0) return mine;
+  const win = winnerId ? solveTimes?.[winnerId] : null;
+  if (win != null && Number.isFinite(win) && win >= 0) return win;
+  if (startedAt != null && Number.isFinite(startedAt)) {
+    return Math.max(0, now - startedAt);
+  }
+  return null;
+}
+
+/**
+ * Compare this round to earlier ones in `prior` (current round not included).
+ * `deltaMs` > 0 means this solve was faster than the previous win.
+ */
+export function roundRevealFacts(prior = [], { won = false, wallMs = null } = {}) {
+  const rounds = Array.isArray(prior) ? prior : [];
+  const curWon = !!won;
+  const curMs = wallMs != null && Number.isFinite(wallMs) && wallMs >= 0 ? wallMs : null;
+  const priorWins = rounds.filter(
+    (r) => r?.won && r.wallMs != null && Number.isFinite(r.wallMs) && r.wallMs >= 0
+  );
+  const lastWin = priorWins[priorWins.length - 1];
+  const fastestPrior =
+    priorWins.length > 0 ? Math.min(...priorWins.map((r) => r.wallMs)) : null;
+  const isPb = curWon && curMs != null && fastestPrior != null && curMs < fastestPrior;
+  const deltaMs =
+    curWon && curMs != null && lastWin ? lastWin.wallMs - curMs : null;
+
+  let streak = 0;
+  if (curWon) {
+    streak = 1;
+    for (let i = rounds.length - 1; i >= 0; i--) {
+      if (rounds[i]?.won) streak += 1;
+      else break;
+    }
+  }
+
+  return { isPb, deltaMs, streak };
+}
+
 /**
  * @param {RoundResult[]} log
  * @param {{ score?: number }} [opts]

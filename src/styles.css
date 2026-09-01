@@ -3900,6 +3900,65 @@ button.footer-privacy:hover {
   100% { opacity: 1; transform: scale(1); }
 }
 
+.reveal-clock {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  margin: -6px auto 16px;
+  animation: badge-pop 0.55s cubic-bezier(0.2, 1.4, 0.4, 1) both;
+}
+.reveal-clock-time {
+  font-family: "IBM Plex Mono", ui-monospace, monospace;
+  font-size: clamp(28px, 9vw, 42px);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.04em;
+  line-height: 1;
+}
+.reveal-clock--win .reveal-clock-time { color: var(--main-color); }
+.reveal-clock--lose .reveal-clock-time { color: var(--error-color); }
+.reveal-clock-caption {
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--sub-color);
+}
+.reveal-clock-chips {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 4px 12px;
+  margin-top: 4px;
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-color);
+}
+.reveal-clock-chips b {
+  color: var(--main-color);
+  font-weight: 700;
+}
+.reveal-clock--lose .reveal-clock-chips b {
+  color: var(--text-color);
+}
+.reveal-clock .timed-places {
+  width: min(100%, 320px);
+  margin-top: 10px;
+  text-align: left;
+}
+.reveal-clock .timed-places-meta {
+  font-family: "IBM Plex Mono", ui-monospace, monospace;
+  font-size: 12px;
+}
+@media (prefers-reduced-motion: reduce) {
+  .inline-badge,
+  .reveal-clock {
+    animation: none;
+  }
+}
+
 .turntable--celebrate { z-index: 1; }
 .win-ring {
   position: absolute; inset: 18%; border-radius: 50%;

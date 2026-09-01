@@ -13,12 +13,13 @@ import ScrubbableVinyl from "../components/ScrubbableVinyl.jsx";
 import PenaltyPop from "../components/PenaltyPop.jsx";
 import AlmostFlash from "../components/AlmostFlash.jsx";
 import GameOverStats from "../components/GameOverStats.jsx";
+import RoundRevealStats from "../components/RoundRevealStats.jsx";
 import { isNoPreviewError } from "../shareScore.js";
 import { loadLocalProfile } from "../localProfile.js";
 import { useAutoTitleHint } from "../useAutoTitleHint.js";
 import { useRoundNudge } from "../useRoundNudge.js";
 import { displayTitle } from "../titleHint.js";
-import { computeGameStats } from "../gameStats.js";
+import { computeGameStats, resolveRevealMs } from "../gameStats.js";
 import { recordPlaylistScore } from "../playlistBests.js";
 import { isFastTest, buildFastPartyEnd } from "../fastTest.js";
 import { useDebugActions } from "../debugRegistry.js";
@@ -175,10 +176,12 @@ export default function GuestApp({ code }) {
     if (loggedRoundRef.current === idx) return;
     loggedRoundRef.current = idx;
     const won = state.winnerId === playerId;
-    const wallMs =
-      won && roundStartedAt.current != null
-        ? Date.now() - roundStartedAt.current
-        : null;
+    const wallMs = resolveRevealMs({
+      solveTimes: state.solveTimes,
+      playerId,
+      winnerId: state.winnerId,
+      startedAt: roundStartedAt.current,
+    });
     setRoundLog((prev) => [
       ...prev,
       {
@@ -586,18 +589,42 @@ export default function GuestApp({ code }) {
         />
         {errorMsg && <div className="error-banner">{errorMsg}</div>}
 
-        {state.outcome === "win" && revealed && !timed && (
-          <div className="inline-badge inline-badge--win">
-            {state.winnerId === playerId
-              ? "YOU NAILED IT"
-              : `${state.players.find((p) => p.id === state.winnerId)?.name || "someone"} NAILED IT`}
-          </div>
-        )}
-        {state.outcome === "win" && revealed && timed && (
-          <div className="inline-badge inline-badge--win">TIME’S UP</div>
-        )}
-        {state.outcome === "lose" && revealed && (
-          <div className="inline-badge inline-badge--lose">MISSED</div>
+        {revealed && (
+          <RoundRevealStats
+            key={state.roundIdx}
+            won={state.outcome === "win"}
+            youWon={
+              !!(playerId && state.solveTimes?.[playerId] != null) ||
+              state.winnerId === playerId
+            }
+            winnerName={
+              state.winnerId === playerId
+                ? null
+                : state.players.find((p) => p.id === state.winnerId)?.name || null
+            }
+            timed={timed}
+            wallMs={resolveRevealMs({
+              solveTimes: state.solveTimes,
+              playerId,
+              winnerId: state.winnerId,
+              startedAt: roundStartedAt.current,
+            })}
+            pts={
+              state.timedPlaces?.find((p) => p.playerId === playerId)?.titlePts ??
+              (state.winnerId === playerId ? state.earnedPts : 0)
+            }
+            bonus={
+              state.artistClaimedBy === playerId ||
+              !!state.artistByPlayer?.[playerId]
+            }
+            unlockedSec={unlocked}
+            artistClaimed={
+              state.artistClaimedBy === playerId ||
+              !!state.artistByPlayer?.[playerId]
+            }
+            priorLog={roundLog.slice(0, state.roundIdx ?? 0)}
+            places={timed && state.outcome === "win" ? state.timedPlaces : null}
+          />
         )}
 
         {state.phase === "play" && timed && (
@@ -730,9 +757,6 @@ export default function GuestApp({ code }) {
               <div className="reveal-text">
                 <span className="reveal-title">{displayTitle(track.name)}</span>
                 <span className="reveal-artist">{(track.artists || []).join(", ")}</span>
-                {state.winnerId === playerId && (
-                  <span className="reveal-points">+{state.earnedPts} pts</span>
-                )}
               </div>
             </div>
           <div className="media-stage-vote">

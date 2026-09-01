@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { formatSolveSec } from "../gameStats.js";
+import { formatSolveClock } from "../gameStats.js";
 
 /** Live seconds left until roundEndsAt (epoch ms). */
 export function useRoundCountdown(roundEndsAt) {
@@ -48,7 +48,7 @@ export function TimedPlacesList({ places }) {
           <span className="timed-places-rank">#{row.place + 1}</span>
           <span className="timed-places-name">{row.name}</span>
           <span className="timed-places-meta">
-            {formatSolveSec(row.wallMs)} · +{row.titlePts}
+            {formatSolveClock(row.wallMs)} · +{row.titlePts}
           </span>
         </li>
       ))}

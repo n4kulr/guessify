@@ -7,6 +7,9 @@ import {
   wallSecToStepBin,
   computeGameStats,
   formatSolveSec,
+  formatSolveClock,
+  resolveRevealMs,
+  roundRevealFacts,
   solveCompareSeries,
   roundResultsFromLog,
 } from "./gameStats.js";
@@ -21,6 +24,54 @@ assert.equal(wallSecToStepBin(25), 20);
 assert.equal(formatSolveSec(null), "—");
 assert.equal(formatSolveSec(6800), "6.8s");
 assert.equal(formatSolveSec(12000), "12s");
+
+assert.equal(formatSolveClock(null), "—");
+assert.equal(formatSolveClock(0), "0.000s");
+assert.equal(formatSolveClock(3847), "3.847s");
+assert.equal(formatSolveClock(16203), "16.203s");
+assert.equal(formatSolveClock(45000), "45.000s");
+
+assert.equal(
+  resolveRevealMs({
+    solveTimes: { a: 2100, b: 4000 },
+    playerId: "b",
+    winnerId: "a",
+    startedAt: 0,
+    now: 9000,
+  }),
+  4000
+);
+assert.equal(
+  resolveRevealMs({ winnerId: "a", solveTimes: { a: 2100 }, playerId: "z", startedAt: 0, now: 9000 }),
+  2100
+);
+assert.equal(resolveRevealMs({ startedAt: 1000, now: 4500 }), 3500);
+
+const factsPb = roundRevealFacts(
+  [
+    { won: true, wallMs: 5000 },
+    { won: false, wallMs: 16000 },
+  ],
+  { won: true, wallMs: 1800 }
+);
+assert.equal(factsPb.isPb, true);
+assert.equal(factsPb.deltaMs, 5000 - 1800);
+assert.equal(factsPb.streak, 1);
+
+const factsStreak = roundRevealFacts(
+  [{ won: true, wallMs: 3000 }, { won: true, wallMs: 4000 }],
+  { won: true, wallMs: 2500 }
+);
+assert.equal(factsStreak.streak, 3);
+assert.equal(factsStreak.isPb, true);
+
+const factsMiss = roundRevealFacts([{ won: true, wallMs: 2000 }], {
+  won: false,
+  wallMs: 16000,
+});
+assert.equal(factsMiss.isPb, false);
+assert.equal(factsMiss.streak, 0);
+assert.equal(factsMiss.deltaMs, null);
 
 const log = [
   { won: true, artistClaimed: true, wallMs: 1800 },

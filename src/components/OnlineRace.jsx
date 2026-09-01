@@ -10,6 +10,7 @@ import ScrubbableVinyl from "./ScrubbableVinyl.jsx";
 import PenaltyPop from "./PenaltyPop.jsx";
 import AlmostFlash from "./AlmostFlash.jsx";
 import GameOverStats from "./GameOverStats.jsx";
+import RoundRevealStats from "./RoundRevealStats.jsx";
 import PlayerRail from "../multiplayer/PlayerRail.jsx";
 import GuessPopups from "../multiplayer/GuessPopups.jsx";
 import { isNoPreviewError } from "../shareScore.js";
@@ -24,7 +25,7 @@ import {
 import { titleHintMask, displayTitle } from "../titleHint.js";
 import { useAutoTitleHint } from "../useAutoTitleHint.js";
 import { useRoundNudge } from "../useRoundNudge.js";
-import { computeGameStats } from "../gameStats.js";
+import { computeGameStats, resolveRevealMs } from "../gameStats.js";
 import { recordPlaylistScore } from "../playlistBests.js";
 import { isFastTest, FAST_ROUND_LOG } from "../fastTest.js";
 import { useDebugActions } from "../debugRegistry.js";
@@ -654,22 +655,24 @@ export default function OnlineRace({ profile, onExit, raceMode: raceModeProp }) 
     if (loggedRoundRef.current === roundIdx) return;
     loggedRoundRef.current = roundIdx;
     const won = winnerId === youId;
-    const wallMs =
-      winnerId && roundStartedAt.current != null
+    const elapsed =
+      roundStartedAt.current != null
         ? Date.now() - roundStartedAt.current
         : null;
+    const wallMs = solveTimes?.[youId] ?? elapsed;
+    const winnerMs = winnerId ? solveTimes?.[winnerId] ?? elapsed : null;
     setRoundLog((prev) => [
       ...prev,
       {
         won,
         artistClaimed: artistClaimedBy === youId,
-        wallMs: won ? wallMs : null,
+        wallMs,
         unlockStep: unlockByPlayer[youId] ?? 0,
         title: track?.name || null,
         artist: (track?.artists || []).join(", ") || null,
       },
     ]);
-    if (winnerId && wallMs != null) {
+    if (winnerId && winnerMs != null) {
       const w = players.find((p) => p.id === winnerId);
       setRoundResults((prev) => {
         const round = roundIdx + 1;
@@ -681,7 +684,7 @@ export default function OnlineRace({ profile, onExit, raceMode: raceModeProp }) 
             winnerId,
             winnerName: winnerId === youId ? youName : w?.name || "?",
             color: w?.color || w?.avatar?.color || youAvatar?.color,
-            wallMs,
+            wallMs: winnerMs,
             title: track?.name || null,
             artist: (track?.artists || []).join(", ") || null,
             label: track?.name
@@ -1346,16 +1349,33 @@ export default function OnlineRace({ profile, onExit, raceMode: raceModeProp }) 
         />
         {errorMsg && <div className="error-banner">{errorMsg}</div>}
 
-        {revealed && outcome === "win" && !timed && (
-          <div className="inline-badge inline-badge--win">
-            {winnerId === youId ? "you" : winnerName} NAILED IT
-          </div>
-        )}
-        {revealed && outcome === "win" && timed && (
-          <div className="inline-badge inline-badge--win">TIME’S UP</div>
-        )}
-        {revealed && outcome === "lose" && (
-          <div className="inline-badge inline-badge--lose">NOBODY GOT IT</div>
+        {revealed && (
+          <RoundRevealStats
+            key={roundIdx}
+            won={outcome === "win"}
+            youWon={!!(solveTimes && youId && solveTimes[youId] != null) || winnerId === youId}
+            winnerName={winnerId === youId ? null : winnerName}
+            timed={timed}
+            wallMs={resolveRevealMs({
+              solveTimes,
+              playerId: youId,
+              winnerId,
+              startedAt: roundStartedAt.current,
+            })}
+            pts={
+              timedPlaces?.find((p) => p.playerId === youId)?.titlePts ??
+              (winnerId === youId ? earnedPts : 0)
+            }
+            bonus={
+              artistClaimedBy === youId || !!artistByPlayer[youId]
+            }
+            unlockedSec={unlocked}
+            artistClaimed={
+              artistClaimedBy === youId || !!artistByPlayer[youId]
+            }
+            priorLog={roundLog.slice(0, roundIdx)}
+            places={timed && outcome === "win" ? timedPlaces : null}
+          />
         )}
 
         {phase === "play" && timed && (
@@ -1497,13 +1517,6 @@ export default function OnlineRace({ profile, onExit, raceMode: raceModeProp }) 
                 <span className="reveal-artist">
                   {(track.artists || []).join(", ")}
                 </span>
-                {outcome === "win" && (
-                  <span className="reveal-points">
-                    +{earnedPts} pts
-                    {bonus ? " · artist bonus!" : ""}
-                    {winnerId === youId ? " · you!" : ""}
-                  </span>
-                )}
               </div>
             </div>
             <div className="media-stage-vote">

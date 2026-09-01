@@ -23,8 +23,9 @@ import ScrubbableVinyl from "./ScrubbableVinyl.jsx";
 import PenaltyPop from "./PenaltyPop.jsx";
 import AlmostFlash from "./AlmostFlash.jsx";
 import GameOverStats from "./GameOverStats.jsx";
+import RoundRevealStats from "./RoundRevealStats.jsx";
 import PlayerRail from "../multiplayer/PlayerRail.jsx";
-import { computeGameStats } from "../gameStats.js";
+import { computeGameStats, resolveRevealMs } from "../gameStats.js";
 import { recordPlaylistScore } from "../playlistBests.js";
 import { isFastTest, FAST_ROUND_LOG } from "../fastTest.js";
 import { useDebugActions } from "../debugRegistry.js";
@@ -174,7 +175,7 @@ export default function Game({ playlist, me, onExit, onReplay }) {
 
   function pushRoundResult({ won, artistClaimed }) {
     const wallMs =
-      won && roundStartedAt.current != null
+      roundStartedAt.current != null
         ? Date.now() - roundStartedAt.current
         : null;
     const t = track;
@@ -577,13 +578,21 @@ export default function Game({ playlist, me, onExit, onReplay }) {
               onScrubEnd={onVinylScrubEnd}
             />
 
-            {outcome === "win" && (
-              <div key={`badge-${roundIdx}`} className="inline-badge inline-badge--win">
-                NAILED IT
-              </div>
-            )}
-            {outcome === "lose" && (
-              <div className="inline-badge inline-badge--lose">MISSED</div>
+            {resolved && (
+              <RoundRevealStats
+                key={roundIdx}
+                won={outcome === "win"}
+                youWon={outcome === "win"}
+                wallMs={
+                  roundLog[roundIdx]?.wallMs ??
+                  resolveRevealMs({ startedAt: roundStartedAt.current })
+                }
+                pts={earnedPts}
+                bonus={!!bonus}
+                unlockedSec={unlocked}
+                artistClaimed={artistBonusTaken}
+                priorLog={roundLog.slice(0, roundIdx)}
+              />
             )}
 
             {errorMsg && !resolved && (
@@ -625,12 +634,6 @@ export default function Game({ playlist, me, onExit, onReplay }) {
                   <div className="reveal-text">
                     <span className="reveal-title">{displayTitle(track.name)}</span>
                     <span className="reveal-artist">{track.artists.join(", ")}</span>
-                    {outcome === "win" && (
-                      <span className="reveal-points">
-                        +{earnedPts} pts
-                        {bonus ? " · artist bonus!" : ""}
-                      </span>
-                    )}
                   </div>
                 </div>
                 <button className={`btn btn-big btn-play${revealNudge ? " is-nudging" : ""}`} onClick={nextRound}>
