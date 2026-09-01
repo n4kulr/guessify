@@ -3,6 +3,7 @@ import { isCorrect, matchesAnyArtist, isAlmost, isAlmostAnyArtist } from "../mat
 import { usePreviewPlayer } from "../usePreviewPlayer.js";
 import { fireConfetti, shakeEl } from "../fx.js";
 import GuessMedia from "./GuessMedia.jsx";
+import VinylDeck from "./VinylDeck.jsx";
 import GuessSuggest, { useGuessSuggest } from "./GuessSuggest.jsx";
 import GuessTransport from "./GuessTransport.jsx";
 import ShareScoreButton from "./ShareScoreButton.jsx";
@@ -1332,51 +1333,70 @@ export default function OnlineRace({ profile, onExit, raceMode: raceModeProp }) 
           <div className="loader cue-loader">cueing the record…</div>
         ) : (
           <>
-        <GuessMedia
-          mode="vinyl"
-          revealed={revealed}
-          spinning={spinning}
-          cover={track?.cover}
-          title={displayTitle(track?.name)}
-          artist={(track?.artists || []).join(", ")}
-          canControl={!!track && cueReady}
-          interactive={!!track && cueReady}
-          cueing={phase === "play" && !cueReady}
-          vinylTitle={cueReady ? "play / pause · drag to scrub" : undefined}
-          onTogglePlay={togglePlay}
-          onPrimeAudio={prime}
-          onScrubStart={stopAudio}
-        />
-        {errorMsg && <div className="error-banner">{errorMsg}</div>}
-
-        {revealed && (
-          <RoundRevealStats
-            key={roundIdx}
-            won={outcome === "win"}
-            youWon={!!(solveTimes && youId && solveTimes[youId] != null) || winnerId === youId}
-            winnerName={winnerId === youId ? null : winnerName}
-            timed={timed}
-            wallMs={resolveRevealMs({
-              solveTimes,
-              playerId: youId,
-              winnerId,
-              startedAt: roundStartedAt.current,
-            })}
-            pts={
-              timedPlaces?.find((p) => p.playerId === youId)?.titlePts ??
-              (winnerId === youId ? earnedPts : 0)
-            }
-            bonus={
-              artistClaimedBy === youId || !!artistByPlayer[youId]
-            }
-            unlockedSec={unlocked}
-            artistClaimed={
-              artistClaimedBy === youId || !!artistByPlayer[youId]
-            }
-            priorLog={roundLog.slice(0, roundIdx)}
-            places={timed && outcome === "win" ? timedPlaces : null}
+        <VinylDeck
+          open={revealed}
+          panel={
+            revealed && track ? (
+              <>
+                <RoundRevealStats
+                  key={roundIdx}
+                  youWon={
+                    !!(solveTimes && youId && solveTimes[youId] != null) ||
+                    winnerId === youId
+                  }
+                  wallMs={resolveRevealMs({
+                    solveTimes,
+                    playerId: youId,
+                    winnerId,
+                    startedAt: roundStartedAt.current,
+                  })}
+                />
+                <span className="vinyl-deck-title">
+                  {displayTitle(track.name)}
+                </span>
+                <span className="vinyl-deck-artist">
+                  {(track.artists || []).join(", ")}
+                </span>
+                <div className="media-stage-vote">
+                  <button
+                    type="button"
+                    className={`btn btn-play vinyl-deck-next media-stage-btn ${iVotedNext ? "is-voted" : ""}${
+                      revealNudge && !iVotedNext ? " is-nudging" : ""
+                    }`}
+                    onClick={voteNext}
+                    disabled={iVotedNext}
+                    aria-label={
+                      roundIdx + 1 >= rounds.length ? "Results" : "Next song"
+                    }
+                  >
+                    {roundIdx + 1 >= rounds.length ? "see results" : "next song"}
+                    <span className="vote-tally">
+                      {voteHave}/{voteNeed}
+                    </span>
+                    <span aria-hidden="true">→</span>
+                  </button>
+                </div>
+              </>
+            ) : null
+          }
+        >
+          <GuessMedia
+            mode="vinyl"
+            revealed={revealed}
+            spinning={spinning}
+            cover={track?.cover}
+            title={displayTitle(track?.name)}
+            artist={(track?.artists || []).join(", ")}
+            canControl={!!track && cueReady}
+            interactive={!!track && cueReady}
+            cueing={phase === "play" && !cueReady}
+            vinylTitle={cueReady ? "play / pause · drag to scrub" : undefined}
+            onTogglePlay={togglePlay}
+            onPrimeAudio={prime}
+            onScrubStart={stopAudio}
           />
-        )}
+        </VinylDeck>
+        {errorMsg && <div className="error-banner">{errorMsg}</div>}
 
         {phase === "play" && timed && (
           <TimedCountdown roundEndsAt={roundEndsAt} lockedIn={lockedIn} />
@@ -1504,42 +1524,6 @@ export default function OnlineRace({ profile, onExit, raceMode: raceModeProp }) 
           </div>
         )}
 
-        {revealed && track && (
-          <div className="inline-reveal">
-            <div className="reveal">
-              <div className="reveal-art">
-                {track.cover && (
-                  <img src={track.cover} alt="" className="reveal-cover" />
-                )}
-              </div>
-              <div className="reveal-text">
-                <span className="reveal-title">{displayTitle(track.name)}</span>
-                <span className="reveal-artist">
-                  {(track.artists || []).join(", ")}
-                </span>
-              </div>
-            </div>
-            <div className="media-stage-vote">
-              <button
-                type="button"
-                className={`btn btn-big btn-play media-stage-btn ${iVotedNext ? "is-voted" : ""}${
-                  revealNudge && !iVotedNext ? " is-nudging" : ""
-                }`}
-                onClick={voteNext}
-                disabled={iVotedNext}
-                aria-label={
-                  roundIdx + 1 >= rounds.length ? "Results" : "Next song"
-                }
-              >
-                <span className="btn-play-icon" aria-hidden="true" />
-                {roundIdx + 1 >= rounds.length ? "see results" : "next song"}
-                <span className="vote-tally">
-                  {voteHave}/{voteNeed}
-                </span>
-                <span aria-hidden="true">→</span>
-              </button>
-            </div>
-          </div>
         )}
           </>
         )}

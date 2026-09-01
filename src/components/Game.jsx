@@ -16,6 +16,7 @@ import { titleHintMask, displayTitle } from "../titleHint.js";
 import { useAutoTitleHint } from "../useAutoTitleHint.js";
 import { useRoundNudge } from "../useRoundNudge.js";
 import GuessMedia from "./GuessMedia.jsx";
+import VinylDeck from "./VinylDeck.jsx";
 import GuessSuggest, { useGuessSuggest } from "./GuessSuggest.jsx";
 import GuessTransport from "./GuessTransport.jsx";
 import ShareScoreButton from "./ShareScoreButton.jsx";
@@ -554,46 +555,61 @@ export default function Game({ playlist, me, onExit, onReplay }) {
               unlockByPlayer={{ [YOU_ID]: guessNum }}
             />
 
-            <GuessMedia
-              mode="vinyl"
-              revealed={resolved}
-              spinning={spinning}
-              celebrate={celebrate}
-              cover={track.cover}
-              title={displayTitle(track.name)}
-              artist={(track.artists || []).join(", ")}
-              canControl={canControl && cueReady}
-              interactive={canControl && cueReady}
-              cueing={!cueReady}
-              vinylTitle={
-                canControl && cueReady
-                  ? playing
-                    ? "click to pause · drag to scrub"
-                    : "click to play · drag to scrub"
-                  : undefined
+            <VinylDeck
+              open={resolved}
+              panel={
+                resolved ? (
+                  <>
+                    <RoundRevealStats
+                      key={roundIdx}
+                      youWon={outcome === "win"}
+                      wallMs={
+                        roundLog[roundIdx]?.wallMs ??
+                        resolveRevealMs({ startedAt: roundStartedAt.current })
+                      }
+                    />
+                    <span className="vinyl-deck-title">
+                      {displayTitle(track.name)}
+                    </span>
+                    <span className="vinyl-deck-artist">
+                      {track.artists.join(", ")}
+                    </span>
+                    <button
+                      className={`btn btn-play vinyl-deck-next${revealNudge ? " is-nudging" : ""}`}
+                      onClick={nextRound}
+                    >
+                      {roundIdx + 1 >= rounds.length
+                        ? "see results →"
+                        : "next song →"}
+                    </button>
+                  </>
+                ) : null
               }
-              onTogglePlay={togglePlay}
-              onPrimeAudio={prime}
-              onScrubStart={onVinylScrubStart}
-              onScrubEnd={onVinylScrubEnd}
-            />
-
-            {resolved && (
-              <RoundRevealStats
-                key={roundIdx}
-                won={outcome === "win"}
-                youWon={outcome === "win"}
-                wallMs={
-                  roundLog[roundIdx]?.wallMs ??
-                  resolveRevealMs({ startedAt: roundStartedAt.current })
+            >
+              <GuessMedia
+                mode="vinyl"
+                revealed={resolved}
+                spinning={spinning}
+                celebrate={celebrate}
+                cover={track.cover}
+                title={displayTitle(track.name)}
+                artist={(track.artists || []).join(", ")}
+                canControl={canControl && cueReady}
+                interactive={canControl && cueReady}
+                cueing={!cueReady}
+                vinylTitle={
+                  canControl && cueReady
+                    ? playing
+                      ? "click to pause · drag to scrub"
+                      : "click to play · drag to scrub"
+                    : undefined
                 }
-                pts={earnedPts}
-                bonus={!!bonus}
-                unlockedSec={unlocked}
-                artistClaimed={artistBonusTaken}
-                priorLog={roundLog.slice(0, roundIdx)}
+                onTogglePlay={togglePlay}
+                onPrimeAudio={prime}
+                onScrubStart={onVinylScrubStart}
+                onScrubEnd={onVinylScrubEnd}
               />
-            )}
+            </VinylDeck>
 
             {errorMsg && !resolved && (
               <div className="error-banner">{errorMsg}</div>
@@ -625,23 +641,7 @@ export default function Game({ playlist, me, onExit, onReplay }) {
               </div>
             </div>
 
-            {resolved ? (
-              <div className={`inline-reveal ${outcome}`}>
-                <div className="reveal">
-                  <div className="reveal-art">
-                    {track.cover && <img src={track.cover} alt="" className="reveal-cover" />}
-                  </div>
-                  <div className="reveal-text">
-                    <span className="reveal-title">{displayTitle(track.name)}</span>
-                    <span className="reveal-artist">{track.artists.join(", ")}</span>
-                  </div>
-                </div>
-                <button className={`btn btn-big btn-play${revealNudge ? " is-nudging" : ""}`} onClick={nextRound}>
-                  <span className="btn-play-icon" aria-hidden="true" />
-                  {roundIdx + 1 >= rounds.length ? "see results →" : "next song →"}
-                </button>
-              </div>
-            ) : (
+            {!resolved && (
               <div className="guess-input-wrap">
                 <div className="guess-fields">
                   <div className="guess-title-row">

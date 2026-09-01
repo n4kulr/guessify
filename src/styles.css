@@ -3362,6 +3362,122 @@ button.footer-privacy:hover {
   z-index: 2;
 }
 
+/* Disc stays a circle. The box is only the panel, tucking under the right half. */
+.vinyl-deck {
+  --disc: 240px;
+  --box: 156px;
+  --tuck: calc(var(--disc) * -0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: var(--disc);
+  margin: 18px auto 28px;
+  overflow: visible;
+}
+.vinyl-deck-well {
+  position: relative;
+  width: var(--disc);
+  height: var(--disc);
+  flex: none;
+  display: grid;
+  place-items: center;
+  z-index: 2;
+}
+.vinyl-deck-well .turntable,
+.vinyl-deck-well .turntable--game,
+.vinyl-deck-well .turntable--md {
+  width: var(--disc);
+  height: var(--disc);
+  margin: 0;
+}
+.vinyl-deck-panel {
+  position: relative;
+  z-index: 1;
+  width: 0;
+  max-width: 0;
+  opacity: 0;
+  overflow: hidden;
+  pointer-events: none;
+  height: var(--box);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 4px;
+  padding: 8px 0;
+  margin-left: 0;
+  border-radius: 16px;
+  background: transparent;
+  transform: translateX(-8px);
+  transition:
+    width 0.55s cubic-bezier(0.22, 1, 0.36, 1),
+    max-width 0.55s cubic-bezier(0.22, 1, 0.36, 1),
+    opacity 0.35s ease 0.1s,
+    transform 0.55s cubic-bezier(0.22, 1, 0.36, 1),
+    margin 0.55s cubic-bezier(0.22, 1, 0.36, 1),
+    padding 0.55s cubic-bezier(0.22, 1, 0.36, 1),
+    background 0.35s ease,
+    box-shadow 0.45s ease;
+}
+.vinyl-deck.is-open .vinyl-deck-panel {
+  width: 268px;
+  max-width: 268px;
+  opacity: 1;
+  pointer-events: auto;
+  margin-left: var(--tuck);
+  padding: 8px 16px 8px calc(var(--disc) * 0.42 + 12px);
+  background: var(--bg-color);
+  box-shadow:
+    inset 0 1px 0 color-mix(in srgb, var(--text-color) 8%, transparent),
+    0 16px 40px color-mix(in srgb, #000 40%, transparent);
+  transform: translateX(0);
+}
+.vinyl-deck-panel .reveal-clock {
+  width: auto;
+  margin: 0;
+  align-items: flex-start;
+  gap: 0;
+}
+.vinyl-deck-panel .reveal-clock-time { font-size: 28px; }
+.vinyl-deck-panel .reveal-clock-miss { font-size: 18px; }
+.vinyl-deck-title {
+  font-size: 15px;
+  font-weight: 600;
+  line-height: 1.2;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.vinyl-deck-artist {
+  font-size: 13px;
+  color: var(--sub-color);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.vinyl-deck-next {
+  align-self: flex-start;
+  margin-top: 6px;
+  padding: 8px 14px;
+  font-size: 13px;
+  min-height: 36px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+.vinyl-deck-panel .media-stage-vote {
+  justify-content: flex-start;
+  margin-top: 2px;
+}
+@media (max-width: 560px) {
+  .vinyl-deck { --disc: 160px; --box: 118px; margin: 12px auto 20px; }
+  .vinyl-deck.is-open .vinyl-deck-panel { width: 196px; max-width: 196px; }
+  .vinyl-deck-panel .reveal-clock-time { font-size: 20px; }
+  .vinyl-deck-next { padding: 7px 10px; font-size: 12px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .vinyl-deck-panel { transition: none; }
+}
+
 .progress { margin: 6px 0 20px; }
 .progress-track { position: relative; height: 12px; background: var(--bg-color); border-radius: 8px; overflow: hidden; }
 .progress-fill { height: 100%; background: var(--main-color); transition: width 0.35s ease; }
@@ -3762,7 +3878,7 @@ button.footer-privacy:hover {
 }
 .guess-transport-switch.is-nudging,
 .btn-skip-wrap.is-nudging .btn-skip,
-.inline-reveal .btn-play.is-nudging,
+.vinyl-deck-next.is-nudging,
 .media-stage-vote .btn-play.is-nudging {
   outline: 2px solid transparent;
   outline-offset: 3px;
@@ -3771,7 +3887,7 @@ button.footer-privacy:hover {
 @media (prefers-reduced-motion: reduce) {
   .guess-transport-switch.is-nudging,
   .btn-skip-wrap.is-nudging .btn-skip,
-  .inline-reveal .btn-play.is-nudging,
+  .vinyl-deck-next.is-nudging,
   .media-stage-vote .btn-play.is-nudging {
     animation: none;
     outline-color: var(--main-color);
@@ -3920,12 +4036,6 @@ button.footer-privacy:hover {
   margin: -6px auto 16px;
   animation: badge-pop 0.55s cubic-bezier(0.2, 1.4, 0.4, 1) both;
 }
-.reveal-clock-row {
-  display: flex;
-  align-items: baseline;
-  justify-content: center;
-  gap: 12px;
-}
 .reveal-clock-time {
   font-family: "IBM Plex Mono", ui-monospace, monospace;
   font-size: clamp(28px, 9vw, 42px);
@@ -3935,51 +4045,12 @@ button.footer-privacy:hover {
   line-height: 1;
 }
 .reveal-clock--win .reveal-clock-time { color: #3ecf8e; }
-.reveal-clock-pts {
-  font-size: 18px;
-  font-weight: 600;
-  font-variant-numeric: tabular-nums;
-  color: var(--text-color);
-}
 .reveal-clock-miss {
   font-size: clamp(18px, 4.5vw, 22px);
   font-weight: 700;
   color: var(--error-color);
   letter-spacing: 0;
   text-transform: none;
-}
-.reveal-clock-caption {
-  font-size: 12px;
-  font-weight: 800;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-  color: var(--sub-color);
-}
-.reveal-clock-chips {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
-  gap: 4px 12px;
-  margin-top: 4px;
-  font-size: 13px;
-  font-variant-numeric: tabular-nums;
-  color: var(--text-color);
-}
-.reveal-clock-chips b {
-  color: var(--main-color);
-  font-weight: 700;
-}
-.reveal-clock--lose .reveal-clock-chips b {
-  color: var(--text-color);
-}
-.reveal-clock .timed-places {
-  width: min(100%, 320px);
-  margin-top: 10px;
-  text-align: left;
-}
-.reveal-clock .timed-places-meta {
-  font-family: "IBM Plex Mono", ui-monospace, monospace;
-  font-size: 12px;
 }
 @media (prefers-reduced-motion: reduce) {
   .inline-badge,
@@ -4019,45 +4090,6 @@ button.footer-privacy:hover {
   0% { transform: scale(0.82) rotate(-18deg); }
   100% { transform: scale(1) rotate(0deg); }
 }
-
-.inline-reveal {
-  display: flex;
-  flex-direction: column;
-  align-items: stretch;
-  gap: 18px;
-  animation: reveal-up 0.4s ease-out both;
-  text-align: center;
-  margin-top: 4px;
-}
-.inline-reveal .reveal {
-  margin-bottom: 0;
-  width: 100%;
-  box-sizing: border-box;
-}
-.inline-reveal > .btn,
-.inline-reveal .media-stage-vote {
-  align-self: center;
-  margin: 0;
-}
-.inline-reveal .media-stage-vote {
-  width: auto;
-}
-@keyframes reveal-up {
-  0% { opacity: 0; transform: translateY(14px); }
-  100% { opacity: 1; transform: translateY(0); }
-}
-
-/* result (legacy bits still used by inline reveal) */
-.reveal {
-  display: flex; align-items: center; gap: 16px; text-align: left;
-  background: var(--bg-color); border-radius: 12px; padding: 16px; margin-bottom: 22px;
-}
-.reveal-art { width: 64px; height: 64px; flex: none; }
-.reveal-cover { width: 64px; height: 64px; object-fit: cover; border-radius: 8px; display: block; }
-.reveal-text { display: flex; flex-direction: column; gap: 4px; }
-.reveal-title { font-weight: 600; font-size: 16px; }
-.reveal-artist { font-size: 13px; color: var(--sub-color); }
-.reveal-points { font-size: 13px; color: var(--main-color); font-weight: 600; margin-top: 4px; }
 
 .gameover { text-align: center; }
 .gameover-actions { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; margin-top: 22px; }

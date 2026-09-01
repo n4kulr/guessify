@@ -6,6 +6,7 @@ import { STEPS, TOTAL, MAX_GUESSES, randomAvatar, normalizeAvatar, unlockSeconds
 import { accentMatchingTheme } from "../themes.js";
 import { fireConfetti, shakeEl } from "../fx.js";
 import GuessMedia from "../components/GuessMedia.jsx";
+import VinylDeck from "../components/VinylDeck.jsx";
 import GuessSuggest, { useGuessSuggest } from "../components/GuessSuggest.jsx";
 import GuessTransport from "../components/GuessTransport.jsx";
 import ShareScoreButton from "../components/ShareScoreButton.jsx";
@@ -572,60 +573,77 @@ export default function GuestApp({ code }) {
           <div className="loader cue-loader">cueing the record…</div>
         ) : (
           <>
-        <GuessMedia
-          mode="vinyl"
-          revealed={revealed}
-          spinning={spinning}
-          cover={track?.cover}
-          title={displayTitle(track?.name)}
-          artist={(track?.artists || []).join(", ")}
-          canControl={canPlay && cueReady}
-          interactive={canPlay && cueReady}
-          cueing={state?.phase === "play" && !cueReady}
-          vinylTitle={canPlay && cueReady ? "play / pause · drag to scrub" : undefined}
-          onTogglePlay={togglePlay}
-          onPrimeAudio={prime}
-          onScrubStart={stopAudio}
-        />
-        {errorMsg && <div className="error-banner">{errorMsg}</div>}
-
-        {revealed && (
-          <RoundRevealStats
-            key={state.roundIdx}
-            won={state.outcome === "win"}
-            youWon={
-              !!(playerId && state.solveTimes?.[playerId] != null) ||
-              state.winnerId === playerId
-            }
-            winnerName={
-              state.winnerId === playerId
-                ? null
-                : state.players.find((p) => p.id === state.winnerId)?.name || null
-            }
-            timed={timed}
-            wallMs={resolveRevealMs({
-              solveTimes: state.solveTimes,
-              playerId,
-              winnerId: state.winnerId,
-              startedAt: roundStartedAt.current,
-            })}
-            pts={
-              state.timedPlaces?.find((p) => p.playerId === playerId)?.titlePts ??
-              (state.winnerId === playerId ? state.earnedPts : 0)
-            }
-            bonus={
-              state.artistClaimedBy === playerId ||
-              !!state.artistByPlayer?.[playerId]
-            }
-            unlockedSec={unlocked}
-            artistClaimed={
-              state.artistClaimedBy === playerId ||
-              !!state.artistByPlayer?.[playerId]
-            }
-            priorLog={roundLog.slice(0, state.roundIdx ?? 0)}
-            places={timed && state.outcome === "win" ? state.timedPlaces : null}
+        <VinylDeck
+          open={revealed}
+          panel={
+            revealed && track ? (
+              <>
+                <RoundRevealStats
+                  key={state.roundIdx}
+                  youWon={
+                    !!(playerId && state.solveTimes?.[playerId] != null) ||
+                    state.winnerId === playerId
+                  }
+                  wallMs={resolveRevealMs({
+                    solveTimes: state.solveTimes,
+                    playerId,
+                    winnerId: state.winnerId,
+                    startedAt: roundStartedAt.current,
+                  })}
+                />
+                <span className="vinyl-deck-title">
+                  {displayTitle(track.name)}
+                </span>
+                <span className="vinyl-deck-artist">
+                  {(track.artists || []).join(", ")}
+                </span>
+                <div className="media-stage-vote">
+                  <button
+                    type="button"
+                    className={`btn btn-play vinyl-deck-next media-stage-btn ${
+                      playerId && (state.nextVotes || []).includes(playerId) ? "is-voted" : ""
+                    }${revealNudge && !(playerId && (state.nextVotes || []).includes(playerId)) ? " is-nudging" : ""}`}
+                    onClick={(e) => {
+                      if (playerId && (state.nextVotes || []).includes(playerId)) return;
+                      stopAudio();
+                      send({ type: "next" });
+                      e.currentTarget.blur();
+                    }}
+                    disabled={!!(playerId && (state.nextVotes || []).includes(playerId))}
+                    aria-label={
+                      state.roundIdx + 1 >= state.roundCount ? "Results" : "Next song"
+                    }
+                  >
+                    {state.roundIdx + 1 >= state.roundCount ? "see results" : "next song"}
+                    <span className="vote-tally">
+                      {(state.nextVotes || []).length}/
+                      {state.nextVotesNeeded ??
+                        nextVotesNeeded(activePlayerCount(state.players))}
+                    </span>
+                    <span aria-hidden="true">→</span>
+                  </button>
+                </div>
+              </>
+            ) : null
+          }
+        >
+          <GuessMedia
+            mode="vinyl"
+            revealed={revealed}
+            spinning={spinning}
+            cover={track?.cover}
+            title={displayTitle(track?.name)}
+            artist={(track?.artists || []).join(", ")}
+            canControl={canPlay && cueReady}
+            interactive={canPlay && cueReady}
+            cueing={state?.phase === "play" && !cueReady}
+            vinylTitle={canPlay && cueReady ? "play / pause · drag to scrub" : undefined}
+            onTogglePlay={togglePlay}
+            onPrimeAudio={prime}
+            onScrubStart={stopAudio}
           />
-        )}
+        </VinylDeck>
+        {errorMsg && <div className="error-banner">{errorMsg}</div>}
 
         {state.phase === "play" && timed && (
           <TimedCountdown
@@ -748,45 +766,6 @@ export default function GuestApp({ code }) {
           </div>
         )}
 
-        {revealed && track && (
-          <div className="inline-reveal">
-            <div className="reveal">
-              <div className="reveal-art">
-                {track.cover && <img src={track.cover} alt="" className="reveal-cover" />}
-              </div>
-              <div className="reveal-text">
-                <span className="reveal-title">{displayTitle(track.name)}</span>
-                <span className="reveal-artist">{(track.artists || []).join(", ")}</span>
-              </div>
-            </div>
-          <div className="media-stage-vote">
-            <button
-              type="button"
-              className={`btn btn-big btn-play media-stage-btn ${
-                playerId && (state.nextVotes || []).includes(playerId) ? "is-voted" : ""
-              }${revealNudge && !(playerId && (state.nextVotes || []).includes(playerId)) ? " is-nudging" : ""}`}
-              onClick={(e) => {
-                  if (playerId && (state.nextVotes || []).includes(playerId)) return;
-                  stopAudio();
-                  send({ type: "next" });
-                  e.currentTarget.blur();
-                }}
-                disabled={!!(playerId && (state.nextVotes || []).includes(playerId))}
-                aria-label={
-                  state.roundIdx + 1 >= state.roundCount ? "Results" : "Next song"
-                }
-              >
-                <span className="btn-play-icon" aria-hidden="true" />
-                {state.roundIdx + 1 >= state.roundCount ? "see results" : "next song"}
-                <span className="vote-tally">
-                  {(state.nextVotes || []).length}/
-                  {state.nextVotesNeeded ??
-                    nextVotesNeeded(activePlayerCount(state.players))}
-                </span>
-                <span aria-hidden="true">→</span>
-              </button>
-            </div>
-          </div>
         )}
           </>
         )}
