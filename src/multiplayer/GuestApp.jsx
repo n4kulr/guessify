@@ -287,12 +287,11 @@ export default function GuestApp({ code }) {
 
   const revealed = state?.phase === "reveal";
   const myStep = state?.unlockByPlayer?.[playerId] ?? 0;
-  const { playNudge, skipNudge, revealNudge } = useRoundNudge({
+  const { playNudge, skipNudge } = useRoundNudge({
     active: state?.phase === "play" && !lockedIn,
     playing: localPlaying,
     skipCount: myStep,
     resetKey: state?.roundIdx,
-    revealed,
   });
   let skipWrapClass = "btn-skip-wrap";
   if (skipNudge) skipWrapClass += " is-nudging";
@@ -602,7 +601,7 @@ export default function GuestApp({ code }) {
                     type="button"
                     className={`btn btn-play vinyl-deck-next media-stage-btn ${
                       playerId && (state.nextVotes || []).includes(playerId) ? "is-voted" : ""
-                    }${revealNudge && !(playerId && (state.nextVotes || []).includes(playerId)) ? " is-nudging" : ""}`}
+                    }`}
                     onClick={(e) => {
                       if (playerId && (state.nextVotes || []).includes(playerId)) return;
                       stopAudio();
@@ -656,7 +655,7 @@ export default function GuestApp({ code }) {
           <div className="progress-track">
             <div
               className="progress-fill"
-              style={{ width: `${((revealed ? TOTAL : unlocked) / TOTAL) * 100}%` }}
+              style={{ width: `${(unlocked / TOTAL) * 100}%` }}
             />
             {STEPS.map((s) => (
               <span key={s} className="progress-tick" style={{ left: `${(s / TOTAL) * 100}%` }} />
@@ -664,7 +663,7 @@ export default function GuestApp({ code }) {
           </div>
           <div className="progress-labels">
             <span>0:00</span>
-            <span>{revealed ? "revealed" : `${unlocked}s unlocked`}</span>
+            <span>{unlocked}s unlocked</span>
           </div>
         </div>
 

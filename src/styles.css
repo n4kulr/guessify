@@ -3057,7 +3057,7 @@ button.footer-privacy:hover {
 .record-loading { position: absolute; bottom: 6px; right: 12px; font-size: 11px; }
 
 /* ---------------- game ---------------- */
-.game { width: min(560px, 100%); background: var(--sub-alt-color); border-radius: 18px; padding: 26px; }
+.game { --game-pad: 26px; width: min(560px, 100%); background: var(--sub-alt-color); border-radius: 18px; padding: var(--game-pad); overflow: visible; }
 .game.is-shaking,
 .btn-skip-wrap.is-shaking,
 .guess-title-field.is-shaking,
@@ -3354,13 +3354,6 @@ button.footer-privacy:hover {
   height: 52%;
   z-index: 4;
 }
-.turntable--md .vinyl-cover {
-  width: 34%;
-  height: 34%;
-  border-radius: 50%;
-  object-fit: cover;
-  z-index: 2;
-}
 
 /* Disc stays a circle. The box is only the panel, tucking under the right half.
    Open width matches the progress bar (100% of the game column). */
@@ -3402,7 +3395,7 @@ button.footer-privacy:hover {
   overflow: hidden;
   pointer-events: none;
   flex: none;
-  height: var(--box);
+  height: 0;
   display: flex;
   flex-direction: column;
   justify-content: center;
@@ -3430,6 +3423,7 @@ button.footer-privacy:hover {
   max-width: calc(100% - var(--disc) * 0.5);
   opacity: 1;
   pointer-events: auto;
+  height: var(--box);
   margin-left: var(--tuck);
   padding: 16px var(--gutter) 16px calc(var(--disc) * 0.5 + var(--gutter));
   background: var(--bg-color);
@@ -3479,9 +3473,28 @@ button.footer-privacy:hover {
   margin-top: 2px;
 }
 @media (max-width: 560px) {
-  .vinyl-deck { --disc: 160px; --box: 148px; --gutter: 12px; margin: 12px auto 20px; }
-  .vinyl-deck-panel .reveal-clock-time { font-size: 20px; }
-  .vinyl-deck-next { padding: 7px 10px; font-size: 12px; }
+  html { overflow-x: hidden; }
+  .vinyl-deck {
+    --disc: 160px;
+    --box: 148px;
+    --gutter: 12px;
+    margin: 12px auto 20px;
+  }
+  .vinyl-deck.is-open {
+    justify-content: flex-start;
+    margin-left: calc(var(--disc) * -0.5 - var(--game-pad, 18px));
+    margin-right: 0;
+    width: calc(100% + var(--disc) * 0.5 + var(--game-pad, 18px));
+  }
+  .vinyl-deck-title,
+  .vinyl-deck-artist {
+    white-space: normal;
+    overflow: visible;
+    text-overflow: unset;
+  }
+  .vinyl-deck-panel .reveal-clock-time { font-size: 22px; }
+  .vinyl-deck-panel .reveal-clock-miss { font-size: 16px; }
+  .vinyl-deck-next { padding: 8px 12px; font-size: 13px; }
 }
 @media (prefers-reduced-motion: reduce) {
   .vinyl-deck-panel { transition: none; }
@@ -3886,18 +3899,14 @@ button.footer-privacy:hover {
   }
 }
 .guess-transport-switch.is-nudging,
-.btn-skip-wrap.is-nudging .btn-skip,
-.vinyl-deck-next.is-nudging,
-.media-stage-vote .btn-play.is-nudging {
+.btn-skip-wrap.is-nudging .btn-skip {
   outline: 2px solid transparent;
   outline-offset: 3px;
   animation: round-nudge-pulse 1.15s ease-in-out infinite;
 }
 @media (prefers-reduced-motion: reduce) {
   .guess-transport-switch.is-nudging,
-  .btn-skip-wrap.is-nudging .btn-skip,
-  .vinyl-deck-next.is-nudging,
-  .media-stage-vote .btn-play.is-nudging {
+  .btn-skip-wrap.is-nudging .btn-skip {
     animation: none;
     outline-color: var(--main-color);
   }
@@ -5765,7 +5774,7 @@ button.footer-privacy:hover {
 @media (max-width: 520px) {
   .topbar { padding: 14px 16px; flex-wrap: nowrap; }
   .theme-btn { max-width: min(120px, 28vw); padding: 0 10px; }
-  .game { padding: 18px; }
+  .game { --game-pad: 18px; }
   .guess-fields { flex-direction: column; }
   .hero-left { padding-right: 80px; }
   .hero-right { width: min(320px, 92vw); }

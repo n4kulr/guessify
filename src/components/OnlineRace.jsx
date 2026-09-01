@@ -330,12 +330,11 @@ export default function OnlineRace({ profile, onExit, raceMode: raceModeProp }) 
   const voteHave = Object.keys(nextVotes).length;
   const iVotedNext = !!nextVotes[youId];
   const lockedIn = lockedInIds.includes(youId);
-  const { playNudge, skipNudge, revealNudge } = useRoundNudge({
+  const { playNudge, skipNudge } = useRoundNudge({
     active: phase === "play" && !lockedIn,
     playing: localPlaying,
     skipCount: myStep,
     resetKey: roundIdx,
-    revealed,
   });
   let skipWrapClass = "btn-skip-wrap";
   if (skipNudge) skipWrapClass += " is-nudging";
@@ -1360,9 +1359,7 @@ export default function OnlineRace({ profile, onExit, raceMode: raceModeProp }) 
                 <div className="media-stage-vote">
                   <button
                     type="button"
-                    className={`btn btn-play vinyl-deck-next media-stage-btn ${iVotedNext ? "is-voted" : ""}${
-                      revealNudge && !iVotedNext ? " is-nudging" : ""
-                    }`}
+                    className={`btn btn-play vinyl-deck-next media-stage-btn ${iVotedNext ? "is-voted" : ""}`}
                     onClick={voteNext}
                     disabled={iVotedNext}
                     aria-label={
@@ -1406,7 +1403,7 @@ export default function OnlineRace({ profile, onExit, raceMode: raceModeProp }) 
           <div className="progress-track">
             <div
               className="progress-fill"
-              style={{ width: `${((revealed ? TOTAL : unlocked) / TOTAL) * 100}%` }}
+              style={{ width: `${(unlocked / TOTAL) * 100}%` }}
             />
             {STEPS.map((s) => (
               <span
@@ -1418,11 +1415,7 @@ export default function OnlineRace({ profile, onExit, raceMode: raceModeProp }) 
           </div>
           <div className="progress-labels">
             <span>0:00</span>
-            <span>
-              {revealed
-                ? "revealed"
-                : `${unlocked}s unlocked`}
-            </span>
+            <span>{unlocked}s unlocked</span>
           </div>
         </div>
 

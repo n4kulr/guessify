@@ -6,19 +6,16 @@ import { roundNudgeWaitMs } from "./skipNudge.js";
  * Pulses per round:
  * - Play switch after 3s idle
  * - Skip after 15s of hearing with no skip
- * - Next song after 4s un-advanced on reveal screen
- * Play, skip, and reveal nudge independently. No label — CSS pulse only.
+ * Play and skip nudge independently. No label — CSS pulse only.
  */
 export function useRoundNudge({
   active,
   playing,
   skipCount,
   resetKey,
-  revealed = false,
 }) {
   const [playNudge, setPlayNudge] = useState(false);
   const [skipNudge, setSkipNudge] = useState(false);
-  const [revealNudge, setRevealNudge] = useState(false);
   const [heard, setHeard] = useState(false);
   const [armedKey, setArmedKey] = useState(resetKey);
   const playUsedRef = useRef(false);
@@ -29,7 +26,6 @@ export function useRoundNudge({
     setHeard(false);
     setPlayNudge(false);
     setSkipNudge(false);
-    setRevealNudge(false);
     playUsedRef.current = false;
     skipUsedRef.current = false;
   }
@@ -80,16 +76,5 @@ export function useRoundNudge({
     return () => window.clearTimeout(timer);
   }, [active, heard, skipCount, resetKey]);
 
-  useEffect(() => {
-    if (!revealed) {
-      setRevealNudge(false);
-      return undefined;
-    }
-    const timer = window.setTimeout(() => {
-      setRevealNudge(true);
-    }, roundNudgeWaitMs("reveal", isFastTest()));
-    return () => window.clearTimeout(timer);
-  }, [revealed, resetKey]);
-
-  return { playNudge, skipNudge, revealNudge };
+  return { playNudge, skipNudge };
 }

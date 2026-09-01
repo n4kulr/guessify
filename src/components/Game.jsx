@@ -113,12 +113,11 @@ export default function Game({ playlist, me, onExit, onReplay }) {
   const track = rounds[roundIdx];
   const unlocked = STEPS[Math.min(guessNum, MAX_GUESSES - 1)];
   const resolved = outcome !== null;
-  const { playNudge, skipNudge, revealNudge } = useRoundNudge({
+  const { playNudge, skipNudge } = useRoundNudge({
     active: phase === "play" && !resolved,
     playing,
     skipCount: guessNum,
     resetKey: roundIdx,
-    revealed: resolved,
   });
   let skipWrapClass = "btn-skip-wrap";
   if (skipNudge) skipWrapClass += " is-nudging";
@@ -575,7 +574,7 @@ export default function Game({ playlist, me, onExit, onReplay }) {
                       {track.artists.join(", ")}
                     </span>
                     <button
-                      className={`btn btn-play vinyl-deck-next${revealNudge ? " is-nudging" : ""}`}
+                      className="btn btn-play vinyl-deck-next"
                       onClick={nextRound}
                     >
                       {roundIdx + 1 >= rounds.length
@@ -620,7 +619,7 @@ export default function Game({ playlist, me, onExit, onReplay }) {
                 <div
                   className="progress-fill"
                   style={{
-                    width: `${((resolved ? TOTAL : unlocked) / TOTAL) * 100}%`,
+                    width: `${(unlocked / TOTAL) * 100}%`,
                   }}
                 />
                 {STEPS.map((s) => (
@@ -633,11 +632,7 @@ export default function Game({ playlist, me, onExit, onReplay }) {
               </div>
               <div className="progress-labels">
                 <span>0:00</span>
-                <span>
-                  {resolved
-                    ? "revealed"
-                    : `${unlocked}s unlocked`}
-                </span>
+                <span>{unlocked}s unlocked</span>
               </div>
             </div>
 
