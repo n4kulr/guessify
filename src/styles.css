@@ -567,15 +567,26 @@ button.footer-privacy:hover {
   border-radius: var(--radius);
   padding: 6px;
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.35);
+}
+/* Thin overlay scrollbar — theme menu + every dropdown list. */
+.theme-menu,
+.guess-suggest,
+.profile-peep-grid {
   scrollbar-width: thin;
   scrollbar-color: color-mix(in srgb, var(--text-color) 28%, transparent) transparent;
 }
-.theme-menu::-webkit-scrollbar { width: 6px; }
-.theme-menu::-webkit-scrollbar-thumb {
+.theme-menu::-webkit-scrollbar,
+.guess-suggest::-webkit-scrollbar,
+.profile-peep-grid::-webkit-scrollbar { width: 6px; }
+.theme-menu::-webkit-scrollbar-thumb,
+.guess-suggest::-webkit-scrollbar-thumb,
+.profile-peep-grid::-webkit-scrollbar-thumb {
   background: color-mix(in srgb, var(--text-color) 25%, transparent);
   border-radius: 99px;
 }
-.theme-menu::-webkit-scrollbar-track { background: transparent; }
+.theme-menu::-webkit-scrollbar-track,
+.guess-suggest::-webkit-scrollbar-track,
+.profile-peep-grid::-webkit-scrollbar-track { background: transparent; }
 .theme-option {
   display: flex; align-items: center; gap: 10px; width: 100%; text-align: left;
   font-size: 13px; color: var(--sub-color);
@@ -3909,6 +3920,12 @@ button.footer-privacy:hover {
   margin: -6px auto 16px;
   animation: badge-pop 0.55s cubic-bezier(0.2, 1.4, 0.4, 1) both;
 }
+.reveal-clock-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: center;
+  gap: 12px;
+}
 .reveal-clock-time {
   font-family: "IBM Plex Mono", ui-monospace, monospace;
   font-size: clamp(28px, 9vw, 42px);
@@ -3917,8 +3934,20 @@ button.footer-privacy:hover {
   letter-spacing: -0.04em;
   line-height: 1;
 }
-.reveal-clock--win .reveal-clock-time { color: var(--main-color); }
-.reveal-clock--lose .reveal-clock-time { color: var(--error-color); }
+.reveal-clock--win .reveal-clock-time { color: #3ecf8e; }
+.reveal-clock-pts {
+  font-size: 18px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-color);
+}
+.reveal-clock-miss {
+  font-size: clamp(18px, 4.5vw, 22px);
+  font-weight: 700;
+  color: var(--error-color);
+  letter-spacing: 0;
+  text-transform: none;
+}
 .reveal-clock-caption {
   font-size: 12px;
   font-weight: 800;
@@ -5336,9 +5365,7 @@ button.footer-privacy:hover {
   overflow-x: hidden;
   overflow-y: auto;
   overscroll-behavior: contain;
-  scrollbar-width: thin;
   scrollbar-gutter: stable;
-  scrollbar-color: color-mix(in srgb, var(--text-color) 28%, transparent) transparent;
 }
 .profile-peep-grid--fit {
   max-height: none;
@@ -5346,12 +5373,6 @@ button.footer-privacy:hover {
   scrollbar-gutter: auto;
   padding: 4px;
 }
-.profile-peep-grid::-webkit-scrollbar { width: 8px; }
-.profile-peep-grid::-webkit-scrollbar-thumb {
-  background: color-mix(in srgb, var(--text-color) 25%, transparent);
-  border-radius: 99px;
-}
-.profile-peep-grid::-webkit-scrollbar-track { background: transparent; }
 .profile-peep-swatch {
   width: 100%;
   min-width: 0;
