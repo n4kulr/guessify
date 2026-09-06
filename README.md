@@ -27,7 +27,7 @@ When the round ends you hear the full preview, see the cover, and move on (solo 
 - Logged-out visitors can also browse the site owner’s shared playlists when that’s configured.
 - Your score is local. **Play again** rematches the same playlist; or pick another from the picker.
 - If a track has no preview, Guessify silently swaps in a spare from the pool and keeps the same round.
-- Wrap screen: spinning vinyl, score line, stats + solve chart, share / play again / pick another playlist.
+- Wrap screen: score beside the vinyl, fastest-song cover, chips, replay, share / play again / pick another playlist.
 
 ### Host a party
 - Host picks the playlist/chart, gets a **6-character room code + QR** (`/join/CODE`).
@@ -36,13 +36,13 @@ When the round ends you hear the full preview, see the cover, and move on (solo 
 - **Each device plays its own audio** (no shared DJ). Skip unlocks more audio for you only.
 - First correct **title** wins the round. Guess popups show everyone’s tries; locked artists stay green.
 - Everyone votes before the next song.
-- Wrap matches solo (vinyl + score + ranking rail + combined solve chart).
+- Wrap matches solo (score + fastest song + ranking rail).
 - Powered by a Cloudflare Worker + Durable Objects (PartyServer).
 
 ### Play online (quick play)
 - Instant race on a random Last.fm chart pack (pop, hip-hop, R&B, decades, etc.).
 - Same guess / skip / hint / vote loop as a party, with a live player rail and distinct opponent colors.
-- Matchmaking runs in the browser (no room code); opponents are local stand-ins so you can always race.
+- Matchmaking runs in the browser (no room code); opponents are local stand-ins so you can always race. The home button does not show a live player count.
 - Wrap uses the same board card + vinyl layout as solo/party.
 
 ### Join with a code
@@ -63,8 +63,8 @@ When the round ends you hear the full preview, see the cover, and move on (solo 
 
 ### Skip & hint
 - **Skip** → more audio; red **−40** pops above the skip button only (cuts this round’s title).
-- **Hint** (after 3 skips, at the 11s step) → masked placeholder like `d▢▢s▢e▢` (word gaps use ` · `); the hint label swaps to a red **−100** flash and stays gone for the round; title field shakes.
-- Neither digs into points you’ve already banked.
+- **Hint** is automatic and free (timed: last 10s; classic: after 30s unsolved) → masked placeholder like `d▢▢s▢e▢`.
+- Skip cuts this round’s title payout. Hint does not.
 
 ### Vinyl & audio
 - Scrubbable vinyl: play / pause, drag to scrub (scratch SFX).
@@ -81,16 +81,10 @@ When the round ends you hear the full preview, see the cover, and move on (solo 
 - Keyboard click SFX; confetti on wins and wrap.
 
 ### End of game
-- Stats grid: **score / accuracy / avg solve / artists / fastest / best streak** (wall-clock from round start → correct title).
+- Hero **score**, then **fastest song** (cover + time), then chips (accuracy / streak / artists / avg).
 - **Personal bests** per playlist or chart (all-time + today), stored in the browser.
-- **Replay timeline** (solo keeps misses; multiplayer omits songs nobody got from the list, but your chart still plots misses).
-- **Solve chart** (custom SVG):
-  - Y axis: solve time up from **0**, with an **X** band at the bottom for misses.
-  - Ringed dots on every round (wins and misses); hover/tap a dot for the song name.
-  - Solo: your line only. Multiplayer: **one combined chart** — your line (wins + misses) plus other players’ wins.
-  - Draw-on animation when the wrap screen mounts.
-- Wrap composition: vinyl turntable, “That’s a wrap!”, score subtitle, player rail (races), stats, share + actions — inside the same `.game` board card as play.
-- **Share** builds a Wrapped-style score image tinted to your **active theme** (iOS share sheet can Save Image; otherwise download + copy text).
+- **Replay timeline** (solo keeps misses; multiplayer omits songs nobody got).
+- **Share** builds a Wrapped-style score image tinted to your **active theme**.
 
 ### Music sources
 | Source | What you get |
@@ -116,9 +110,9 @@ When the round ends you hear the full preview, see the cover, and move on (solo 
 | Title (base) | **+500** |
 | Artist (first claim) | **+100** |
 | Skip | **−40** from this round’s title each |
-| Title hint | **−100** from this round’s title once |
+| Title hint | **free** (auto, does not cut payout) |
 
-**Payout:** `max(0, 500 − skips×40 − (hint ? 100 : 0))` for the title, plus artist if you claimed it.
+**Payout:** `max(0, 500 − skips×40)` for the title, plus artist if you claimed it.
 
 | Example | Score that round |
 | --- | --- |
@@ -126,8 +120,8 @@ When the round ends you hear the full preview, see the cover, and move on (solo 
 | 1 skip + title + artist | **560** |
 | 2 skips + title | **420** |
 | 4 skips + title | **340** |
-| 4 skips + hint + title | **240** |
-| Artist first, then 4 skips + hint + title | **340** |
+| 4 skips + hint + title | **340** |
+| Artist first, then 4 skips + hint + title | **440** |
 
 Perfect game (5 clean rounds): **3000**. Excellent sits around 2600–2900; casual play often lands 1500–2100.
 
@@ -155,7 +149,7 @@ public/
 src/
   components/        Solo, online race, picker, wrap stats, share, debug panel, …
   multiplayer/       Host/guest, PlayerRail, guess popups, PartySocket hook, constants
-  gameStats.js       End-game stats + solve-chart series
+  gameStats.js       End-game stats + replay timeline
   match.js           Fuzzy title/artist matching
   itunes.js          Preview URL cache → /api/preview
   titleHint.js       Late-game title mask
@@ -197,7 +191,7 @@ node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
 
 `VITE_*` vars are baked in at **build** time — redeploy after changing them.
 
-**Shared playlists for logged-out visitors (optional):** visit `/api/login?owner=1` on your deployed site and log in with your own Spotify account. The callback prints a refresh token instead of starting a session — copy it into `OWNER_REFRESH_TOKEN` in Vercel and redeploy.
+**Shared playlists for logged-out visitors (optional):** visit `/api/login?owner=1` on your deployed site and log in with your own Spotify account. The refresh token is written to the function logs (not the page) — copy it into `OWNER_REFRESH_TOKEN` in Vercel and redeploy.
 
 ### 3. Custom domain + Spotify redirect URI
 
@@ -266,6 +260,7 @@ Then use the **debug** FAB for screen-specific shortcuts.
 | `npm run deploy:party` | Deploy multiplayer Worker to Cloudflare |
 | `npm run build` | Production frontend build |
 | `npm run preview` | Preview the production build locally |
+| `npm test` | Run every `src/*.check.js` self-check |
 
 ---
 
@@ -279,7 +274,7 @@ Then use the **debug** FAB for screen-specific shortcuts.
 | **skip** | Unlock more preview audio (−40 title payout) |
 | **guess** / Enter | Submit title and/or artist |
 | **transport** | Play / pause the snippet |
-| **hint** | After 3 skips — masked title (−100 once) |
+| **hint** | Auto masked title (free) |
 | **next song** / vote | Advance after reveal |
 | **play again** | Rematch same playlist (solo) |
 | **pick another playlist** | Back to picker |

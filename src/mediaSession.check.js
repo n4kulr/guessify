@@ -11,19 +11,22 @@ globalThis.MediaMetadata = class {
     Object.assign(this, init);
   }
 };
-globalThis.navigator = {
-  mediaSession: {
-    metadata: null,
-    playbackState: "none",
-    set metadata(v) {
-      lastMeta = v;
-      this._m = v;
-    },
-    get metadata() {
-      return this._m;
+Object.defineProperty(globalThis, "navigator", {
+  configurable: true,
+  value: {
+    mediaSession: {
+      metadata: null,
+      playbackState: "none",
+      set metadata(v) {
+        lastMeta = v;
+        this._m = v;
+      },
+      get metadata() {
+        return this._m;
+      },
     },
   },
-};
+});
 
 const { setGuessifyNowPlaying } = await import("./mediaSession.js");
 setGuessifyNowPlaying();

@@ -7,6 +7,6 @@ export default async function handler(req, res) {
     res.status(200).json(await fetchPlaylistsData(auth.access));
   } catch (e) {
     console.error(e);
-    res.status(500).json({ error: "Failed to load playlists", detail: e.message });
+    res.status(500).json({ error: "Failed to load playlists" });
   }
 }

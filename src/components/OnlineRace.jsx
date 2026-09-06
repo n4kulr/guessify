@@ -22,6 +22,7 @@ import {
   warmTrackPreview,
   patchRoundsPreview,
   warmUpcomingRounds,
+  CUE_FAIL_MS,
 } from "../previewWarm.js";
 import { titleHintMask, displayTitle } from "../titleHint.js";
 import { useAutoTitleHint } from "../useAutoTitleHint.js";
@@ -48,6 +49,7 @@ import {
   activePlayerCount,
   allPlayersMaxUnlocked,
   normalizeRaceMode,
+  shuffle,
 } from "../multiplayer/constants.js";
 import { TimedCountdown } from "../multiplayer/TimedHud.jsx";
 
@@ -102,15 +104,6 @@ const NON_DAD_KEYS = [
   "caps",
   "camel",
 ];
-
-function shuffle(arr) {
-  const a = [...arr];
-  for (let i = a.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [a[i], a[j]] = [a[j], a[i]];
-  }
-  return a;
-}
 
 function hasNumberSuffix(name) {
   return /\d/.test(name);
@@ -291,6 +284,7 @@ export default function OnlineRace({ profile, onExit, raceMode: raceModeProp }) 
   const [cueReady, setCueReady] = useState(false);
   /** After the first cue, keep the board up and spin the vinyl center instead. */
   const [boardReady, setBoardReady] = useState(false);
+  const [cueFailed, setCueFailed] = useState(false);
   const [roundEndsAt, setRoundEndsAt] = useState(null);
   const [lockedInIds, setLockedInIds] = useState([]);
   const [timedPlaces, setTimedPlaces] = useState(null);
@@ -490,6 +484,13 @@ export default function OnlineRace({ profile, onExit, raceMode: raceModeProp }) 
   useEffect(() => {
     if (phase !== "play" || !track?.id) return;
     let cancelled = false;
+    setCueFailed(false);
+    const failTimer = setTimeout(() => {
+      if (cancelled) return;
+      setCueFailed(true);
+      setCueReady(true);
+      setBoardReady(true);
+    }, CUE_FAIL_MS);
     (async () => {
       const hot = track.previewUrl && isAudioWarm(track.previewUrl);
       // First song: full “cueing…” text. Later: stay ready while we top up.
@@ -520,6 +521,8 @@ export default function OnlineRace({ profile, onExit, raceMode: raceModeProp }) 
     })();
     return () => {
       cancelled = true;
+      clearTimeout(failTimer);
+      setCueReady(true);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [phase, track?.id, roundIdx]);
@@ -1353,6 +1356,9 @@ export default function OnlineRace({ profile, onExit, raceMode: raceModeProp }) 
           timed={timed}
         />
 
+        {phase === "play" && cueFailed && (
+          <p className="cue-fail">having trouble loading — skip this song</p>
+        )}
         {phase === "play" && !cueReady && !boardReady ? (
           <div className="loader cue-loader">cueing the record…</div>
         ) : (
@@ -1438,7 +1444,7 @@ export default function OnlineRace({ profile, onExit, raceMode: raceModeProp }) 
                     placeholder={
                       lockedIn
                         ? "locked in — waiting…"
-                        : titleHintText || "song title…"
+                        : titleHintText || "type or pick a song…"
                     }
                     value={lockedIn ? "" : titleGuess}
                     disabled={lockedIn || !cueReady}

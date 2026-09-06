@@ -7,6 +7,7 @@ import {
   warmTrackPreview,
   patchRoundsPreview,
   warmUpcomingRounds,
+  CUE_FAIL_MS,
 } from "../previewWarm.js";
 import { fireConfetti, shakeEl } from "../fx.js";
 import { loadLocalProfile } from "../localProfile.js";
@@ -46,16 +47,8 @@ import {
   ROUND_MAX_POINTS,
   normalizeAvatar,
   randomAvatar,
+  shuffle,
 } from "../multiplayer/constants.js";
-
-function shuffle(arr) {
-  const a = [...arr];
-  for (let i = a.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [a[i], a[j]] = [a[j], a[i]];
-  }
-  return a;
-}
 
 const YOU_ID = "you";
 
@@ -110,6 +103,7 @@ export default function Game({ playlist, me, onExit, onReplay }) {
   const [cueReady, setCueReady] = useState(false);
   /** After the first cue, keep the board up and spin the vinyl center instead. */
   const [boardReady, setBoardReady] = useState(false);
+  const [cueFailed, setCueFailed] = useState(false);
 
   const { errorMsg, setErrorMsg, play, pause, prime } = usePreviewPlayer();
   const roundStartedAt = useRef(Date.now());
@@ -235,6 +229,13 @@ export default function Game({ playlist, me, onExit, onReplay }) {
   useEffect(() => {
     if (phase !== "play" || !track?.id) return;
     let cancelled = false;
+    setCueFailed(false);
+    const failTimer = setTimeout(() => {
+      if (cancelled) return;
+      setCueFailed(true);
+      setCueReady(true);
+      setBoardReady(true);
+    }, CUE_FAIL_MS);
     (async () => {
       const hot =
         track.previewUrl && isAudioWarm(track.previewUrl);
@@ -271,6 +272,8 @@ export default function Game({ playlist, me, onExit, onReplay }) {
     })();
     return () => {
       cancelled = true;
+      clearTimeout(failTimer);
+      setCueReady(true);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [track?.id, roundIdx, phase]);
@@ -585,6 +588,9 @@ export default function Game({ playlist, me, onExit, onReplay }) {
         {phase === "play" && !cueReady && !boardReady && (
           <div className="loader cue-loader">cueing the record…</div>
         )}
+        {phase === "play" && cueFailed && (
+          <p className="cue-fail">having trouble loading — skip this song</p>
+        )}
 
         {phase === "play" && (cueReady || boardReady) && (
           <>
@@ -678,7 +684,7 @@ export default function Game({ playlist, me, onExit, onReplay }) {
                     <div className="guess-title-field" ref={titleFieldRef}>
                       <input
                         className={`guess-input${titleHintText ? " guess-input--hint" : ""}`}
-                        placeholder={titleHintText || "song title…"}
+                        placeholder={titleHintText || "type or pick a song…"}
                         value={titleGuess}
                         disabled={!cueReady}
                         {...titleSuggest.inputProps}

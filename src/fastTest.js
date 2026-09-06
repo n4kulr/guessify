@@ -1,4 +1,4 @@
-import { normalizeAvatar, randomAvatar, PLAYER_COLORS } from "./multiplayer/constants.js";
+import { normalizeAvatar, randomAvatar, PLAYER_COLORS, shuffle } from "./multiplayer/constants.js";
 
 /** Local/dev shortcut: add `?fast=1` once (sticky for the tab via sessionStorage). */
 
@@ -70,15 +70,6 @@ export const FAST_ROUND_LOG = [
 ];
 
 const GUEST_NAMES = ["BBQ_Bruce", "vrm", "papercut", "lampmoth"];
-
-function shuffle(arr) {
-  const a = [...arr];
-  for (let i = a.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [a[i], a[j]] = [a[j], a[i]];
-  }
-  return a;
-}
 
 /** Fake guests with colors that don't collide with the host. */
 export function buildFastGuests(count, reservedColor) {

@@ -9,8 +9,10 @@ import {
   warmAudioUrl,
   patchRoundsPreview,
   warmUpcomingRounds,
+  CUE_FAIL_MS,
 } from "./previewWarm.js";
 
+assert.equal(CUE_FAIL_MS, 12_000);
 assert.equal(isAudioWarm(null), false);
 assert.equal(isAudioWarm(""), false);
 assert.equal(await warmAudioUrl(null), false);

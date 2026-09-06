@@ -31,11 +31,10 @@ export default async function handler(req, res) {
     });
 
     if (linkOwner) {
+      console.log("OWNER_REFRESH_TOKEN", data.refresh_token);
       res.setHeader("Content-Type", "text/html; charset=utf-8");
       res.status(200).send(
-        `<pre style="white-space:pre-wrap;word-break:break-all;font:14px monospace;padding:24px">` +
-          `Paste this into the OWNER_REFRESH_TOKEN env var in Vercel, then redeploy:\n\n` +
-          `${data.refresh_token}</pre>`
+        "<p style=\"font:16px system-ui;padding:24px\">Owner token captured. Copy <code>OWNER_REFRESH_TOKEN</code> from the function logs, then redeploy.</p>"
       );
       return;
     }

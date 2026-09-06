@@ -21,6 +21,25 @@ function parseDataUrl(dataUrl) {
   }
 }
 
+// ponytail: per-instance memory; shared store if webhook abuse shows up.
+const feedbackHits = new Map();
+const FEEDBACK_MAX = 5;
+const FEEDBACK_WINDOW_MS = 10 * 60 * 1000;
+
+function clientIp(req) {
+  const raw = String(req.headers["x-forwarded-for"] || req.socket?.remoteAddress || "");
+  return raw.split(",")[0].trim() || "unknown";
+}
+
+function allowFeedback(ip) {
+  const now = Date.now();
+  const prev = (feedbackHits.get(ip) || []).filter((t) => now - t < FEEDBACK_WINDOW_MS);
+  if (prev.length >= FEEDBACK_MAX) return false;
+  prev.push(now);
+  feedbackHits.set(ip, prev);
+  return true;
+}
+
 function extFor(mime) {
   if (mime === "image/png") return "png";
   if (mime === "image/webp") return "webp";
@@ -37,6 +56,9 @@ export default async function handler(req, res) {
   const webhook = process.env.DISCORD_WEBHOOK_URL;
   if (!webhook) {
     return res.status(503).json({ error: "feedback is not configured yet" });
+  }
+  if (!allowFeedback(clientIp(req))) {
+    return res.status(429).json({ error: "too many feedback submissions" });
   }
 
   let body = req.body;

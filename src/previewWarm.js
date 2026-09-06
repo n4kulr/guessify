@@ -16,6 +16,9 @@ export function markAudioWarm(url) {
  * Buffer an MP3 in a detached Audio element so the game player hits cache.
  * @returns {Promise<boolean>}
  */
+/** Cap so a hung cue can't freeze “cueing the record…” forever. */
+export const CUE_FAIL_MS = 12_000;
+
 export function warmAudioUrl(url, timeoutMs = 15000) {
   if (!url) return Promise.resolve(false);
   if (warmUrls.has(url)) return Promise.resolve(true);

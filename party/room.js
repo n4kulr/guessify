@@ -257,10 +257,10 @@ export class Room extends Server {
     void this.persist();
   }
 
-  /** Host (or any player) can publish a resolved preview URL for the current round. */
+  /** Host publishes a resolved preview URL for the current round. */
   handleSetPreview(msg, sender) {
     if (!this.state) return;
-    if (!this.playerFor(sender)) return;
+    if (!this.isHost(sender) && !this.playerFor(sender)?.isHost) return;
     const trackId = this.state.tracks[this.state.roundIdx]?.id;
     if (!trackId) return;
     if (msg.trackId && msg.trackId !== trackId) return;
@@ -280,10 +280,17 @@ export class Room extends Server {
       return;
     }
 
-    // First host claim wins; reconnecting host can reclaim if same room empty host.
-    if (this.state?.hostConnId && this.state.hostConnId !== sender.id && this.state.hostConnected) {
-      sender.send(JSON.stringify({ type: "error", error: "This room already has a host." }));
-      return;
+    if (this.state) {
+      const hostPlayer = this.state.players.find((p) => p.isHost);
+      const senderPlayer = this.playerFor(sender);
+      const claimedId = typeof msg.playerId === "string" ? msg.playerId : "";
+      const isRealHost =
+        !!senderPlayer?.isHost ||
+        !!(hostPlayer && claimedId && claimedId === hostPlayer.id);
+      if (!isRealHost) {
+        sender.send(JSON.stringify({ type: "error", error: "This room already has a host." }));
+        return;
+      }
     }
 
     if (!this.state) {

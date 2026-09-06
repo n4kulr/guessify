@@ -12,7 +12,12 @@ import {
   isHintDue,
   TIMED_ROUND_MS,
   myRevealedArtist,
+  makeRoomCode,
 } from "./multiplayer/constants.js";
+
+const roomCode = makeRoomCode();
+assert.equal(roomCode.length, 6);
+assert.match(roomCode, /^[A-Z2-9]{6}$/);
 
 assert.equal(titlePointsForGuess(), TITLE_POINTS);
 assert.equal(titlePointsForGuess(0), 500);

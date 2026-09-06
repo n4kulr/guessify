@@ -3,6 +3,7 @@ dist/
 .vercel
 .env
 .env.local
+.env.*.local
 *.log
 .DS_Store
 
@@ -11,6 +12,7 @@ Flat Assets/
 Flat Assets.zip
 .wrangler/
 
-# graphify local-only
-graphify-out/cost.json
-.env*
+# generated / local-only
+graphify-out/
+.claude/
+previews/

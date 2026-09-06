@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { usePartyRoom } from "./usePartyRoom.js";
 import { usePreviewPlayer } from "../usePreviewPlayer.js";
-import { isAudioWarm, warmAudioUrl } from "../previewWarm.js";
+import { isAudioWarm, warmAudioUrl, CUE_FAIL_MS } from "../previewWarm.js";
 import { STEPS, TOTAL, MAX_GUESSES, randomAvatar, normalizeAvatar, unlockSecondsFor, PLAYER_COLORS, nextVotesNeeded, activePlayerCount, SKIP_PENALTY, myRevealedArtist } from "./constants.js";
 import { accentMatchingTheme } from "../themes.js";
 import { fireConfetti, shakeEl } from "../fx.js";
@@ -56,6 +56,7 @@ export default function GuestApp({ code }) {
   const [cueReady, setCueReady] = useState(false);
   /** After the first cue, keep the board up and spin the vinyl center instead. */
   const [boardReady, setBoardReady] = useState(false);
+  const [cueFailed, setCueFailed] = useState(false);
   const { errorMsg, setErrorMsg, play, pause, prime } = usePreviewPlayer();
   const [playBusy, setPlayBusy] = useState(false);
   const [localPlaying, setLocalPlaying] = useState(false);
@@ -110,18 +111,23 @@ export default function GuestApp({ code }) {
       setCueReady(true);
       return;
     }
+    let cancelled = false;
+    setCueFailed(false);
+    const failTimer = setTimeout(() => {
+      if (cancelled) return;
+      setCueFailed(true);
+      setCueReady(true);
+      setBoardReady(true);
+    }, CUE_FAIL_MS);
     const url = playTrack?.previewUrl;
     if (!url) {
-      // First song only — later rounds keep the board while the worker resolves.
       if (!boardReady) setCueReady(false);
-      const timer = setTimeout(() => {
+      return () => {
+        cancelled = true;
+        clearTimeout(failTimer);
         setCueReady(true);
-        setBoardReady(true);
-      }, 15_000);
-      return () => clearTimeout(timer);
+      };
     }
-    let cancelled = false;
-    // Don't flash the vinyl spinner if we've already played a song.
     if (!isAudioWarm(url) && !boardReady) setCueReady(false);
     (async () => {
       await warmAudioUrl(url);
@@ -132,6 +138,8 @@ export default function GuestApp({ code }) {
     })();
     return () => {
       cancelled = true;
+      clearTimeout(failTimer);
+      setCueReady(true);
     };
   }, [state?.phase, state?.trackId, playTrack?.previewUrl, state?.roundIdx]); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -606,6 +614,9 @@ export default function GuestApp({ code }) {
           timed={timed}
         />
 
+        {cueFailed && (
+          <p className="cue-fail">having trouble loading — skip this song</p>
+        )}
         {!cueReady && !boardReady ? (
           <div className="loader cue-loader">cueing the record…</div>
         ) : (
@@ -690,7 +701,7 @@ export default function GuestApp({ code }) {
                     placeholder={
                       lockedIn
                         ? "locked in — waiting…"
-                        : titleHintText || "song title…"
+                        : titleHintText || "type or pick a song…"
                     }
                     value={lockedIn ? "" : titleGuess}
                     disabled={lockedIn || !cueReady}

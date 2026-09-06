@@ -3,7 +3,7 @@ import QRCode from "qrcode";
 import { usePartyRoom } from "./usePartyRoom.js";
 import { usePreviewPlayer } from "../usePreviewPlayer.js";
 import { resolvePreview } from "../itunes.js";
-import { isAudioWarm, warmAudioUrl, primePlaylistPreviews } from "../previewWarm.js";
+import { isAudioWarm, warmAudioUrl, primePlaylistPreviews, CUE_FAIL_MS } from "../previewWarm.js";
 import { STEPS, TOTAL, MAX_GUESSES, randomAvatar, normalizeAvatar, unlockSecondsFor, PLAYER_COLORS, nextVotesNeeded, activePlayerCount, SKIP_PENALTY, ROUND_COUNT, myRevealedArtist } from "./constants.js";
 import { fireConfetti, shakeEl } from "../fx.js";
 import GuessMedia from "../components/GuessMedia.jsx";
@@ -66,6 +66,7 @@ export default function HostParty({
   const [cueReady, setCueReady] = useState(false);
   /** After the first cue, keep the board up and spin the vinyl center instead. */
   const [boardReady, setBoardReady] = useState(false);
+  const [cueFailed, setCueFailed] = useState(false);
   /** Dev-only fake wrap: bypasses the Worker and paints end screen locally. */
   const [fastEnd, setFastEnd] = useState(null);
   const [lobbyRaceMode, setLobbyRaceMode] = useState(() =>
@@ -159,18 +160,23 @@ export default function HostParty({
       setCueReady(true);
       return;
     }
+    let cancelled = false;
+    setCueFailed(false);
+    const failTimer = setTimeout(() => {
+      if (cancelled) return;
+      setCueFailed(true);
+      setCueReady(true);
+      setBoardReady(true);
+    }, CUE_FAIL_MS);
     const url = state?.track?.previewUrl;
     if (!url) {
-      // First song only — later rounds keep the board while the worker resolves.
       if (!boardReady) setCueReady(false);
-      const timer = setTimeout(() => {
+      return () => {
+        cancelled = true;
+        clearTimeout(failTimer);
         setCueReady(true);
-        setBoardReady(true);
-      }, 15_000);
-      return () => clearTimeout(timer);
+      };
     }
-    let cancelled = false;
-    // Don't flash the vinyl spinner if we've already played a song.
     if (!isAudioWarm(url) && !boardReady) setCueReady(false);
     (async () => {
       await warmAudioUrl(url);
@@ -181,6 +187,8 @@ export default function HostParty({
     })();
     return () => {
       cancelled = true;
+      clearTimeout(failTimer);
+      setCueReady(true);
     };
   }, [state?.phase, state?.trackId, state?.track?.previewUrl, state?.roundIdx]); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -222,14 +230,16 @@ export default function HostParty({
   useEffect(() => {
     if (status !== "connected") return;
     // Reclaim host seat on every reconnect (hibernation / background tabs).
+    let saved = null;
     try {
-      const saved = sessionStorage.getItem(`guessify-mp-${code.toUpperCase()}`);
+      saved = sessionStorage.getItem(`guessify-mp-${code.toUpperCase()}`);
       if (saved) send({ type: "rejoin", playerId: saved });
     } catch {
       /* ignore */
     }
     send({
       type: "host",
+      playerId: saved || undefined,
       hostName,
       avatar: hostAvatar,
       playlistName: playlist.name,
@@ -778,6 +788,9 @@ export default function HostParty({
         timed={timed}
       />
 
+      {cueFailed && (
+        <p className="cue-fail">having trouble loading — skip this song</p>
+      )}
       {!cueReady && !boardReady ? (
         <div className="loader cue-loader">cueing the record…</div>
       ) : (
@@ -862,7 +875,7 @@ export default function HostParty({
                 <input
                   className={`guess-input${titleHintText || lockedIn ? " guess-input--hint" : ""}${lockedIn ? " guess-input--locked" : ""}`}
                   placeholder={
-                    lockedIn ? "locked in — waiting…" : titleHintText || "song title…"
+                    lockedIn ? "locked in — waiting…" : titleHintText || "type or pick a song…"
                   }
                   value={lockedIn ? "" : titleGuess}
                   disabled={lockedIn || !cueReady}

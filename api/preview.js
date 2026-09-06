@@ -2,6 +2,8 @@
 // Spotify is only used for the user's library; audio comes from free previews.
 // Keep this self-contained — Vercel serverless shouldn't import from src/.
 
+const PREVIEW_FETCH_MS = 12_000;
+
 export default async function handler(req, res) {
   const title = String(req.query.title || "").trim();
   const artist = String(req.query.artist || "").trim();
@@ -10,8 +12,10 @@ export default async function handler(req, res) {
     return;
   }
 
+  const ctrl = typeof AbortController !== "undefined" ? new AbortController() : null;
+  const timer = ctrl ? setTimeout(() => ctrl.abort(), PREVIEW_FETCH_MS) : null;
   try {
-    const pick = await findPreview(title, artist);
+    const pick = await findPreview(title, artist, ctrl?.signal);
     if (!pick?.previewUrl) {
       res.status(404).json({ error: "No preview found for this track." });
       return;
@@ -26,10 +30,12 @@ export default async function handler(req, res) {
   } catch (e) {
     console.error("preview lookup failed", e);
     res.status(500).json({ error: "Preview lookup failed." });
+  } finally {
+    if (timer) clearTimeout(timer);
   }
 }
 
-async function findPreview(title, artist) {
+async function findPreview(title, artist, signal) {
   const cleanTitle = cleanForSearch(title);
   const cleanArtist = cleanForSearch(artist);
   const wantTitle = cleanTitle || title;
@@ -42,35 +48,37 @@ async function findPreview(title, artist) {
   ].filter((q, i, arr) => q && arr.indexOf(q) === i);
 
   for (const term of queries) {
-    const results = await itunesSearch(term);
+    const results = await itunesSearch(term, signal);
     const pick = pickBest(results, wantTitle, wantArtist);
     if (pick?.previewUrl) return { ...pick, source: "itunes" };
   }
 
   for (const term of queries) {
-    const results = await deezerSearch(term);
+    const results = await deezerSearch(term, signal);
     const pick = pickBest(results, wantTitle, wantArtist);
     if (pick?.previewUrl) return { ...pick, source: "deezer" };
   }
   return null;
 }
 
-async function itunesSearch(term) {
+async function itunesSearch(term, signal) {
   const url =
     `https://itunes.apple.com/search?term=${encodeURIComponent(term)}` +
     `&media=music&entity=song&limit=25&country=US`;
   const r = await fetch(url, {
     headers: { Accept: "application/json" },
+    signal,
   });
   if (!r.ok) return [];
   const data = await r.json();
   return Array.isArray(data.results) ? data.results : [];
 }
 
-async function deezerSearch(term) {
+async function deezerSearch(term, signal) {
   const url = `https://api.deezer.com/search?q=${encodeURIComponent(term)}&limit=25`;
   const r = await fetch(url, {
     headers: { Accept: "application/json" },
+    signal,
   });
   if (!r.ok) return [];
   const data = await r.json();

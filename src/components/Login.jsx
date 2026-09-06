@@ -1,15 +1,8 @@
-import { useEffect, useState } from "react";
 import DemoPreview from "./DemoPreview.jsx";
 import HeroTurntable from "./HeroTurntable.jsx";
 import JoinCodeForm from "../multiplayer/JoinCodeForm.jsx";
-import { onlineActiveCount } from "../onlineActive.js";
 
 export default function Login({ error, onStartSolo, onStartMulti, onStartOnline }) {
-  const [active, setActive] = useState(() => onlineActiveCount());
-  useEffect(() => {
-    const id = setInterval(() => setActive(onlineActiveCount()), 15_000);
-    return () => clearInterval(id);
-  }, []);
 
   const errorHint = {
     state_mismatch:
@@ -60,7 +53,6 @@ export default function Login({ error, onStartSolo, onStartMulti, onStartOnline 
           <button className="btn btn-big btn-online" onClick={onStartOnline}>
             <span className="btn-online-dot" aria-hidden="true" />
             play online
-            <span className="btn-online-count">({active} active)</span>
           </button>
         </div>
 

@@ -3,7 +3,14 @@ import crypto from "node:crypto";
 // Files/exports starting with "_" are NOT treated as routes by Vercel;
 // this module is shared helper code imported by the route handlers.
 
-const SECRET = process.env.SESSION_SECRET || "dev-insecure-secret-change-me";
+function secret() {
+  if (process.env.SESSION_SECRET) return process.env.SESSION_SECRET;
+  const prod =
+    process.env.VERCEL_ENV === "production" ||
+    process.env.NODE_ENV === "production";
+  if (prod) throw new Error("SESSION_SECRET is required in production");
+  return "dev-insecure-secret-change-me";
+}
 
 // Library + profile only. Audio previews come from the free iTunes Search API
 // (no Premium / Web Playback scopes needed).
@@ -16,7 +23,7 @@ export const SCOPES = [
 ].join(" ");
 
 function key() {
-  return crypto.createHash("sha256").update(SECRET).digest(); // 32 bytes
+  return crypto.createHash("sha256").update(secret()).digest(); // 32 bytes
 }
 
 // --- encrypted cookie sessions (stateless, works on serverless) ---

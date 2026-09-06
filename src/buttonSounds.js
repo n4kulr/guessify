@@ -281,7 +281,6 @@ export function resolveButtonSound(el) {
   }
   if (btn.classList.contains("profile-peep-swatch")) return null;
   if (btn.classList.contains("user-menu-btn")) return null;
-  if (btn.classList.contains("media-mode-btn")) return null;
   if (btn.classList.contains("guess-hint-link")) return null;
   if (btn.classList.contains("feedback-about-btn")) return null;
 

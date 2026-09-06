@@ -177,9 +177,11 @@ export function normalizeAvatar(raw, fallbackColor = PLAYER_COLORS[0]) {
 
 export function makeRoomCode() {
   const alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+  const bytes = new Uint8Array(6);
+  crypto.getRandomValues(bytes);
   let code = "";
   for (let i = 0; i < 6; i++) {
-    code += alphabet[Math.floor(Math.random() * alphabet.length)];
+    code += alphabet[bytes[i] % alphabet.length];
   }
   return code;
 }
