@@ -10,7 +10,7 @@ import {
 } from "../previewWarm.js";
 import { fireConfetti, shakeEl } from "../fx.js";
 import { loadLocalProfile } from "../localProfile.js";
-import { isNoPreviewError, shareRound } from "../shareScore.js";
+import { isNoPreviewError, roundSharePayload } from "../shareScore.js";
 import { nextSpareTrack } from "../deadPreview.js";
 import { titleHintMask, displayTitle } from "../titleHint.js";
 import { useAutoTitleHint } from "../useAutoTitleHint.js";
@@ -20,6 +20,7 @@ import VinylDeck from "./VinylDeck.jsx";
 import GuessSuggest, { useGuessSuggest } from "./GuessSuggest.jsx";
 import GuessTransport from "./GuessTransport.jsx";
 import ShareScoreButton from "./ShareScoreButton.jsx";
+import SharePreviewDialog from "./SharePreviewDialog.jsx";
 import ScrubbableVinyl from "./ScrubbableVinyl.jsx";
 import PenaltyPop from "./PenaltyPop.jsx";
 import AlmostFlash from "./AlmostFlash.jsx";
@@ -97,6 +98,7 @@ export default function Game({ playlist, me, onExit, onReplay }) {
   const [scrubbing, setScrubbing] = useState(false);
   const [titleHintText, setTitleHintText] = useState("");
   const [skipPop, setSkipPop] = useState(null);
+  const [sharePreview, setSharePreview] = useState(false);
   const [almostTitle, setAlmostTitle] = useState(null);
   const [almostArtist, setAlmostArtist] = useState(null);
   const [roundLog, setRoundLog] = useState([]);
@@ -629,9 +631,12 @@ export default function Game({ playlist, me, onExit, onReplay }) {
               </div>
             </div>
 
-            {!resolved && (
-              <div className="guess-input-wrap">
-                <div className="guess-fields">
+            {/* Stays mounted through the reveal: the fields go invisible but
+                keep their space, so the card never changes height. */}
+            <div
+              className={`guess-input-wrap${resolved ? " is-answered" : ""}`}
+            >
+              <div className="guess-fields">
                   <div className="guess-title-row">
                     <div className="guess-title-field" ref={titleFieldRef}>
                       <input
@@ -691,34 +696,56 @@ export default function Game({ playlist, me, onExit, onReplay }) {
                   </div>
                 </div>
                 <div className="guess-actions">
-                  <div className={skipWrapClass} ref={skipWrapRef}>
-                    <button
-                      className="btn btn-skip"
-                      onClick={skip}
-                      disabled={!cueReady}
-                    >
-                      <span className="btn-label">skip</span>
-                      <span className="btn-hint">+audio</span>
-                    </button>
-                    <PenaltyPop
-                      token={skipPop}
-                      pts={SKIP_PENALTY}
-                      onDone={() => setSkipPop(null)}
-                    />
-                  </div>
-                  <button
-                    className="btn btn-guess"
-                    onClick={submitGuess}
-                    disabled={
-                      !cueReady || (!titleGuess.trim() && !artistGuess.trim())
-                    }
-                  >
-                    <span className="btn-label">guess</span>
-                    <span className="btn-hint">enter</span>
-                  </button>
+                  {resolved ? (
+                    <>
+                      <button
+                        className="btn btn-share"
+                        onClick={() => setSharePreview(true)}
+                      >
+                        <span className="btn-label">share</span>
+                        <span className="btn-hint">round</span>
+                      </button>
+                      <button className="btn btn-play" onClick={nextRound}>
+                        <span className="btn-label">
+                          {roundIdx + 1 >= rounds.length
+                            ? "see results"
+                            : "next song"}
+                        </span>
+                        <span className="btn-hint">→</span>
+                      </button>
+                    </>
+                  ) : (
+                    <>
+                      <div className={skipWrapClass} ref={skipWrapRef}>
+                        <button
+                          className="btn btn-skip"
+                          onClick={skip}
+                          disabled={!cueReady}
+                        >
+                          <span className="btn-label">skip</span>
+                          <span className="btn-hint">+audio</span>
+                        </button>
+                        <PenaltyPop
+                          token={skipPop}
+                          pts={SKIP_PENALTY}
+                          onDone={() => setSkipPop(null)}
+                        />
+                      </div>
+                      <button
+                        className="btn btn-guess"
+                        onClick={submitGuess}
+                        disabled={
+                          !cueReady ||
+                          (!titleGuess.trim() && !artistGuess.trim())
+                        }
+                      >
+                        <span className="btn-label">guess</span>
+                        <span className="btn-hint">enter</span>
+                      </button>
+                    </>
+                  )}
                 </div>
               </div>
-            )}
           </>
         )}
 
@@ -760,26 +787,20 @@ export default function Game({ playlist, me, onExit, onReplay }) {
         )}
       </div>
     </div>
-    {phase === "play" && resolved && (
-      <div className="round-next-row">
-        <ShareScoreButton
-          idleLabel="share round"
-          share={() =>
-            shareRound({
-              title: displayTitle(track.name),
-              artist: (track.artists || []).join(", "),
-              wallMs:
-                roundLog[roundIdx]?.wallMs ??
-                resolveRevealMs({ startedAt: roundStartedAt.current }),
-              unlockedSec: unlocked,
-            })
-          }
-        />
-        <button className="btn btn-big btn-play" onClick={nextRound}>
-          <span className="btn-play-icon" aria-hidden="true" />
-          {roundIdx + 1 >= rounds.length ? "see results →" : "next song →"}
-        </button>
-      </div>
+    {sharePreview && (
+      <SharePreviewDialog
+        text={
+          roundSharePayload({
+            title: displayTitle(track.name),
+            artist: (track.artists || []).join(", "),
+            wallMs:
+              roundLog[roundIdx]?.wallMs ??
+              resolveRevealMs({ startedAt: roundStartedAt.current }),
+            unlockedSec: unlocked,
+          }).text
+        }
+        onClose={() => setSharePreview(false)}
+      />
     )}
     </>
   );

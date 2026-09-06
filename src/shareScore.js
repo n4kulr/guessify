@@ -475,13 +475,11 @@ export async function shareScore(opts) {
 }
 
 /**
- * Share a single round. Text only — the wrap card is shaped around end-of-game
- * stats, and a one-song PNG would be a second canvas layout to maintain.
+ * Share plain text — used for a single round, where the wrap card's
+ * end-of-game layout doesn't apply.
  * @returns {"shared"|"copied"|"cancelled"|"prompt"}
  */
-export async function shareRound(opts) {
-  const { text } = roundSharePayload(opts);
-
+export async function shareText(text) {
   if (typeof navigator !== "undefined" && typeof navigator.share === "function") {
     try {
       await navigator.share({ text });

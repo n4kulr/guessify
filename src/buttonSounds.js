@@ -298,6 +298,7 @@ export function resolveButtonSound(el) {
     return btn.classList.contains("btn-guess") ? "guess-deny" : null;
   }
 
+  if (btn.classList.contains("btn-share")) return "share-score";
   if (btn.classList.contains("btn-skip")) return "skip";
   if (btn.classList.contains("btn-guess")) return "guess";
   if (btn.classList.contains("btn-multi")) {

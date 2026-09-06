@@ -284,15 +284,6 @@ button { font-family: var(--font); }
   justify-content: center;
   padding: 24px 20px 28px;
 }
-/* The game card changes height at the reveal. Centred, that slides the whole
-   card (disc included) up and down, so pin it to the top and let only the
-   bottom edge move. Column so the round buttons can sit under the card. */
-.stage:has(.game) {
-  flex-direction: column;
-  align-items: center;
-  justify-content: flex-start;
-  gap: 18px;
-}
 .footer {
   text-align: left;
   padding: 4px 26px 12px;
@@ -3323,7 +3314,7 @@ button.footer-privacy:hover {
 }
 .turntable--md .platter {
   position: absolute;
-  inset: 8px;
+  inset: var(--platter-inset, 8px);
   border-radius: 50%;
   background:
     radial-gradient(circle at 50% 50%, transparent 42%, color-mix(in srgb, var(--text-color) 10%, transparent) 43% 46%, transparent 47%),
@@ -3371,8 +3362,10 @@ button.footer-privacy:hover {
   --box: 192px;
   --tuck: calc(var(--disc) * -0.5);
   --gutter: 16px;
-  /* The disc is 86% of the well and centred, so it starts 7% in. */
-  --disc-inset: calc(var(--disc) * 0.07);
+  /* The platter is the outermost visible ring, inset from the well by a fixed
+     amount, so the shift below is that same fixed amount — not a % of --disc. */
+  --platter-inset: 8px;
+  --disc-inset: var(--platter-inset);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -3447,7 +3440,9 @@ button.footer-privacy:hover {
   pointer-events: auto;
   height: var(--box);
   margin-left: var(--tuck);
-  padding: 16px var(--gutter) 16px calc(var(--disc) * 0.5 + var(--gutter));
+  /* Clear the platter's right edge by one gutter, same as the right side. */
+  padding: 16px var(--gutter) 16px
+    calc(var(--disc) * 0.5 - var(--platter-inset) + var(--gutter));
   background: var(--bg-color);
   transform: translateX(0);
 }
@@ -3491,12 +3486,6 @@ button.footer-privacy:hover {
   justify-content: flex-start;
   margin-top: 2px;
 }
-/* Sits outside the card, under it, so the sleeve only carries the reveal copy. */
-.round-next-row {
-  display: flex;
-  justify-content: center;
-  gap: 12px;
-}
 @media (max-width: 560px) {
   .vinyl-deck {
     --disc: 160px;
@@ -3520,7 +3509,9 @@ button.footer-privacy:hover {
     white-space: normal;
   }
   .vinyl-deck-panel .reveal-clock-time { font-size: 22px; }
-  .vinyl-deck-panel .reveal-clock-miss { font-size: 16px; }
+  /* "better luck next time :(" has to hold one line in the sleeve's narrow
+     copy column, so it scales with the viewport rather than sitting at 16px. */
+  .vinyl-deck-panel .reveal-clock-miss { font-size: clamp(11px, 2.9vw, 16px); }
   .vinyl-deck-next { padding: 8px 12px; font-size: 13px; }
 }
 @media (prefers-reduced-motion: reduce) {
@@ -3634,6 +3625,9 @@ button.footer-privacy:hover {
 .gr-skip { color: var(--sub-color); }
 
 .guess-input-wrap { position: relative; }
+/* Reveal keeps the fields' space so the card height — and so a vertically
+   centred card — never moves. visibility also drops them from tab order. */
+.guess-input-wrap.is-answered .guess-fields { visibility: hidden; }
 .guess-fields { display: flex; gap: 8px; align-items: stretch; }
 .guess-fields .guess-input { flex: 1; min-width: 0; }
 .guess-title-row,
@@ -4008,19 +4002,24 @@ button.footer-privacy:hover {
   text-transform: uppercase;
 }
 
-.btn-skip {
+/* .btn-share is the reveal row's left slab — same geometry as skip so the row
+   height, and so the card height, is identical either side of the reveal. */
+.btn-skip,
+.btn-share {
   background: var(--bg-color);
   color: var(--text-color);
   box-shadow: 0 4px 0 var(--sub-color);
 }
-.btn-skip:hover {
+.btn-skip:hover,
+.btn-share:hover {
   background: var(--bg-color);
   color: var(--text-color);
   filter: brightness(1.12);
   transform: translateY(-2px);
   box-shadow: 0 6px 0 var(--sub-color);
 }
-.btn-skip:active {
+.btn-skip:active,
+.btn-share:active {
   transform: translateY(3px);
   box-shadow: 0 1px 0 var(--sub-color);
 }
@@ -4932,6 +4931,20 @@ button.footer-privacy:hover {
 .spotlight-actions .btn-play {
   padding: 10px 16px;
   font-size: 14px;
+}
+
+.share-preview { width: min(420px, 100%); }
+.share-preview-text {
+  margin: 0;
+  padding: 14px 16px;
+  border-radius: 12px;
+  background: var(--bg-color);
+  color: var(--text-color);
+  font-size: 14px;
+  line-height: 1.5;
+  /* The payload carries a newline before the link — show it as written. */
+  white-space: pre-line;
+  overflow-wrap: anywhere;
 }
 
 /* Free-text chart preview: customizer shell + CD paper insert */
