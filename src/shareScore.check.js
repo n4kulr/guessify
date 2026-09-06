@@ -26,7 +26,7 @@ const solved = roundSharePayload({
   won: true,
 });
 assert.match(solved.text, /"Blinding Lights" — The Weeknd/);
-assert.match(solved.text, /4\.1s/);
+assert.match(solved.text, /4\.120s/);
 assert.match(solved.text, /6s of audio/);
 assert.match(solved.text, /guessify\.uk/);
 
@@ -44,7 +44,7 @@ assert.doesNotMatch(missed.text, /18/);
 
 // No artist yet: quotes still balance, no dangling dash.
 const bare = roundSharePayload({ title: "Teardrop", wallMs: 900, won: true });
-assert.match(bare.text, /"Teardrop" in 0\.9s/);
+assert.match(bare.text, /"Teardrop" in 0\.900s/);
 
 // Canvas title wrapping. Fake metrics: every glyph is 10px wide.
 const w10 = (s) => s.length * 10;

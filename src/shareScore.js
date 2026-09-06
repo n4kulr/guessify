@@ -1,4 +1,4 @@
-import { formatSolveSec } from "./gameStats.js";
+import { formatSolveClock } from "./gameStats.js";
 import { getThemePalette } from "./themes.js";
 
 /**
@@ -47,7 +47,7 @@ export function roundSharePayload({
 } = {}) {
   const song = artist ? `"${title}" — ${artist}` : `"${title}"`;
   const text = won
-    ? `Named ${song} in ${formatSolveSec(wallMs)} off ${unlockedSec}s of audio on guessify\n${SHARE_URL}`
+    ? `Named ${song} in ${formatSolveClock(wallMs)} off ${unlockedSec}s of audio on guessify\n${SHARE_URL}`
     : `i couldn't guess it :( can you?\n${song}\n${SHARE_URL}`;
   return { title: "guessify", text };
 }
@@ -396,14 +396,14 @@ export async function renderShareCard(opts = {}) {
   setType(ctx, 600, 30, c.main, 3);
   ctx.fillText("YOUR SCORE", M, 440);
 
-  setType(ctx, 800, 260, c.text, 0);
-  ctx.fillText(commas(score), M, 700);
+  setType(ctx, 800, 200, c.text, 0);
+  ctx.fillText(commas(score), M, 660);
 
   setType(ctx, 600, 42, c.sub, 0);
   if (maxScore) {
-    ctx.fillText(`of ${commas(maxScore)} pts`, M, 762);
+    ctx.fillText(`of ${commas(maxScore)} pts`, M, 760);
   } else {
-    ctx.fillText("pts", M, 762);
+    ctx.fillText("pts", M, 760);
   }
 
   divider(ctx, M, contentW, 820, c.sub);
@@ -414,7 +414,7 @@ export async function renderShareCard(opts = {}) {
     chips.push({ k: "accuracy", v: `${Math.round(accuracy * 100)}%` });
   }
   if (fastestMs != null) {
-    chips.push({ k: "fastest", v: formatSolveSec(fastestMs) });
+    chips.push({ k: "fastest", v: formatSolveClock(fastestMs) });
   }
   if (bestStreak != null) {
     chips.push({ k: "streak", v: String(bestStreak) });
@@ -451,47 +451,54 @@ export async function renderShareCard(opts = {}) {
 
   // Fastest win sits between the chips and the replay so the wrap names
   // the song, not just the time. Replay rows tighten when this band is on.
+  const chipRows = Math.min(2, Math.ceil(chips.length / 2) || 1);
+  const chipBottom = chipY + chipRows * chipH + (chipRows - 1) * chipGap;
+  divider(ctx, M, contentW, chipBottom + 36, c.sub);
+
   let replayLabelY = 1350;
   let rowTop0 = 1400;
   let rowH = 74;
   if (best) {
-    setType(ctx, 600, 30, c.main, 3);
-    ctx.fillText("FASTEST SONG", M, 1290);
-
-    const art = 140;
-    drawCover(ctx, bestCover, M, 1312, art, 18);
-    const textX = bestCover ? M + art + 36 : M;
+    const art = 120;
+    const songY = chipBottom + 60;
+    drawCover(ctx, bestCover, M, songY, art, 16);
+    const textX = bestCover ? M + art + 32 : M;
     const textW = W - M - textX;
-    setType(ctx, 800, 52, c.text, 0);
+    setType(ctx, 800, 48, c.text, 0);
     const [bestTitle] = wrapLines(
       best.title || "a song",
       textW,
       1,
       (s) => ctx.measureText(s).width
     );
-    ctx.fillText(bestTitle, textX, 1372);
-    setType(ctx, 500, 32, c.sub, 0);
+    ctx.fillText(bestTitle, textX, songY + 44);
+    setType(ctx, 500, 30, c.sub, 0);
     const [bestArtist] = wrapLines(
       best.artist || "",
       textW,
       1,
       (s) => ctx.measureText(s).width
     );
-    if (bestArtist) ctx.fillText(bestArtist, textX, 1416);
-    setType(ctx, 700, 36, c.main, 0);
-    ctx.fillText(formatSolveSec(best.wallMs), textX, 1466);
+    if (bestArtist) ctx.fillText(bestArtist, textX, songY + 84);
+    setType(ctx, 700, 34, c.main, 0);
+    ctx.fillText(formatSolveClock(best.wallMs), textX, songY + 128);
 
-    divider(ctx, M, contentW, 1488, c.sub);
-    replayLabelY = 1536;
-    rowTop0 = 1576;
-    rowH = 48;
+    divider(ctx, M, contentW, songY + art + 16, c.sub);
+    replayLabelY = songY + art + 60;
+    rowTop0 = songY + art + 96;
   } else {
-    divider(ctx, M, contentW, 1280, c.sub);
+    replayLabelY = chipBottom + 80;
+    rowTop0 = chipBottom + 124;
   }
 
   // --- Mini replay ---------------------------------------------------------
   const rows = prepReplayRows(timeline);
+  const footerTop = H - 140;
   if (rows.length) {
+    rowH = Math.min(
+      rowH,
+      Math.max(36, Math.floor((footerTop - rowTop0) / rows.length))
+    );
     setType(ctx, 600, 30, c.main, 3);
     ctx.fillText("REPLAY", M, replayLabelY);
 
@@ -501,12 +508,13 @@ export async function renderShareCard(opts = {}) {
     ctx.fillText(note, W - M - noteW, replayLabelY);
 
     const trackX = M + 150;
-    const trackRight = W - M - 170;
+    const trackRight = W - M - 210;
     const trackW = trackRight - trackX;
 
     rows.forEach((row, i) => {
       const top = rowTop0 + i * rowH;
-      const mid = top + 11; // track is 22px tall
+      const mid = top + rowH / 2;
+      const barY = mid - 11;
 
       // win / miss indicator dot
       if (row.won) {
@@ -527,20 +535,20 @@ export async function renderShareCard(opts = {}) {
 
       // full track = the 100% reference (your fastest round)
       ctx.fillStyle = c.subAlt;
-      roundRect(ctx, trackX, top, trackW, 22, 6);
+      roundRect(ctx, trackX, barY, trackW, 22, 6);
       ctx.fill();
 
       // faint cap marker at the 100% end
       ctx.save();
       ctx.globalAlpha = 0.35;
       ctx.fillStyle = c.main;
-      roundRect(ctx, trackRight - 4, top, 4, 22, 2);
+      roundRect(ctx, trackRight - 4, barY, 4, 22, 2);
       ctx.fill();
       ctx.restore();
 
       if (row.won) {
         ctx.fillStyle = c.main;
-        roundRect(ctx, trackX, top, trackW * row.frac, 22, 6);
+        roundRect(ctx, trackX, barY, trackW * row.frac, 22, 6);
         ctx.fill();
 
         // highlight the best round by colouring its time in the accent
@@ -549,7 +557,7 @@ export async function renderShareCard(opts = {}) {
           timeColor = c.main;
         }
         setType(ctx, 600, 30, timeColor, 0);
-        ctx.fillText(formatSolveSec(row.wallMs), trackRight + 24, mid + 10);
+        ctx.fillText(formatSolveClock(row.wallMs), trackRight + 24, mid + 10);
       } else {
         setType(ctx, 500, 30, c.sub, 0);
         ctx.fillText("missed", trackRight + 24, mid + 10);
@@ -598,20 +606,26 @@ export async function renderRoundCard(opts = {}) {
     setType(ctx, 600, 30, c.main, 3);
     ctx.fillText("NAMED IT IN", M, 440);
     setType(ctx, 800, 200, c.text, 0);
-    ctx.fillText(formatSolveSec(wallMs), M, 660);
+    ctx.fillText(formatSolveClock(wallMs), M, 660);
     setType(ctx, 600, 42, c.sub, 0);
     ctx.fillText(`off ${unlockedSec}s of audio`, M, 726);
   } else {
+    // Same 440–726 well as the named-it stack, copy centred in it.
     setType(ctx, 800, 72, c.text, 0);
     const missLines = wrapLines(
-      "i couldn't guess it :(",
+      "i couldn't guess it\u00a0:(",
       contentW,
       2,
       (s) => ctx.measureText(s).width
     );
-    missLines.forEach((line, i) => ctx.fillText(line, M, 520 + i * 84));
+    const missH = missLines.length * 84 + 16 + 42;
+    let y = 440 + Math.max(0, (726 - 440 - missH) / 2) + 72;
+    missLines.forEach((line) => {
+      ctx.fillText(line, M, y);
+      y += 84;
+    });
     setType(ctx, 600, 42, c.sub, 0);
-    ctx.fillText("can you?", M, 520 + missLines.length * 84 + 16);
+    ctx.fillText("can you?", M, y + 16);
   }
 
   divider(ctx, M, contentW, 800, c.sub);
