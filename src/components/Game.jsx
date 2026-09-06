@@ -103,7 +103,6 @@ export default function Game({ playlist, me, onExit, onReplay }) {
   const [cueReady, setCueReady] = useState(false);
   /** After the first cue, keep the board up and spin the vinyl center instead. */
   const [boardReady, setBoardReady] = useState(false);
-  const [cueFailed, setCueFailed] = useState(false);
 
   const { errorMsg, setErrorMsg, play, pause, prime } = usePreviewPlayer();
   const roundStartedAt = useRef(Date.now());
@@ -229,10 +228,8 @@ export default function Game({ playlist, me, onExit, onReplay }) {
   useEffect(() => {
     if (phase !== "play" || !track?.id) return;
     let cancelled = false;
-    setCueFailed(false);
     const failTimer = setTimeout(() => {
       if (cancelled) return;
-      setCueFailed(true);
       setCueReady(true);
       setBoardReady(true);
     }, CUE_FAIL_MS);
@@ -587,9 +584,6 @@ export default function Game({ playlist, me, onExit, onReplay }) {
 
         {phase === "play" && !cueReady && !boardReady && (
           <div className="loader cue-loader">cueing the record…</div>
-        )}
-        {phase === "play" && cueFailed && (
-          <p className="cue-fail">having trouble loading — skip this song</p>
         )}
 
         {phase === "play" && (cueReady || boardReady) && (

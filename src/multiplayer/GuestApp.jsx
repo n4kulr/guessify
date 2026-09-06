@@ -56,7 +56,6 @@ export default function GuestApp({ code }) {
   const [cueReady, setCueReady] = useState(false);
   /** After the first cue, keep the board up and spin the vinyl center instead. */
   const [boardReady, setBoardReady] = useState(false);
-  const [cueFailed, setCueFailed] = useState(false);
   const { errorMsg, setErrorMsg, play, pause, prime } = usePreviewPlayer();
   const [playBusy, setPlayBusy] = useState(false);
   const [localPlaying, setLocalPlaying] = useState(false);
@@ -112,10 +111,8 @@ export default function GuestApp({ code }) {
       return;
     }
     let cancelled = false;
-    setCueFailed(false);
     const failTimer = setTimeout(() => {
       if (cancelled) return;
-      setCueFailed(true);
       setCueReady(true);
       setBoardReady(true);
     }, CUE_FAIL_MS);
@@ -614,9 +611,6 @@ export default function GuestApp({ code }) {
           timed={timed}
         />
 
-        {cueFailed && (
-          <p className="cue-fail">having trouble loading — skip this song</p>
-        )}
         {!cueReady && !boardReady ? (
           <div className="loader cue-loader">cueing the record…</div>
         ) : (

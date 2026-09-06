@@ -284,7 +284,6 @@ export default function OnlineRace({ profile, onExit, raceMode: raceModeProp }) 
   const [cueReady, setCueReady] = useState(false);
   /** After the first cue, keep the board up and spin the vinyl center instead. */
   const [boardReady, setBoardReady] = useState(false);
-  const [cueFailed, setCueFailed] = useState(false);
   const [roundEndsAt, setRoundEndsAt] = useState(null);
   const [lockedInIds, setLockedInIds] = useState([]);
   const [timedPlaces, setTimedPlaces] = useState(null);
@@ -484,10 +483,8 @@ export default function OnlineRace({ profile, onExit, raceMode: raceModeProp }) 
   useEffect(() => {
     if (phase !== "play" || !track?.id) return;
     let cancelled = false;
-    setCueFailed(false);
     const failTimer = setTimeout(() => {
       if (cancelled) return;
-      setCueFailed(true);
       setCueReady(true);
       setBoardReady(true);
     }, CUE_FAIL_MS);
@@ -1356,9 +1353,6 @@ export default function OnlineRace({ profile, onExit, raceMode: raceModeProp }) 
           timed={timed}
         />
 
-        {phase === "play" && cueFailed && (
-          <p className="cue-fail">having trouble loading — skip this song</p>
-        )}
         {phase === "play" && !cueReady && !boardReady ? (
           <div className="loader cue-loader">cueing the record…</div>
         ) : (

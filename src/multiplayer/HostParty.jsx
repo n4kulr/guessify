@@ -66,7 +66,6 @@ export default function HostParty({
   const [cueReady, setCueReady] = useState(false);
   /** After the first cue, keep the board up and spin the vinyl center instead. */
   const [boardReady, setBoardReady] = useState(false);
-  const [cueFailed, setCueFailed] = useState(false);
   /** Dev-only fake wrap: bypasses the Worker and paints end screen locally. */
   const [fastEnd, setFastEnd] = useState(null);
   const [lobbyRaceMode, setLobbyRaceMode] = useState(() =>
@@ -161,10 +160,8 @@ export default function HostParty({
       return;
     }
     let cancelled = false;
-    setCueFailed(false);
     const failTimer = setTimeout(() => {
       if (cancelled) return;
-      setCueFailed(true);
       setCueReady(true);
       setBoardReady(true);
     }, CUE_FAIL_MS);
@@ -788,9 +785,6 @@ export default function HostParty({
         timed={timed}
       />
 
-      {cueFailed && (
-        <p className="cue-fail">having trouble loading — skip this song</p>
-      )}
       {!cueReady && !boardReady ? (
         <div className="loader cue-loader">cueing the record…</div>
       ) : (

@@ -322,12 +322,6 @@ button.footer-privacy:hover {
   margin: 48px auto 24px;
   text-align: center;
 }
-.cue-fail {
-  margin: 0 0 12px;
-  text-align: center;
-  font-size: 13px;
-  color: var(--sub-color);
-}
 
 /* ---------------- buttons ---------------- */
 .btn {
