@@ -42,7 +42,7 @@ When the round ends you hear the full preview, see the cover, and move on (solo 
 ### Play online (quick play)
 - Instant race on a random Last.fm chart pack (pop, hip-hop, R&B, decades, etc.).
 - Same guess / skip / hint / vote loop as a party, with a live player rail and distinct opponent colors.
-- Matchmaking runs in the browser (no room code); opponents are local stand-ins so you can always race. The home button does not show a live player count.
+- Matchmaking runs in the browser (no room code); opponents are local stand-ins so you can always race.
 - Wrap uses the same board card + vinyl layout as solo/party.
 
 ### Join with a code
