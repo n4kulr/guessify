@@ -19,7 +19,7 @@ export function isFastTest() {
   }
 }
 
-/** Sample personal log so end-game chart/stats have something to show. */
+/** Sample personal log so the wrap screen has songs + covers. */
 export const FAST_ROUND_LOG = [
   {
     won: true,
@@ -27,6 +27,8 @@ export const FAST_ROUND_LOG = [
     wallMs: 7800,
     title: "no tears left to cry",
     artist: "Ariana Grande",
+    cover:
+      "https://is1-ssl.mzstatic.com/image/thumb/Music125/v4/49/3d/ab/493dab54-f920-9043-6181-80993b8116c9/19UMGIM53909.rgb.jpg/300x300bb.jpg",
     unlockStep: 0,
   },
   {
@@ -43,6 +45,8 @@ export const FAST_ROUND_LOG = [
     wallMs: 16200,
     title: "Blinding Lights",
     artist: "The Weeknd",
+    cover:
+      "https://is1-ssl.mzstatic.com/image/thumb/Music114/v4/31/18/fa/3118fab0-90ea-2ae5-cf6c-bc64054ab9e3/21UMGIM21449.rgb.jpg/300x300bb.jpg",
     unlockStep: 2,
   },
   {
@@ -51,6 +55,8 @@ export const FAST_ROUND_LOG = [
     wallMs: 4200,
     title: "Levitating",
     artist: "Dua Lipa",
+    cover:
+      "https://is1-ssl.mzstatic.com/image/thumb/Music122/v4/3d/09/0c/3d090c87-f02b-3c3c-cedf-603cc900082f/888174780955_cover.jpg/300x300bb.jpg",
     unlockStep: 0,
   },
   {
@@ -125,7 +131,7 @@ export function buildFastPartyEnd({ alone = false, host }) {
 
   const roundResults = FAST_ROUND_LOG.flatMap((r, i) => {
     if (!r.won || r.wallMs == null) return [];
-    // Hand Blinding Lights to a guest so the compare chart has 2 lines.
+    // Hand Blinding Lights to a guest so standings aren't a sweep.
     const toGuest = !alone && i === 2 && guests[0];
     const w = toGuest ? guests[0] : you;
     return [

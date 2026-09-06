@@ -8,10 +8,9 @@ import GuessSuggest, { useGuessSuggest } from "./GuessSuggest.jsx";
 import GuessTransport from "./GuessTransport.jsx";
 import ShareScoreButton from "./ShareScoreButton.jsx";
 import SharePreviewDialog from "./SharePreviewDialog.jsx";
-import ScrubbableVinyl from "./ScrubbableVinyl.jsx";
 import PenaltyPop from "./PenaltyPop.jsx";
 import AlmostFlash from "./AlmostFlash.jsx";
-import GameOverStats from "./GameOverStats.jsx";
+import GameOverStats, { GameOverHero } from "./GameOverStats.jsx";
 import RoundRevealStats from "./RoundRevealStats.jsx";
 import PlayerRail from "../multiplayer/PlayerRail.jsx";
 import GuessPopups from "../multiplayer/GuessPopups.jsx";
@@ -1293,23 +1292,11 @@ export default function OnlineRace({ profile, onExit, raceMode: raceModeProp }) 
             </div>
           </div>
           <div className="gameover">
-            <div className="turntable">
-              <ScrubbableVinyl spin="slow" title="drag to scrub">
-                <div className="vinyl-label" aria-hidden="true" />
-              </ScrubbableVinyl>
-            </div>
-            <h2 className="title">That's a wrap!</h2>
-            <p className="subtitle">
-              You finished <strong>#{place}</strong> with <strong>{myScore}</strong>{" "}
-              pts.
-            </p>
+            <GameOverHero score={myScore} place={place} />
             <PlayerRail players={ranked} />
             <GameOverStats
               stats={endStats}
               bests={playlistBests}
-              roundResults={roundResults}
-              players={ranked}
-              myId={youId}
               hideMisses
             />
             <div className="gameover-actions">

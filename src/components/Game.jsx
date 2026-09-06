@@ -28,7 +28,7 @@ import SharePreviewDialog from "./SharePreviewDialog.jsx";
 import ScrubbableVinyl from "./ScrubbableVinyl.jsx";
 import PenaltyPop from "./PenaltyPop.jsx";
 import AlmostFlash from "./AlmostFlash.jsx";
-import GameOverStats from "./GameOverStats.jsx";
+import GameOverStats, { GameOverHero } from "./GameOverStats.jsx";
 import RoundRevealStats from "./RoundRevealStats.jsx";
 import PlayerRail from "../multiplayer/PlayerRail.jsx";
 import { computeGameStats, resolveRevealMs } from "../gameStats.js";
@@ -794,22 +794,9 @@ export default function Game({ playlist, me, onExit, onReplay }) {
 
         {phase === "over" && (
           <div className="gameover">
-            <div className="turntable">
-              <ScrubbableVinyl spin="slow" title="drag to scrub">
-                <div className="vinyl-label" aria-hidden="true" />
-              </ScrubbableVinyl>
-            </div>
-            <h2 className="title">That's a wrap!</h2>
-            <p className="subtitle">
-              You scored <strong>{score}</strong> of {maxScore} possible points across{" "}
-              {rounds.length} records.
-            </p>
+            <GameOverHero score={score} maxScore={maxScore} />
             {endStats && (
-              <GameOverStats
-                stats={endStats}
-                bests={playlistBests}
-                myId={YOU_ID}
-              />
+              <GameOverStats stats={endStats} bests={playlistBests} />
             )}
             <div className="gameover-actions">
               <ShareScoreButton

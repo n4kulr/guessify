@@ -11,10 +11,9 @@ import GuessSuggest, { useGuessSuggest } from "../components/GuessSuggest.jsx";
 import GuessTransport from "../components/GuessTransport.jsx";
 import ShareScoreButton from "../components/ShareScoreButton.jsx";
 import SharePreviewDialog from "../components/SharePreviewDialog.jsx";
-import ScrubbableVinyl from "../components/ScrubbableVinyl.jsx";
 import PenaltyPop from "../components/PenaltyPop.jsx";
 import AlmostFlash from "../components/AlmostFlash.jsx";
-import GameOverStats from "../components/GameOverStats.jsx";
+import GameOverStats, { GameOverHero } from "../components/GameOverStats.jsx";
 import RoundRevealStats from "../components/RoundRevealStats.jsx";
 import { isNoPreviewError, renderRoundCard, roundSharePayload } from "../shareScore.js";
 import { loadLocalProfile } from "../localProfile.js";
@@ -473,24 +472,11 @@ export default function GuestApp({ code }) {
       <div className="game mp-guest mp-board mp-board--solo" ref={rootRef}>
         <div className="mp-board-main">
           <div className="gameover">
-            <div className="turntable">
-              <ScrubbableVinyl spin="slow" title="drag to scrub">
-                <div className="vinyl-label" aria-hidden="true" />
-              </ScrubbableVinyl>
-            </div>
-            <h2 className="title">That's a wrap!</h2>
-            <p className="subtitle">
-              You finished with <strong>{myScore}</strong> pts.
-            </p>
+            <GameOverHero score={myScore} />
             <PlayerRail players={ranked} />
             <GameOverStats
               stats={endStats}
               bests={playlistBests}
-              roundResults={
-                fastEnd ? fastEnd.roundResults : state.roundResults || []
-              }
-              players={ranked}
-              myId={mine?.id}
               hideMisses
             />
             <div className="gameover-actions">
