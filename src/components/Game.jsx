@@ -10,7 +10,11 @@ import {
 } from "../previewWarm.js";
 import { fireConfetti, shakeEl } from "../fx.js";
 import { loadLocalProfile } from "../localProfile.js";
-import { isNoPreviewError, roundSharePayload } from "../shareScore.js";
+import {
+  isNoPreviewError,
+  renderRoundCard,
+  roundSharePayload,
+} from "../shareScore.js";
 import { nextSpareTrack } from "../deadPreview.js";
 import { titleHintMask, displayTitle } from "../titleHint.js";
 import { useAutoTitleHint } from "../useAutoTitleHint.js";
@@ -517,6 +521,19 @@ export default function Game({ playlist, me, onExit, onReplay }) {
 
   useDebugActions("solo", debugActions);
 
+  function roundShareOpts() {
+    return {
+      title: displayTitle(track.name),
+      artist: (track.artists || []).join(", "),
+      wallMs:
+        roundLog[roundIdx]?.wallMs ??
+        resolveRevealMs({ startedAt: roundStartedAt.current }),
+      unlockedSec: unlocked,
+      round: roundIdx + 1,
+      playlistName: playlist?.name || "",
+    };
+  }
+
   return (
     <>
     <div
@@ -631,11 +648,12 @@ export default function Game({ playlist, me, onExit, onReplay }) {
               </div>
             </div>
 
-            {/* Stays mounted through the reveal: the fields go invisible but
-                keep their space, so the card never changes height. */}
+            {/* Stays mounted through the reveal so the fields can collapse
+                smoothly instead of vanishing and snapping the card's height. */}
             <div
               className={`guess-input-wrap${resolved ? " is-answered" : ""}`}
             >
+              <div className="guess-fields-tray">
               <div className="guess-fields">
                   <div className="guess-title-row">
                     <div className="guess-title-field" ref={titleFieldRef}>
@@ -694,6 +712,7 @@ export default function Game({ playlist, me, onExit, onReplay }) {
                       onPause={stopAudio}
                     />
                   </div>
+                </div>
                 </div>
                 <div className="guess-actions">
                   {resolved ? (
@@ -787,18 +806,12 @@ export default function Game({ playlist, me, onExit, onReplay }) {
         )}
       </div>
     </div>
-    {sharePreview && (
+    {sharePreview && track && (
       <SharePreviewDialog
-        text={
-          roundSharePayload({
-            title: displayTitle(track.name),
-            artist: (track.artists || []).join(", "),
-            wallMs:
-              roundLog[roundIdx]?.wallMs ??
-              resolveRevealMs({ startedAt: roundStartedAt.current }),
-            unlockedSec: unlocked,
-          }).text
-        }
+        heading="share this round"
+        render={() => renderRoundCard(roundShareOpts())}
+        text={roundSharePayload(roundShareOpts()).text}
+        filename="guessify-round.png"
         onClose={() => setSharePreview(false)}
       />
     )}

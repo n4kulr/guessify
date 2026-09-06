@@ -1,7 +1,8 @@
-import { useRef, useState } from "react";
-import { shareScore } from "../shareScore.js";
+import { useState } from "react";
+import { renderShareCard, scoreSharePayload } from "../shareScore.js";
+import SharePreviewDialog from "./SharePreviewDialog.jsx";
 
-/** Game-over CTA — shares a Wrapped-style PNG when possible. */
+/** Game-over CTA — previews the Wrapped-style PNG, then shares it. */
 export default function ShareScoreButton({
   mode,
   score,
@@ -12,42 +13,40 @@ export default function ShareScoreButton({
   playlistName = "",
   className = "btn btn-big btn-multi",
 }) {
-  const [label, setLabel] = useState("share score");
-  const timer = useRef(0);
+  const [open, setOpen] = useState(false);
 
-  async function onClick() {
-    const result = await shareScore({
-      mode,
-      score,
-      maxScore,
-      place,
-      name,
-      playlistName,
-      accuracy: stats?.accuracy,
-      fastestMs: stats?.fastestMs,
-      bestStreak: stats?.bestStreak,
-      artistsClaimed: stats?.artistsClaimed,
-      artistsTotal: stats?.artistsTotal,
-      timeline:
-        mode === "solo"
-          ? stats?.timeline
-          : stats?.timelineWins || stats?.timeline,
-    });
-    if (result === "cancelled") return;
-    clearTimeout(timer.current);
-    const next =
-      result === "shared"
-        ? "shared!"
-        : result === "downloaded"
-          ? "saved image!"
-          : "copied!";
-    setLabel(next);
-    timer.current = window.setTimeout(() => setLabel("share score"), 1800);
-  }
+  const opts = {
+    mode,
+    score,
+    maxScore,
+    place,
+    name,
+    playlistName,
+    accuracy: stats?.accuracy,
+    fastestMs: stats?.fastestMs,
+    bestStreak: stats?.bestStreak,
+    artistsClaimed: stats?.artistsClaimed,
+    artistsTotal: stats?.artistsTotal,
+    timeline:
+      mode === "solo"
+        ? stats?.timeline
+        : stats?.timelineWins || stats?.timeline,
+  };
 
   return (
-    <button type="button" className={className} onClick={onClick}>
-      {label}
-    </button>
+    <>
+      <button type="button" className={className} onClick={() => setOpen(true)}>
+        share score
+      </button>
+      {open && (
+        <SharePreviewDialog
+          heading="share your score"
+          render={() => renderShareCard(opts)}
+          text={scoreSharePayload(opts).text}
+          filename="guessify-wrap.png"
+          onClose={() => setOpen(false)}
+        />
+      )}
+    </>
   );
 }

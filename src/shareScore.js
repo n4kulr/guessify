@@ -2,7 +2,9 @@ import { formatSolveSec } from "./gameStats.js";
 import { getThemePalette } from "./themes.js";
 
 /**
- * End-of-game share text + Wrapped-style PNG + native share / download.
+ * Share cards + copy for a whole game (Wrapped-style) and for a single round,
+ * plus native share / download. Rendering is kept separate from sharing so the
+ * preview dialog can show the exact image first.
  * Links guessify.uk so OG art rides along when text is posted.
  */
 
@@ -122,6 +124,143 @@ function divider(ctx, x, w, y, color) {
   ctx.restore();
 }
 
+/** Trim a line until it plus an ellipsis fits maxW. */
+function ellipsise(line, maxW, measure) {
+  let s = line;
+  while (s.length > 1 && measure(`${s}…`) > maxW) {
+    s = s.slice(0, -1);
+  }
+  return `${s.trimEnd()}…`;
+}
+
+/**
+ * Greedy word wrap for canvas text, capped at maxLines with the last line
+ * ellipsised. `measure` is injected so this stays testable without a DOM.
+ * Set the font on the context before calling.
+ */
+export function wrapLines(text, maxW, maxLines, measure) {
+  const words = String(text || "")
+    .trim()
+    .split(/\s+/)
+    .filter(Boolean);
+  if (!words.length) return [];
+
+  const all = [];
+  let line = "";
+  for (const word of words) {
+    const next = line ? `${line} ${word}` : word;
+    if (line && measure(next) > maxW) {
+      all.push(line);
+      line = word;
+    } else {
+      line = next;
+    }
+  }
+  all.push(line);
+
+  if (all.length <= maxLines) {
+    // A single word wider than maxW is the only way a line still overflows.
+    return all.map((l) => (measure(l) <= maxW ? l : ellipsise(l, maxW, measure)));
+  }
+  const kept = all.slice(0, maxLines);
+  kept[maxLines - 1] = ellipsise(kept[maxLines - 1], maxW, measure);
+  return kept;
+}
+
+// ---------------------------------------------------------------------------
+// Shared card chrome — both the wrap card and the round card are built on this
+// so they read as the same object. Header coords are top-anchored and so are
+// height-independent; the footer is measured back from the bottom edge.
+// ---------------------------------------------------------------------------
+
+const CARD_W = 1080;
+const CARD_M = 100; // page margin — everything hangs off this left edge
+
+function newCard(h) {
+  const canvas = document.createElement("canvas");
+  canvas.width = CARD_W;
+  canvas.height = h;
+  return canvas;
+}
+
+function drawCardChrome(ctx, { h, c, subtitle, playlistName }) {
+  const W = CARD_W;
+  const M = CARD_M;
+  const contentW = W - M * 2;
+
+  // --- Background: vertical gradient + two soft warm blobs ------------------
+  const grad = ctx.createLinearGradient(0, 0, 0, h);
+  grad.addColorStop(0, c.subAlt);
+  grad.addColorStop(0.45, c.bg);
+  grad.addColorStop(1, c.subAlt);
+  ctx.fillStyle = grad;
+  ctx.fillRect(0, 0, W, h);
+
+  ctx.save();
+  ctx.globalAlpha = 0.08;
+  ctx.fillStyle = c.main;
+  ctx.beginPath();
+  ctx.arc(W * 0.95, h * 0.08, 460, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.restore();
+
+  // Vinyl record bleeding off the bottom-right — the signature graphic.
+  drawVinyl(ctx, W * 0.9, h * 0.92, 70, 430, 14, c.main, 0.05);
+
+  // --- Header: wordmark + accent underline, subtitle, playlist pill ---------
+  setType(ctx, 700, 68, c.main, 0);
+  ctx.fillText("guessify", M, 175);
+  const wordW = ctx.measureText("guessify").width;
+  ctx.fillStyle = c.main;
+  roundRect(ctx, M, 198, wordW, 8, 4);
+  ctx.fill();
+
+  setType(ctx, 600, 34, c.sub, 0);
+  ctx.fillText(subtitle, M, 262);
+
+  if (playlistName) {
+    let pl = playlistName;
+    if (pl.length > 28) {
+      pl = `${pl.slice(0, 26)}…`;
+    }
+    setType(ctx, 500, 30, c.text, 0);
+    const textW = ctx.measureText(pl).width;
+    const pillH = 60;
+    const pillW = textW + 56 + 40; // text + side padding + room for the dot
+    const pillX = W - M - pillW;
+    const pillY = 128;
+    ctx.fillStyle = c.subAlt;
+    roundRect(ctx, pillX, pillY, pillW, pillH, pillH / 2);
+    ctx.fill();
+    ctx.fillStyle = c.main;
+    ctx.beginPath();
+    ctx.arc(pillX + 34, pillY + pillH / 2, 9, 0, Math.PI * 2);
+    ctx.fill();
+    setType(ctx, 500, 30, c.text, 0);
+    ctx.fillText(pl, pillX + 62, pillY + 40);
+  }
+
+  divider(ctx, M, contentW, 320, c.sub);
+  return contentW;
+}
+
+function drawCardFooter(ctx, { h, c }) {
+  const W = CARD_W;
+  const M = CARD_M;
+  divider(ctx, M, W - M * 2, h - 120, c.sub);
+
+  const footY = h - 52;
+  setType(ctx, 700, 44, c.main, 0);
+  ctx.fillText("guessify.uk", M, footY);
+
+  setType(ctx, 500, 30, c.sub, 0);
+  const tag = "name that song";
+  const tagW = ctx.measureText(tag).width;
+  ctx.fillText(tag, W - M - tagW, footY);
+
+  ctx.letterSpacing = "0px"; // leave the context clean
+}
+
 // ---------------------------------------------------------------------------
 // Replay data prep — bar length is speed RELATIVE to the player's own fastest
 // win, so a full bar always means "your best round" and shorter bars read as
@@ -188,43 +327,13 @@ export function renderShareCard(opts = {}) {
     timeline = [],
   } = opts;
 
-  const W = 1080;
+  const W = CARD_W;
   const H = 1920;
-  const M = 100; // page margin — everything hangs off this left edge
-  const contentW = W - M * 2;
+  const M = CARD_M;
 
-  const canvas = document.createElement("canvas");
-  canvas.width = W;
-  canvas.height = H;
+  const canvas = newCard(H);
   const ctx = canvas.getContext("2d");
   const c = grabTheme();
-
-  // --- Background: vertical gradient + two soft warm blobs ------------------
-  const grad = ctx.createLinearGradient(0, 0, 0, H);
-  grad.addColorStop(0, c.subAlt);
-  grad.addColorStop(0.45, c.bg);
-  grad.addColorStop(1, c.subAlt);
-  ctx.fillStyle = grad;
-  ctx.fillRect(0, 0, W, H);
-
-  ctx.save();
-  ctx.globalAlpha = 0.08;
-  ctx.fillStyle = c.main;
-  ctx.beginPath();
-  ctx.arc(W * 0.95, H * 0.08, 460, 0, Math.PI * 2);
-  ctx.fill();
-  ctx.restore();
-
-  // Vinyl record bleeding off the bottom-right — the signature graphic.
-  drawVinyl(ctx, W * 0.9, H * 0.92, 70, 430, 14, c.main, 0.05);
-
-  // --- Header: wordmark + accent underline, subtitle, playlist pill ---------
-  setType(ctx, 700, 68, c.main, 0);
-  ctx.fillText("guessify", M, 175);
-  const wordW = ctx.measureText("guessify").width;
-  ctx.fillStyle = c.main;
-  roundRect(ctx, M, 198, wordW, 8, 4);
-  ctx.fill();
 
   let subtitle = "solo wrap";
   if (mode === "online") {
@@ -241,32 +350,8 @@ export function renderShareCard(opts = {}) {
       subtitle = "party wrap";
     }
   }
-  setType(ctx, 600, 34, c.sub, 0);
-  ctx.fillText(subtitle, M, 262);
 
-  if (playlistName) {
-    let pl = playlistName;
-    if (pl.length > 28) {
-      pl = `${pl.slice(0, 26)}…`;
-    }
-    setType(ctx, 500, 30, c.text, 0);
-    const textW = ctx.measureText(pl).width;
-    const pillH = 60;
-    const pillW = textW + 56 + 40; // text + side padding + room for the dot
-    const pillX = W - M - pillW;
-    const pillY = 128;
-    ctx.fillStyle = c.subAlt;
-    roundRect(ctx, pillX, pillY, pillW, pillH, pillH / 2);
-    ctx.fill();
-    ctx.fillStyle = c.main;
-    ctx.beginPath();
-    ctx.arc(pillX + 34, pillY + pillH / 2, 9, 0, Math.PI * 2);
-    ctx.fill();
-    setType(ctx, 500, 30, c.text, 0);
-    ctx.fillText(pl, pillX + 62, pillY + 40);
-  }
-
-  divider(ctx, M, contentW, 320, c.sub);
+  const contentW = drawCardChrome(ctx, { h: H, c, subtitle, playlistName });
 
   // --- Hero score ----------------------------------------------------------
   setType(ctx, 600, 30, c.main, 3);
@@ -397,24 +482,79 @@ export function renderShareCard(opts = {}) {
     });
   }
 
-  // --- Footer (anchored to the bottom) -------------------------------------
-  divider(ctx, M, contentW, 1800, c.sub);
+  drawCardFooter(ctx, { h: H, c });
+  return canvas;
+}
 
-  const footY = 1868;
-  setType(ctx, 700, 44, c.main, 0);
-  ctx.fillText("guessify.uk", M, footY);
+/**
+ * Single-round card (1080×1350) — same chrome as the wrap card, one song.
+ * No cover art: an external image would taint the canvas and toBlob would
+ * throw, so the record motif carries the artwork instead.
+ * @returns {HTMLCanvasElement}
+ */
+export function renderRoundCard(opts = {}) {
+  const {
+    title = "",
+    artist = "",
+    wallMs = null,
+    unlockedSec = 0,
+    round = 0,
+    playlistName = "",
+  } = opts;
 
-  setType(ctx, 500, 30, c.sub, 0);
-  const tag = "name that song";
-  const tagW = ctx.measureText(tag).width;
-  ctx.fillText(tag, W - M - tagW, footY);
+  const H = 1350;
+  const M = CARD_M;
 
-  ctx.letterSpacing = "0px"; // leave the context clean
+  const canvas = newCard(H);
+  const ctx = canvas.getContext("2d");
+  const c = grabTheme();
+
+  const contentW = drawCardChrome(ctx, {
+    h: H,
+    c,
+    subtitle: round ? `record ${round}` : "one round",
+    playlistName,
+  });
+
+  const solved = formatSolveSec(wallMs);
+  const won = solved !== "—";
+
+  setType(ctx, 600, 30, c.main, 3);
+  ctx.fillText(won ? "NAMED IT IN" : "COULDN'T NAME IT", M, 440);
+
+  if (won) {
+    setType(ctx, 800, 200, c.text, 0);
+    ctx.fillText(solved, M, 660);
+    setType(ctx, 600, 42, c.sub, 0);
+    ctx.fillText(`off ${unlockedSec}s of audio`, M, 726);
+  } else {
+    setType(ctx, 800, 140, c.text, 0);
+    ctx.fillText("missed", M, 640);
+    setType(ctx, 600, 42, c.sub, 0);
+    ctx.fillText(`${unlockedSec}s of audio unlocked`, M, 726);
+  }
+
+  divider(ctx, M, contentW, 800, c.sub);
+
+  setType(ctx, 600, 30, c.main, 3);
+  ctx.fillText("THE SONG", M, 880);
+
+  setType(ctx, 700, 76, c.text, 0);
+  const titleLines = wrapLines(title, contentW, 2, (s) => ctx.measureText(s).width);
+  titleLines.forEach((line, i) => ctx.fillText(line, M, 970 + i * 88));
+
+  setType(ctx, 500, 44, c.sub, 0);
+  const [artistLine] = wrapLines(artist, contentW, 1, (s) => ctx.measureText(s).width);
+  if (artistLine) {
+    ctx.fillText(artistLine, M, 970 + titleLines.length * 88 + 14);
+  }
+
+  drawCardFooter(ctx, { h: H, c });
   return canvas;
 }
 
 // ---------------------------------------------------------------------------
-// Share / download (unchanged)
+// Share / download
 // ---------------------------------------------------------------------------
 
 function downloadBlob(blob, filename) {
@@ -429,20 +569,24 @@ function downloadBlob(blob, filename) {
   setTimeout(() => URL.revokeObjectURL(url), 2500);
 }
 
-/** @returns {"shared"|"copied"|"downloaded"|"cancelled"|"prompt"} */
-export async function shareScore(opts) {
-  const { title, text } = scoreSharePayload(opts);
+/**
+ * Share an already-rendered card. Split from the renderers so the preview
+ * dialog can show the user the exact image before any of this runs — nothing
+ * leaves the app without the user seeing it first.
+ * @returns {"shared"|"copied"|"downloaded"|"cancelled"|"prompt"}
+ */
+export async function shareCanvas(canvas, { text = "", filename } = {}) {
+  const name = filename || "guessify-wrap.png";
   let file = null;
   try {
-    const canvas = renderShareCard(opts);
     const blob = await new Promise((resolve) =>
       canvas.toBlob(resolve, "image/png")
     );
     if (blob) {
-      file = new File([blob], "guessify-wrap.png", { type: "image/png" });
+      file = new File([blob], name, { type: "image/png" });
     }
   } catch {
-    /* canvas / theme unavailable */
+    /* canvas unavailable / tainted */
   }
 
   if (
@@ -462,7 +606,7 @@ export async function shareScore(opts) {
   }
 
   if (file) {
-    downloadBlob(file, "guessify-wrap.png");
+    downloadBlob(file, name);
   }
 
   try {
@@ -475,8 +619,7 @@ export async function shareScore(opts) {
 }
 
 /**
- * Share plain text — used for a single round, where the wrap card's
- * end-of-game layout doesn't apply.
+ * Share plain text — the fallback when a card can't be rendered at all.
  * @returns {"shared"|"copied"|"cancelled"|"prompt"}
  */
 export async function shareText(text) {

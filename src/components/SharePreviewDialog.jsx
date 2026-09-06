@@ -1,10 +1,33 @@
-import { useEffect, useId, useState } from "react";
-import { shareText } from "../shareScore.js";
+import { useEffect, useId, useRef, useState } from "react";
+import { shareCanvas, shareText } from "../shareScore.js";
 
-/** Confirm-before-share: shows the exact text that will leave the app. */
-export default function SharePreviewDialog({ text, onClose }) {
+/**
+ * Confirm-before-share: renders the card up front and shows the exact image
+ * that will be sent. Falls back to the text payload if the canvas fails.
+ */
+export default function SharePreviewDialog({
+  render,
+  text = "",
+  filename,
+  heading = "share",
+  hint = "this is exactly what gets shared",
+  onClose,
+}) {
   const titleId = useId();
+  const canvasRef = useRef(null);
+  const [src, setSrc] = useState("");
   const [label, setLabel] = useState("share it");
+
+  useEffect(() => {
+    // Rendered once per open — the round's numbers can't change while this is up.
+    try {
+      const canvas = render();
+      canvasRef.current = canvas;
+      setSrc(canvas.toDataURL("image/png"));
+    } catch {
+      canvasRef.current = null;
+    }
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     function onKey(e) {
@@ -15,9 +38,18 @@ export default function SharePreviewDialog({ text, onClose }) {
   }, [onClose]);
 
   async function onShare() {
-    const result = await shareText(text);
+    const canvas = canvasRef.current;
+    const result = canvas
+      ? await shareCanvas(canvas, { text, filename })
+      : await shareText(text);
     if (result === "cancelled") return;
-    setLabel(result === "shared" ? "shared!" : "copied!");
+    setLabel(
+      result === "shared"
+        ? "shared!"
+        : result === "downloaded"
+          ? "saved image!"
+          : "copied!"
+    );
     window.setTimeout(() => onClose?.(), 900);
   }
 
@@ -46,12 +78,16 @@ export default function SharePreviewDialog({ text, onClose }) {
 
         <div className="spotlight-head">
           <h2 id={titleId} className="spotlight-title">
-            share this round
+            {heading}
           </h2>
-          <p className="spotlight-hint">this is exactly what gets shared</p>
+          <p className="spotlight-hint">{hint}</p>
         </div>
 
-        <p className="share-preview-text">{text}</p>
+        {src ? (
+          <img className="share-preview-img" src={src} alt="share card preview" />
+        ) : (
+          <p className="share-preview-text">{text}</p>
+        )}
 
         <div className="spotlight-actions">
           <button type="button" className="btn btn-big btn-multi" onClick={onClose}>

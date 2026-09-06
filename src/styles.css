@@ -3515,7 +3515,8 @@ button.footer-privacy:hover {
   .vinyl-deck-next { padding: 8px 12px; font-size: 13px; }
 }
 @media (prefers-reduced-motion: reduce) {
-  .vinyl-deck-panel { transition: none; }
+  .vinyl-deck-panel,
+  .guess-fields-tray { transition: none; }
 }
 
 .progress { margin: 6px 0 20px; }
@@ -3625,8 +3626,17 @@ button.footer-privacy:hover {
 .gr-skip { color: var(--sub-color); }
 
 .guess-input-wrap { position: relative; }
-/* Reveal keeps the fields' space so the card height — and so a vertically
-   centred card — never moves. visibility also drops them from tab order. */
+/* At the reveal the fields collapse to nothing rather than leaving a hole, and
+   the collapse is animated so the centred card glides to its new height
+   instead of snapping. Same 0fr/1fr grid trick as .profile-pick-tray. */
+.guess-fields-tray {
+  display: grid;
+  grid-template-rows: 1fr;
+  transition: grid-template-rows 0.4s cubic-bezier(0.22, 1, 0.36, 1);
+}
+.guess-fields-tray > .guess-fields { min-height: 0; overflow: hidden; }
+.guess-input-wrap.is-answered .guess-fields-tray { grid-template-rows: 0fr; }
+/* visibility, not just clipping, so collapsed inputs leave the tab order. */
 .guess-input-wrap.is-answered .guess-fields { visibility: hidden; }
 .guess-fields { display: flex; gap: 8px; align-items: stretch; }
 .guess-fields .guess-input { flex: 1; min-width: 0; }
@@ -4934,6 +4944,15 @@ button.footer-privacy:hover {
 }
 
 .share-preview { width: min(420px, 100%); }
+.share-preview-img {
+  display: block;
+  margin: 0 auto;
+  max-width: 100%;
+  /* The card is portrait, so cap by height and let the ratio set the width. */
+  max-height: min(56vh, 560px);
+  border-radius: 12px;
+  background: var(--bg-color);
+}
 .share-preview-text {
   margin: 0;
   padding: 14px 16px;
