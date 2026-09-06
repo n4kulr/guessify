@@ -764,8 +764,6 @@ export default function GuestApp({ code }) {
             </div>
           </div>
         )}
-
-        )}
           </>
         )}
 

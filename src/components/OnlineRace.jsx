@@ -1516,8 +1516,6 @@ export default function OnlineRace({ profile, onExit, raceMode: raceModeProp }) 
             </div>
           </div>
         )}
-
-        )}
           </>
         )}
       </div>
