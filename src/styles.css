@@ -3322,7 +3322,7 @@ button.footer-privacy:hover {
   border: 1px solid color-mix(in srgb, var(--text-color) 18%, transparent);
   box-shadow:
     inset 0 0 0 10px color-mix(in srgb, var(--bg-color) 80%, transparent),
-    0 10px 28px color-mix(in srgb, #000 28%, transparent);
+    0 14px 18px -10px color-mix(in srgb, #000 40%, transparent);
   z-index: 0;
   pointer-events: none;
 }
@@ -3414,22 +3414,23 @@ button.footer-privacy:hover {
     transform 0.55s cubic-bezier(0.22, 1, 0.36, 1),
     margin 0.55s cubic-bezier(0.22, 1, 0.36, 1),
     padding 0.55s cubic-bezier(0.22, 1, 0.36, 1),
-    background 0.35s ease,
-    box-shadow 0.45s ease;
+    background 0.35s ease;
+}
+.vinyl-deck.is-open {
+  filter: drop-shadow(0 18px 10px color-mix(in srgb, #000 40%, transparent));
 }
 .vinyl-deck.is-open .vinyl-deck-panel {
   /* Visible copy sits between the disc’s right edge and the box’s right edge. */
-  width: calc(100% - var(--disc) * 0.5);
-  max-width: calc(100% - var(--disc) * 0.5);
+  flex: 1 1 auto;
+  width: auto;
+  max-width: none;
+  min-width: 0;
   opacity: 1;
   pointer-events: auto;
   height: var(--box);
   margin-left: var(--tuck);
   padding: 16px var(--gutter) 16px calc(var(--disc) * 0.5 + var(--gutter));
   background: var(--bg-color);
-  box-shadow:
-    inset 0 1px 0 color-mix(in srgb, var(--text-color) 8%, transparent),
-    0 16px 40px color-mix(in srgb, #000 40%, transparent);
   transform: translateX(0);
 }
 .vinyl-deck-panel .reveal-clock {
@@ -3472,25 +3473,33 @@ button.footer-privacy:hover {
   justify-content: flex-start;
   margin-top: 2px;
 }
+/* Sits under the unlock bar so the sleeve only carries the reveal copy. */
+.round-next {
+  display: flex;
+  width: fit-content;
+  margin: 4px auto 0;
+}
 @media (max-width: 560px) {
-  html { overflow-x: hidden; }
   .vinyl-deck {
     --disc: 160px;
     --box: 148px;
     --gutter: 12px;
     margin: 12px auto 20px;
+    /* Copy wraps at this width, so let the sleeve grow instead of clipping. */
+    height: auto;
+    min-height: var(--disc);
   }
-  .vinyl-deck.is-open {
-    justify-content: flex-start;
-    margin-left: calc(var(--disc) * -0.5 - var(--game-pad, 18px));
-    margin-right: 0;
-    width: calc(100% + var(--disc) * 0.5 + var(--game-pad, 18px));
+  .vinyl-deck.is-open .vinyl-deck-panel {
+    height: auto;
+    min-height: var(--box);
   }
   .vinyl-deck-title,
   .vinyl-deck-artist {
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
     white-space: normal;
-    overflow: visible;
-    text-overflow: unset;
   }
   .vinyl-deck-panel .reveal-clock-time { font-size: 22px; }
   .vinyl-deck-panel .reveal-clock-miss { font-size: 16px; }

@@ -573,14 +573,6 @@ export default function Game({ playlist, me, onExit, onReplay }) {
                     <span className="vinyl-deck-artist">
                       {track.artists.join(", ")}
                     </span>
-                    <button
-                      className="btn btn-play vinyl-deck-next"
-                      onClick={nextRound}
-                    >
-                      {roundIdx + 1 >= rounds.length
-                        ? "see results →"
-                        : "next song →"}
-                    </button>
                   </>
                 ) : null
               }
@@ -635,6 +627,18 @@ export default function Game({ playlist, me, onExit, onReplay }) {
                 <span>{unlocked}s unlocked</span>
               </div>
             </div>
+
+            {resolved && (
+              <button
+                className="btn btn-big btn-play round-next"
+                onClick={nextRound}
+              >
+                <span className="btn-play-icon" aria-hidden="true" />
+                {roundIdx + 1 >= rounds.length
+                  ? "see results →"
+                  : "next song →"}
+              </button>
+            )}
 
             {!resolved && (
               <div className="guess-input-wrap">
