@@ -442,6 +442,19 @@ export default function Game({ playlist, me, onExit, onReplay }) {
     resetInRound();
   }
 
+  useEffect(() => {
+    if (phase !== "play" || !resolved || sharePreview) return;
+    function onKey(e) {
+      if (e.key !== "Enter" || e.repeat) return;
+      // Focused buttons already activate on Enter — don't double-advance.
+      if (e.target.closest("button, a, input, textarea, select")) return;
+      e.preventDefault();
+      nextRound();
+    }
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [phase, resolved, sharePreview, roundIdx]); // eslint-disable-line react-hooks/exhaustive-deps
+
   function restart() {
     onExit();
   }
@@ -722,15 +735,15 @@ export default function Game({ playlist, me, onExit, onReplay }) {
                         onClick={() => setSharePreview(true)}
                       >
                         <span className="btn-label">share</span>
-                        <span className="btn-hint">round</span>
+                        <span className="btn-hint">image</span>
                       </button>
                       <button className="btn btn-play" onClick={nextRound}>
                         <span className="btn-label">
                           {roundIdx + 1 >= rounds.length
                             ? "see results"
-                            : "next song"}
+                            : "next song →"}
                         </span>
-                        <span className="btn-hint">→</span>
+                        <span className="btn-hint">enter</span>
                       </button>
                     </>
                   ) : (

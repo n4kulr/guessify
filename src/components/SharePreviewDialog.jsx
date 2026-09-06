@@ -16,7 +16,7 @@ export default function SharePreviewDialog({
   const titleId = useId();
   const canvasRef = useRef(null);
   const [src, setSrc] = useState("");
-  const [label, setLabel] = useState("share it");
+  const [label, setLabel] = useState("share image");
 
   useEffect(() => {
     // Rendered once per open — the round's numbers can't change while this is up.
@@ -90,7 +90,7 @@ export default function SharePreviewDialog({
         )}
 
         <div className="spotlight-actions">
-          <button type="button" className="btn btn-big btn-multi" onClick={onClose}>
+          <button type="button" className="btn btn-big" onClick={onClose}>
             cancel
           </button>
           <button type="button" className="btn btn-big btn-play" onClick={onShare}>
