@@ -23,19 +23,27 @@ const solved = roundSharePayload({
   artist: "The Weeknd",
   wallMs: 4120,
   unlockedSec: 6,
+  won: true,
 });
 assert.match(solved.text, /"Blinding Lights" — The Weeknd/);
 assert.match(solved.text, /4\.1s/);
 assert.match(solved.text, /6s of audio/);
 assert.match(solved.text, /guessify\.uk/);
 
-// Missed the round: share the answer, never a bogus time.
-const missed = roundSharePayload({ title: "Alright", artist: "Kendrick Lamar" });
-assert.match(missed.text, /Couldn't name/);
-assert.doesNotMatch(missed.text, /—s|NaN|undefined/);
+// Missed the round: never treat elapsed wall time as a solve.
+const missed = roundSharePayload({
+  title: "Alright",
+  artist: "Kendrick Lamar",
+  wallMs: 18_000,
+  won: false,
+});
+assert.match(missed.text, /i couldn't guess it :\( can you\?/);
+assert.match(missed.text, /"Alright" — Kendrick Lamar/);
+assert.doesNotMatch(missed.text, /Named/);
+assert.doesNotMatch(missed.text, /18/);
 
 // No artist yet: quotes still balance, no dangling dash.
-const bare = roundSharePayload({ title: "Teardrop", wallMs: 900 });
+const bare = roundSharePayload({ title: "Teardrop", wallMs: 900, won: true });
 assert.match(bare.text, /"Teardrop" in 0\.9s/);
 
 // Canvas title wrapping. Fake metrics: every glyph is 10px wide.

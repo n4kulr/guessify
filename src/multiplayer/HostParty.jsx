@@ -298,6 +298,7 @@ export default function HostParty({
         unlockStep: state.unlockByPlayer?.[playerId] ?? 0,
         title: state.track?.name || null,
         artist: (state.track?.artists || []).join(", ") || null,
+        cover: state.track?.cover || null,
       },
     ]);
   }, [

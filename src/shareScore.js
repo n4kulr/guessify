@@ -37,19 +37,18 @@ export function scoreSharePayload({
   };
 }
 
-/** One revealed round, as text. Missed rounds share the answer, not a time. */
+/** One revealed round, as text. `won` is required — wall time on a miss is not a solve. */
 export function roundSharePayload({
   title = "",
   artist = "",
   wallMs = null,
   unlockedSec = 0,
+  won = false,
 } = {}) {
   const song = artist ? `"${title}" — ${artist}` : `"${title}"`;
-  const solved = formatSolveSec(wallMs);
-  const text =
-    solved === "—"
-      ? `Couldn't name ${song} on guessify — can you?\n${SHARE_URL}`
-      : `Named ${song} in ${solved} off ${unlockedSec}s of audio on guessify\n${SHARE_URL}`;
+  const text = won
+    ? `Named ${song} in ${formatSolveSec(wallMs)} off ${unlockedSec}s of audio on guessify\n${SHARE_URL}`
+    : `i couldn't guess it :( can you?\n${song}\n${SHARE_URL}`;
   return { title: "guessify", text };
 }
 
@@ -165,6 +164,44 @@ export function wrapLines(text, maxW, maxLines, measure) {
   const kept = all.slice(0, maxLines);
   kept[maxLines - 1] = ellipsise(kept[maxLines - 1], maxW, measure);
   return kept;
+}
+
+function fastestWin(timeline) {
+  const wins = (Array.isArray(timeline) ? timeline : []).filter(
+    (row) => row?.won && row.wallMs > 0
+  );
+  if (!wins.length) return null;
+  return wins.reduce((a, b) => (b.wallMs < a.wallMs ? b : a));
+}
+
+/** Same-origin proxy so mzstatic/scdn art can be stamped without tainting. */
+async function loadCover(src) {
+  if (!src || typeof fetch !== "function") return null;
+  const ctrl = typeof AbortController !== "undefined" ? new AbortController() : null;
+  const timer = ctrl ? setTimeout(() => ctrl.abort(), 8000) : null;
+  try {
+    const r = await fetch(
+      `/api/cover?u=${encodeURIComponent(src)}`,
+      ctrl ? { signal: ctrl.signal } : undefined
+    );
+    if (!r.ok) return null;
+    const blob = await r.blob();
+    if (!blob.type.startsWith("image/")) return null;
+    return await createImageBitmap(blob);
+  } catch {
+    return null;
+  } finally {
+    if (timer) clearTimeout(timer);
+  }
+}
+
+function drawCover(ctx, img, x, y, size, r = 20) {
+  if (!img) return;
+  ctx.save();
+  roundRect(ctx, x, y, size, size, r);
+  ctx.clip();
+  ctx.drawImage(img, x, y, size, size);
+  ctx.restore();
 }
 
 // ---------------------------------------------------------------------------
@@ -311,7 +348,7 @@ function prepReplayRows(timeline) {
  * Spotify Wrapped–style story card (1080×1920).
  * @returns {HTMLCanvasElement}
  */
-export function renderShareCard(opts = {}) {
+export async function renderShareCard(opts = {}) {
   const {
     mode = "solo",
     score = 0,
@@ -326,6 +363,8 @@ export function renderShareCard(opts = {}) {
     playlistName = "",
     timeline = [],
   } = opts;
+  const best = fastestWin(timeline);
+  const bestCover = await loadCover(best?.cover);
 
   const W = CARD_W;
   const H = 1920;
@@ -410,24 +449,60 @@ export function renderShareCard(opts = {}) {
     ctx.fillText(chip.v, x + 40, y + 132);
   });
 
-  divider(ctx, M, contentW, 1280, c.sub);
+  // Fastest win sits between the chips and the replay so the wrap names
+  // the song, not just the time. Replay rows tighten when this band is on.
+  let replayLabelY = 1350;
+  let rowTop0 = 1400;
+  let rowH = 74;
+  if (best) {
+    setType(ctx, 600, 30, c.main, 3);
+    ctx.fillText("FASTEST SONG", M, 1290);
+
+    const art = 140;
+    drawCover(ctx, bestCover, M, 1312, art, 18);
+    const textX = bestCover ? M + art + 36 : M;
+    const textW = W - M - textX;
+    setType(ctx, 800, 52, c.text, 0);
+    const [bestTitle] = wrapLines(
+      best.title || "a song",
+      textW,
+      1,
+      (s) => ctx.measureText(s).width
+    );
+    ctx.fillText(bestTitle, textX, 1372);
+    setType(ctx, 500, 32, c.sub, 0);
+    const [bestArtist] = wrapLines(
+      best.artist || "",
+      textW,
+      1,
+      (s) => ctx.measureText(s).width
+    );
+    if (bestArtist) ctx.fillText(bestArtist, textX, 1416);
+    setType(ctx, 700, 36, c.main, 0);
+    ctx.fillText(formatSolveSec(best.wallMs), textX, 1466);
+
+    divider(ctx, M, contentW, 1488, c.sub);
+    replayLabelY = 1536;
+    rowTop0 = 1576;
+    rowH = 48;
+  } else {
+    divider(ctx, M, contentW, 1280, c.sub);
+  }
 
   // --- Mini replay ---------------------------------------------------------
   const rows = prepReplayRows(timeline);
   if (rows.length) {
     setType(ctx, 600, 30, c.main, 3);
-    ctx.fillText("REPLAY", M, 1350);
+    ctx.fillText("REPLAY", M, replayLabelY);
 
     setType(ctx, 500, 26, c.sub, 0);
     const note = "bar = speed vs your best";
     const noteW = ctx.measureText(note).width;
-    ctx.fillText(note, W - M - noteW, 1350);
+    ctx.fillText(note, W - M - noteW, replayLabelY);
 
     const trackX = M + 150;
     const trackRight = W - M - 170;
     const trackW = trackRight - trackX;
-    const rowTop0 = 1400;
-    const rowH = 74;
 
     rows.forEach((row, i) => {
       const top = rowTop0 + i * rowH;
@@ -488,11 +563,10 @@ export function renderShareCard(opts = {}) {
 
 /**
  * Single-round card (1080×1350) — same chrome as the wrap card, one song.
- * No cover art: an external image would taint the canvas and toBlob would
- * throw, so the record motif carries the artwork instead.
- * @returns {HTMLCanvasElement}
+ * Cover art is fetched same-origin so the canvas stays shareable.
+ * @returns {Promise<HTMLCanvasElement>}
  */
-export function renderRoundCard(opts = {}) {
+export async function renderRoundCard(opts = {}) {
   const {
     title = "",
     artist = "",
@@ -500,8 +574,12 @@ export function renderRoundCard(opts = {}) {
     unlockedSec = 0,
     round = 0,
     playlistName = "",
+    won = false,
+    cover = null,
   } = opts;
+  const coverImg = await loadCover(cover);
 
+  const W = CARD_W;
   const H = 1350;
   const M = CARD_M;
 
@@ -516,37 +594,47 @@ export function renderRoundCard(opts = {}) {
     playlistName,
   });
 
-  const solved = formatSolveSec(wallMs);
-  const won = solved !== "—";
-
-  setType(ctx, 600, 30, c.main, 3);
-  ctx.fillText(won ? "NAMED IT IN" : "COULDN'T NAME IT", M, 440);
-
   if (won) {
+    setType(ctx, 600, 30, c.main, 3);
+    ctx.fillText("NAMED IT IN", M, 440);
     setType(ctx, 800, 200, c.text, 0);
-    ctx.fillText(solved, M, 660);
+    ctx.fillText(formatSolveSec(wallMs), M, 660);
     setType(ctx, 600, 42, c.sub, 0);
     ctx.fillText(`off ${unlockedSec}s of audio`, M, 726);
   } else {
-    setType(ctx, 800, 140, c.text, 0);
-    ctx.fillText("missed", M, 640);
+    setType(ctx, 800, 72, c.text, 0);
+    const missLines = wrapLines(
+      "i couldn't guess it :(",
+      contentW,
+      2,
+      (s) => ctx.measureText(s).width
+    );
+    missLines.forEach((line, i) => ctx.fillText(line, M, 520 + i * 84));
     setType(ctx, 600, 42, c.sub, 0);
-    ctx.fillText(`${unlockedSec}s of audio unlocked`, M, 726);
+    ctx.fillText("can you?", M, 520 + missLines.length * 84 + 16);
   }
 
   divider(ctx, M, contentW, 800, c.sub);
 
   setType(ctx, 600, 30, c.main, 3);
-  ctx.fillText("THE SONG", M, 880);
+  ctx.fillText("THE SONG", M, 860);
 
-  setType(ctx, 700, 76, c.text, 0);
-  const titleLines = wrapLines(title, contentW, 2, (s) => ctx.measureText(s).width);
-  titleLines.forEach((line, i) => ctx.fillText(line, M, 970 + i * 88));
+  const art = 220;
+  const textX = coverImg ? M + art + 36 : M;
+  const textW = W - M - textX;
+  drawCover(ctx, coverImg, M, 890, art, 24);
+
+  setType(ctx, 700, coverImg ? 54 : 76, c.text, 0);
+  const titleLines = wrapLines(title, textW, 2, (s) => ctx.measureText(s).width);
+  titleLines.forEach((line, i) =>
+    ctx.fillText(line, textX, (coverImg ? 960 : 970) + i * (coverImg ? 64 : 88))
+  );
 
   setType(ctx, 500, 44, c.sub, 0);
-  const [artistLine] = wrapLines(artist, contentW, 1, (s) => ctx.measureText(s).width);
+  const [artistLine] = wrapLines(artist, textW, 1, (s) => ctx.measureText(s).width);
   if (artistLine) {
-    ctx.fillText(artistLine, M, 970 + titleLines.length * 88 + 14);
+    const titleBlock = coverImg ? 960 + titleLines.length * 64 : 970 + titleLines.length * 88;
+    ctx.fillText(artistLine, textX, titleBlock + 14);
   }
 
   drawCardFooter(ctx, { h: H, c });

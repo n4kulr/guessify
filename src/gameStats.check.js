@@ -103,6 +103,11 @@ const labeled = computeGameStats([
 assert.equal(labeled.timeline[0].label, "baby · Justin Bieber");
 assert.equal(labeled.timeline[1].label, "hello · Adele");
 assert.equal(labeled.timeline[1].won, false);
+assert.equal(
+  computeGameStats([{ won: true, wallMs: 1000, cover: "https://art.test/a.jpg" }])
+    .timeline[0].cover,
+  "https://art.test/a.jpg"
+);
 
 const series = solveCompareSeries(
   [

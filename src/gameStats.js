@@ -130,6 +130,7 @@ export function computeGameStats(log = [], opts = {}) {
       wallMs,
       title,
       artist,
+      cover: r?.cover || null,
       label:
         title && artist
           ? `${title} · ${artist}`

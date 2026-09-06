@@ -16,17 +16,27 @@ export default function SharePreviewDialog({
   const titleId = useId();
   const canvasRef = useRef(null);
   const [src, setSrc] = useState("");
+  const [ready, setReady] = useState(false);
   const [label, setLabel] = useState("share image");
 
   useEffect(() => {
     // Rendered once per open — the round's numbers can't change while this is up.
-    try {
-      const canvas = render();
-      canvasRef.current = canvas;
-      setSrc(canvas.toDataURL("image/png"));
-    } catch {
-      canvasRef.current = null;
-    }
+    let cancelled = false;
+    (async () => {
+      try {
+        const canvas = await Promise.resolve(render());
+        if (cancelled || !canvas) return;
+        canvasRef.current = canvas;
+        setSrc(canvas.toDataURL("image/png"));
+      } catch {
+        if (!cancelled) canvasRef.current = null;
+      } finally {
+        if (!cancelled) setReady(true);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
@@ -83,7 +93,9 @@ export default function SharePreviewDialog({
           <p className="spotlight-hint">{hint}</p>
         </div>
 
-        {src ? (
+        {!ready ? (
+          <p className="share-preview-text">{hint}</p>
+        ) : src ? (
           <img className="share-preview-img" src={src} alt="share card preview" />
         ) : (
           <p className="share-preview-text">{text}</p>

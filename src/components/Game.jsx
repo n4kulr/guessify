@@ -194,6 +194,7 @@ export default function Game({ playlist, me, onExit, onReplay }) {
         unlockStep: guessNum,
         title: t?.name || null,
         artist: (t?.artists || []).join(", ") || null,
+        cover: t?.cover || null,
       },
     ]);
   }
@@ -535,15 +536,20 @@ export default function Game({ playlist, me, onExit, onReplay }) {
   useDebugActions("solo", debugActions);
 
   function roundShareOpts() {
+    const won = outcome === "win";
+    const logged = roundLog[roundIdx];
     return {
       title: displayTitle(track.name),
       artist: (track.artists || []).join(", "),
-      wallMs:
-        roundLog[roundIdx]?.wallMs ??
-        resolveRevealMs({ startedAt: roundStartedAt.current }),
+      won,
+      wallMs: won
+        ? logged?.wallMs ??
+          resolveRevealMs({ startedAt: roundStartedAt.current })
+        : null,
       unlockedSec: unlocked,
       round: roundIdx + 1,
       playlistName: playlist?.name || "",
+      cover: track.cover || null,
     };
   }
 
@@ -739,9 +745,14 @@ export default function Game({ playlist, me, onExit, onReplay }) {
                       </button>
                       <button className="btn btn-play" onClick={nextRound}>
                         <span className="btn-label">
-                          {roundIdx + 1 >= rounds.length
-                            ? "see results"
-                            : "next song →"}
+                          {roundIdx + 1 >= rounds.length ? (
+                            "see results"
+                          ) : (
+                            <>
+                              next song
+                              <span className="btn-next-arrow"> →</span>
+                            </>
+                          )}
                         </span>
                         <span className="btn-hint">enter</span>
                       </button>

@@ -670,6 +670,7 @@ export default function OnlineRace({ profile, onExit, raceMode: raceModeProp }) 
         unlockStep: unlockByPlayer[youId] ?? 0,
         title: track?.name || null,
         artist: (track?.artists || []).join(", ") || null,
+        cover: track?.cover || null,
       },
     ]);
     if (winnerId && winnerMs != null) {

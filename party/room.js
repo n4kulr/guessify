@@ -873,6 +873,7 @@ export class Room extends Server {
       wallMs,
       title: track?.name || null,
       artist: (track?.artists || []).join(", ") || null,
+      cover: track?.cover || this.state.previewArt || null,
       label: track?.name
         ? `${track.name}${(track.artists || []).length ? ` · ${track.artists.join(", ")}` : ""}`
         : null,
