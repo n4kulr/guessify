@@ -7,6 +7,7 @@ import VinylDeck from "./VinylDeck.jsx";
 import GuessSuggest, { useGuessSuggest } from "./GuessSuggest.jsx";
 import GuessTransport from "./GuessTransport.jsx";
 import ShareScoreButton from "./ShareScoreButton.jsx";
+import SharePreviewDialog from "./SharePreviewDialog.jsx";
 import ScrubbableVinyl from "./ScrubbableVinyl.jsx";
 import PenaltyPop from "./PenaltyPop.jsx";
 import AlmostFlash from "./AlmostFlash.jsx";
@@ -14,7 +15,7 @@ import GameOverStats from "./GameOverStats.jsx";
 import RoundRevealStats from "./RoundRevealStats.jsx";
 import PlayerRail from "../multiplayer/PlayerRail.jsx";
 import GuessPopups from "../multiplayer/GuessPopups.jsx";
-import { isNoPreviewError } from "../shareScore.js";
+import { isNoPreviewError, renderRoundCard, roundSharePayload } from "../shareScore.js";
 import { nextSpareTrack } from "../deadPreview.js";
 import {
   isAudioWarm,
@@ -284,6 +285,7 @@ export default function OnlineRace({ profile, onExit, raceMode: raceModeProp }) 
   const [almostTitle, setAlmostTitle] = useState(null);
   const [almostArtist, setAlmostArtist] = useState(null);
   const [roundLog, setRoundLog] = useState([]);
+  const [sharePreview, setSharePreview] = useState(false);
   const [roundResults, setRoundResults] = useState([]);
   const [playlistBests, setPlaylistBests] = useState(null);
   const [chartKey, setChartKey] = useState(null);
@@ -1082,6 +1084,40 @@ export default function OnlineRace({ profile, onExit, raceMode: raceModeProp }) 
     e?.currentTarget?.blur?.();
   }
 
+  function roundShareOpts() {
+    const won =
+      !!(solveTimes && youId && solveTimes[youId] != null) || winnerId === youId;
+    return {
+      title: displayTitle(track?.name),
+      artist: (track?.artists || []).join(", "),
+      won,
+      wallMs: won
+        ? resolveRevealMs({
+            solveTimes,
+            playerId: youId,
+            winnerId,
+            startedAt: roundStartedAt.current,
+          })
+        : null,
+      unlockedSec: unlocked,
+      round: roundIdx + 1,
+      playlistName: playlistName || "",
+      cover: track?.cover || null,
+    };
+  }
+
+  useEffect(() => {
+    if (phase !== "reveal" || sharePreview) return;
+    function onKey(e) {
+      if (e.key !== "Enter" || e.repeat) return;
+      if (e.target.closest("button, a, input, textarea, select")) return;
+      e.preventDefault();
+      voteNext();
+    }
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [phase, sharePreview, iVotedNext]); // eslint-disable-line react-hooks/exhaustive-deps
+
   // Opponents cast next-votes during reveal so the tally fills — staggered
   // per opponent (not fully independent random) so they trickle in one at a
   // time instead of occasionally landing all at once.
@@ -1300,6 +1336,7 @@ export default function OnlineRace({ profile, onExit, raceMode: raceModeProp }) 
     (winnerId === youId ? "you" : "someone");
 
   return (
+    <>
     <div className="game mp-host mp-board online-race" ref={rootRef}>
       <div className="mp-board-main">
         <div className="game-head">
@@ -1357,23 +1394,6 @@ export default function OnlineRace({ profile, onExit, raceMode: raceModeProp }) 
                 <span className="vinyl-deck-artist">
                   {(track.artists || []).join(", ")}
                 </span>
-                <div className="media-stage-vote">
-                  <button
-                    type="button"
-                    className={`btn btn-play vinyl-deck-next media-stage-btn ${iVotedNext ? "is-voted" : ""}`}
-                    onClick={voteNext}
-                    disabled={iVotedNext}
-                    aria-label={
-                      roundIdx + 1 >= rounds.length ? "Results" : "Next song"
-                    }
-                  >
-                    {roundIdx + 1 >= rounds.length ? "see results" : "next song"}
-                    <span className="vote-tally">
-                      {voteHave}/{voteNeed}
-                    </span>
-                    <span aria-hidden="true">→</span>
-                  </button>
-                </div>
               </>
             ) : null
           }
@@ -1385,8 +1405,8 @@ export default function OnlineRace({ profile, onExit, raceMode: raceModeProp }) 
             cover={track?.cover}
             title={displayTitle(track?.name)}
             artist={(track?.artists || []).join(", ")}
-            canControl={!!track && cueReady}
-            interactive={!!track && cueReady}
+            canControl={!!track && cueReady && !revealed}
+            interactive={!!track && cueReady && !revealed}
             cueing={phase === "play" && !cueReady}
             vinylTitle={cueReady ? "play / pause · drag to scrub" : undefined}
             onTogglePlay={togglePlay}
@@ -1420,8 +1440,9 @@ export default function OnlineRace({ profile, onExit, raceMode: raceModeProp }) 
           </div>
         </div>
 
-        {phase === "play" && (
-          <div className="guess-input-wrap">
+        {(phase === "play" || revealed) && (
+          <div className={`guess-input-wrap${revealed ? " is-answered" : ""}`}>
+            <div className="guess-fields-tray">
             <div className="guess-fields">
               <div className="guess-title-row">
                 <div className="guess-title-field" ref={titleFieldRef}>
@@ -1477,7 +1498,7 @@ export default function OnlineRace({ profile, onExit, raceMode: raceModeProp }) 
                 <GuessTransport
                   playing={localPlaying}
                   busy={playBusy}
-                  canPlay={!!track && cueReady}
+                  canPlay={!!track && cueReady && !revealed}
                   playLabel={`Play ${unlocked}s`}
                   nudge={playNudge}
                   onPlay={startPlay}
@@ -1485,7 +1506,40 @@ export default function OnlineRace({ profile, onExit, raceMode: raceModeProp }) 
                 />
               </div>
             </div>
+            </div>
             <div className="guess-actions">
+              {revealed ? (
+                <>
+                  <button
+                    className="btn btn-share"
+                    onClick={() => setSharePreview(true)}
+                  >
+                    <span className="btn-label">share</span>
+                    <span className="btn-hint">image</span>
+                  </button>
+                  <button
+                    type="button"
+                    className="btn btn-play"
+                    onClick={voteNext}
+                    disabled={iVotedNext}
+                  >
+                    <span className="btn-label">
+                      {roundIdx + 1 >= rounds.length ? (
+                        "see results"
+                      ) : (
+                        <>
+                          next song
+                          <span className="btn-next-arrow"> →</span>
+                        </>
+                      )}
+                    </span>
+                    <span className="btn-hint">
+                      {voteHave}/{voteNeed}
+                    </span>
+                  </button>
+                </>
+              ) : (
+                <>
               <div className={skipWrapClass} ref={skipWrapRef}>
                 <button
                   className="btn btn-skip"
@@ -1514,6 +1568,8 @@ export default function OnlineRace({ profile, onExit, raceMode: raceModeProp }) 
                 <span className="btn-label">guess</span>
                 <span className="btn-hint">enter</span>
               </button>
+                </>
+              )}
             </div>
           </div>
         )}
@@ -1523,5 +1579,15 @@ export default function OnlineRace({ profile, onExit, raceMode: raceModeProp }) 
 
       <GuessPopups guesses={guesses} myId={youId} timed={timed} />
     </div>
+    {sharePreview && track && (
+      <SharePreviewDialog
+        heading="share this round"
+        render={() => renderRoundCard(roundShareOpts())}
+        text={roundSharePayload(roundShareOpts()).text}
+        filename="guessify-round.png"
+        onClose={() => setSharePreview(false)}
+      />
+    )}
+    </>
   );
 }

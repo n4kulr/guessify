@@ -11,6 +11,7 @@ import VinylDeck from "../components/VinylDeck.jsx";
 import GuessSuggest, { useGuessSuggest } from "../components/GuessSuggest.jsx";
 import GuessTransport from "../components/GuessTransport.jsx";
 import ShareScoreButton from "../components/ShareScoreButton.jsx";
+import SharePreviewDialog from "../components/SharePreviewDialog.jsx";
 import ScrubbableVinyl from "../components/ScrubbableVinyl.jsx";
 import PenaltyPop from "../components/PenaltyPop.jsx";
 import AlmostFlash from "../components/AlmostFlash.jsx";
@@ -23,7 +24,7 @@ import { TimedCountdown } from "./TimedHud.jsx";
 import LobbyRaceModePicker from "./LobbyRaceModePicker.jsx";
 import { loadLocalProfile, saveLocalProfile } from "../localProfile.js";
 import { applyThemeForAccent, accentMatchingTheme } from "../themes.js";
-import { isNoPreviewError } from "../shareScore.js";
+import { isNoPreviewError, renderRoundCard, roundSharePayload } from "../shareScore.js";
 import { useAutoTitleHint } from "../useAutoTitleHint.js";
 import { useRoundNudge } from "../useRoundNudge.js";
 import { displayTitle } from "../titleHint.js";
@@ -61,6 +62,7 @@ export default function HostParty({
   const [almostTitle, setAlmostTitle] = useState(null);
   const [almostArtist, setAlmostArtist] = useState(null);
   const [roundLog, setRoundLog] = useState([]);
+  const [sharePreview, setSharePreview] = useState(false);
   const [playlistBests, setPlaylistBests] = useState(null);
   const [cueReady, setCueReady] = useState(false);
   /** After the first cue, keep the board up and spin the vinyl center instead. */
@@ -379,6 +381,14 @@ export default function HostParty({
   const spinning = localPlaying && (phase === "play" || phase === "reveal");
   const timed = (state?.raceMode || raceMode) === "timed";
   const revealed = phase === "reveal";
+  const youWon =
+    !!(playerId && state?.solveTimes?.[playerId] != null) ||
+    state?.winnerId === playerId;
+  const iVotedNext = !!(playerId && (state?.nextVotes || []).includes(playerId));
+  const voteHave = (state?.nextVotes || []).length;
+  const voteNeed =
+    state?.nextVotesNeeded ??
+    nextVotesNeeded(activePlayerCount(state?.players || []));
   const lockedIn = !!(
     playerId &&
     Array.isArray(state?.lockedInIds) &&
@@ -446,6 +456,46 @@ export default function HostParty({
     setLocalPlaying(false);
     setPlayBusy(false);
   }
+
+  function voteNext(e) {
+    if (!revealed || iVotedNext) return;
+    stopAudio();
+    send({ type: "next" });
+    e?.currentTarget?.blur?.();
+  }
+
+  function roundShareOpts() {
+    const t = state?.track;
+    return {
+      title: displayTitle(t?.name),
+      artist: (t?.artists || []).join(", "),
+      won: youWon,
+      wallMs: youWon
+        ? resolveRevealMs({
+            solveTimes: state.solveTimes,
+            playerId,
+            winnerId: state.winnerId,
+            startedAt: roundStartedAt.current,
+          })
+        : null,
+      unlockedSec: unlocked,
+      round: (state?.roundIdx ?? 0) + 1,
+      playlistName: playlist?.name || state?.playlistName || "",
+      cover: t?.cover || null,
+    };
+  }
+
+  useEffect(() => {
+    if (phase !== "reveal" || sharePreview) return;
+    function onKey(e) {
+      if (e.key !== "Enter" || e.repeat) return;
+      if (e.target.closest("button, a, input, textarea, select")) return;
+      e.preventDefault();
+      voteNext();
+    }
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [phase, sharePreview, iVotedNext]); // eslint-disable-line react-hooks/exhaustive-deps
 
   function togglePlay() {
     if (!canPlay || playBusy) return;
@@ -713,6 +763,7 @@ export default function HostParty({
   const lastGuesser = state.guesses?.[state.guesses.length - 1];
 
   return (
+    <>
     <div className="game mp-host mp-board" ref={rootRef}>
       <div className="mp-board-main">
       <div className="game-head">
@@ -769,32 +820,6 @@ export default function HostParty({
               <span className="vinyl-deck-artist">
                 {(track.artists || []).join(", ")}
               </span>
-              <div className="media-stage-vote">
-                <button
-                  type="button"
-                  className={`btn btn-play vinyl-deck-next media-stage-btn ${
-                    playerId && (state.nextVotes || []).includes(playerId) ? "is-voted" : ""
-                  }`}
-                  onClick={(e) => {
-                    if (playerId && (state.nextVotes || []).includes(playerId)) return;
-                    stopAudio();
-                    send({ type: "next" });
-                    e.currentTarget.blur();
-                  }}
-                  disabled={!!(playerId && (state.nextVotes || []).includes(playerId))}
-                  aria-label={
-                    state.roundIdx + 1 >= state.roundCount ? "Results" : "Next song"
-                  }
-                >
-                  {state.roundIdx + 1 >= state.roundCount ? "see results" : "next song"}
-                  <span className="vote-tally">
-                    {(state.nextVotes || []).length}/
-                    {state.nextVotesNeeded ??
-                      nextVotesNeeded(activePlayerCount(state.players))}
-                  </span>
-                  <span aria-hidden="true">→</span>
-                </button>
-              </div>
             </>
           ) : null
         }
@@ -806,8 +831,8 @@ export default function HostParty({
           cover={track?.cover}
           title={displayTitle(track?.name)}
           artist={(track?.artists || []).join(", ")}
-          canControl={canPlay && cueReady}
-          interactive={canPlay && cueReady}
+          canControl={canPlay && cueReady && !revealed}
+          interactive={canPlay && cueReady && !revealed}
           cueing={phase === "play" && !cueReady}
           vinylTitle={canPlay && cueReady ? "play / pause · drag to scrub" : undefined}
           onTogglePlay={togglePlay}
@@ -842,8 +867,9 @@ export default function HostParty({
         </div>
       </div>
 
-      {phase === "play" && (
-        <div className="guess-input-wrap">
+      {(phase === "play" || revealed) && (
+        <div className={`guess-input-wrap${revealed ? " is-answered" : ""}`}>
+          <div className="guess-fields-tray">
           <div className="guess-fields">
             <div className="guess-title-row">
               <div className="guess-title-field" ref={titleFieldRef}>
@@ -897,7 +923,7 @@ export default function HostParty({
               <GuessTransport
                 playing={localPlaying}
                 busy={playBusy}
-                canPlay={canPlay && cueReady}
+                canPlay={canPlay && cueReady && !revealed}
                 playLabel={canPlay && cueReady ? `Play ${unlocked}s` : "Loading audio"}
                 nudge={playNudge}
                 onPlay={startPlay}
@@ -905,7 +931,40 @@ export default function HostParty({
               />
             </div>
           </div>
+          </div>
           <div className="guess-actions">
+            {revealed ? (
+              <>
+                <button
+                  className="btn btn-share"
+                  onClick={() => setSharePreview(true)}
+                >
+                  <span className="btn-label">share</span>
+                  <span className="btn-hint">image</span>
+                </button>
+                <button
+                  type="button"
+                  className="btn btn-play"
+                  onClick={voteNext}
+                  disabled={iVotedNext}
+                >
+                  <span className="btn-label">
+                    {state.roundIdx + 1 >= state.roundCount ? (
+                      "see results"
+                    ) : (
+                      <>
+                        next song
+                        <span className="btn-next-arrow"> →</span>
+                      </>
+                    )}
+                  </span>
+                  <span className="btn-hint">
+                    {voteHave}/{voteNeed}
+                  </span>
+                </button>
+              </>
+            ) : (
+              <>
             <div className={skipWrapClass} ref={skipWrapRef}>
               <button
                 className="btn btn-skip"
@@ -934,6 +993,8 @@ export default function HostParty({
               <span className="btn-label">guess</span>
               <span className="btn-hint">enter</span>
             </button>
+              </>
+            )}
           </div>
         </div>
       )}
@@ -946,5 +1007,15 @@ export default function HostParty({
 
       <GuessPopups guesses={state.guesses} myId={playerId} timed={timed} />
     </div>
+    {sharePreview && track && (
+      <SharePreviewDialog
+        heading="share this round"
+        render={() => renderRoundCard(roundShareOpts())}
+        text={roundSharePayload(roundShareOpts()).text}
+        filename="guessify-round.png"
+        onClose={() => setSharePreview(false)}
+      />
+    )}
+    </>
   );
 }

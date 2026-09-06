@@ -3636,8 +3636,10 @@ button.footer-privacy:hover {
   grid-template-rows: 1fr;
   transition: grid-template-rows 0.4s cubic-bezier(0.22, 1, 0.36, 1);
 }
-.guess-fields-tray > .guess-fields { min-height: 0; overflow: hidden; }
+.guess-fields-tray > .guess-fields { min-height: 0; }
+/* Clip only while collapsing — overflow:hidden here also eats the suggest list. */
 .guess-input-wrap.is-answered .guess-fields-tray { grid-template-rows: 0fr; }
+.guess-input-wrap.is-answered .guess-fields-tray > .guess-fields { overflow: hidden; }
 /* visibility, not just clipping, so collapsed inputs leave the tab order. */
 .guess-input-wrap.is-answered .guess-fields { visibility: hidden; }
 /* Drop the row's own top margin at the reveal so the gap is just the bar's 20px. */
