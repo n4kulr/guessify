@@ -35,6 +35,22 @@ export function scoreSharePayload({
   };
 }
 
+/** One revealed round, as text. Missed rounds share the answer, not a time. */
+export function roundSharePayload({
+  title = "",
+  artist = "",
+  wallMs = null,
+  unlockedSec = 0,
+} = {}) {
+  const song = artist ? `"${title}" — ${artist}` : `"${title}"`;
+  const solved = formatSolveSec(wallMs);
+  const text =
+    solved === "—"
+      ? `Couldn't name ${song} on guessify — can you?\n${SHARE_URL}`
+      : `Named ${song} in ${solved} off ${unlockedSec}s of audio on guessify\n${SHARE_URL}`;
+  return { title: "guessify", text };
+}
+
 function grabTheme() {
   const t = getThemePalette();
   return {
@@ -452,6 +468,32 @@ export async function shareScore(opts) {
   try {
     await navigator.clipboard.writeText(text);
     return file ? "downloaded" : "copied";
+  } catch {
+    window.prompt("Copy this:", text);
+    return "prompt";
+  }
+}
+
+/**
+ * Share a single round. Text only — the wrap card is shaped around end-of-game
+ * stats, and a one-song PNG would be a second canvas layout to maintain.
+ * @returns {"shared"|"copied"|"cancelled"|"prompt"}
+ */
+export async function shareRound(opts) {
+  const { text } = roundSharePayload(opts);
+
+  if (typeof navigator !== "undefined" && typeof navigator.share === "function") {
+    try {
+      await navigator.share({ text });
+      return "shared";
+    } catch (e) {
+      if (e?.name === "AbortError") return "cancelled";
+    }
+  }
+
+  try {
+    await navigator.clipboard.writeText(text);
+    return "copied";
   } catch {
     window.prompt("Copy this:", text);
     return "prompt";

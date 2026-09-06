@@ -11,12 +11,14 @@ export default function ShareScoreButton({
   stats = null,
   playlistName = "",
   className = "btn btn-big btn-multi",
+  idleLabel = "share score",
+  share = null,
 }) {
-  const [label, setLabel] = useState("share score");
+  const [label, setLabel] = useState(idleLabel);
   const timer = useRef(0);
 
   async function onClick() {
-    const result = await shareScore({
+    const result = await (share ? share() : shareScore({
       mode,
       score,
       maxScore,
@@ -32,7 +34,7 @@ export default function ShareScoreButton({
         mode === "solo"
           ? stats?.timeline
           : stats?.timelineWins || stats?.timeline,
-    });
+      }));
     if (result === "cancelled") return;
     clearTimeout(timer.current);
     const next =
@@ -42,7 +44,7 @@ export default function ShareScoreButton({
           ? "saved image!"
           : "copied!";
     setLabel(next);
-    timer.current = window.setTimeout(() => setLabel("share score"), 1800);
+    timer.current = window.setTimeout(() => setLabel(idleLabel), 1800);
   }
 
   return (

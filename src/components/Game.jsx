@@ -10,7 +10,7 @@ import {
 } from "../previewWarm.js";
 import { fireConfetti, shakeEl } from "../fx.js";
 import { loadLocalProfile } from "../localProfile.js";
-import { isNoPreviewError } from "../shareScore.js";
+import { isNoPreviewError, shareRound } from "../shareScore.js";
 import { nextSpareTrack } from "../deadPreview.js";
 import { titleHintMask, displayTitle } from "../titleHint.js";
 import { useAutoTitleHint } from "../useAutoTitleHint.js";
@@ -516,6 +516,7 @@ export default function Game({ playlist, me, onExit, onReplay }) {
   useDebugActions("solo", debugActions);
 
   return (
+    <>
     <div
       ref={rootRef}
       className={`game mp-board mp-board--solo ${outcome === "win" ? "game--win" : ""} ${outcome === "lose" ? "game--lose" : ""}`}
@@ -627,18 +628,6 @@ export default function Game({ playlist, me, onExit, onReplay }) {
                 <span>{unlocked}s unlocked</span>
               </div>
             </div>
-
-            {resolved && (
-              <button
-                className="btn btn-big btn-play round-next"
-                onClick={nextRound}
-              >
-                <span className="btn-play-icon" aria-hidden="true" />
-                {roundIdx + 1 >= rounds.length
-                  ? "see results →"
-                  : "next song →"}
-              </button>
-            )}
 
             {!resolved && (
               <div className="guess-input-wrap">
@@ -771,5 +760,27 @@ export default function Game({ playlist, me, onExit, onReplay }) {
         )}
       </div>
     </div>
+    {phase === "play" && resolved && (
+      <div className="round-next-row">
+        <ShareScoreButton
+          idleLabel="share round"
+          share={() =>
+            shareRound({
+              title: displayTitle(track.name),
+              artist: (track.artists || []).join(", "),
+              wallMs:
+                roundLog[roundIdx]?.wallMs ??
+                resolveRevealMs({ startedAt: roundStartedAt.current }),
+              unlockedSec: unlocked,
+            })
+          }
+        />
+        <button className="btn btn-big btn-play" onClick={nextRound}>
+          <span className="btn-play-icon" aria-hidden="true" />
+          {roundIdx + 1 >= rounds.length ? "see results →" : "next song →"}
+        </button>
+      </div>
+    )}
+    </>
   );
 }

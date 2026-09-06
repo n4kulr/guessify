@@ -286,8 +286,13 @@ button { font-family: var(--font); }
 }
 /* The game card changes height at the reveal. Centred, that slides the whole
    card (disc included) up and down, so pin it to the top and let only the
-   bottom edge move. */
-.stage:has(.game) { align-items: flex-start; }
+   bottom edge move. Column so the round buttons can sit under the card. */
+.stage:has(.game) {
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 18px;
+}
 .footer {
   text-align: left;
   padding: 4px 26px 12px;
@@ -3366,13 +3371,19 @@ button.footer-privacy:hover {
   --box: 192px;
   --tuck: calc(var(--disc) * -0.5);
   --gutter: 16px;
+  /* The disc is 86% of the well and centred, so it starts 7% in. */
+  --disc-inset: calc(var(--disc) * 0.07);
   display: flex;
   align-items: center;
   justify-content: center;
   width: 100%;
   height: var(--disc);
-  margin: 18px auto 28px;
+  /* Not auto: margin-left has to interpolate for the open shift below. */
+  margin: 18px 0 28px;
   overflow: visible;
+  transition:
+    width 0.55s cubic-bezier(0.22, 1, 0.36, 1),
+    margin 0.55s cubic-bezier(0.22, 1, 0.36, 1);
 }
 .vinyl-deck-well {
   position: relative;
@@ -3422,6 +3433,10 @@ button.footer-privacy:hover {
 }
 .vinyl-deck.is-open {
   filter: drop-shadow(0 18px 10px color-mix(in srgb, #000 40%, transparent));
+  /* Pull the well out by the disc's own inset so the disc's left edge lands on
+     the same line as the player rail and the unlock bar. */
+  margin-left: calc(var(--disc-inset) * -1);
+  width: calc(100% + var(--disc-inset));
 }
 .vinyl-deck.is-open .vinyl-deck-panel {
   /* Visible copy sits between the disc’s right edge and the box’s right edge.
@@ -3476,11 +3491,11 @@ button.footer-privacy:hover {
   justify-content: flex-start;
   margin-top: 2px;
 }
-/* Sits under the unlock bar so the sleeve only carries the reveal copy. */
-.round-next {
+/* Sits outside the card, under it, so the sleeve only carries the reveal copy. */
+.round-next-row {
   display: flex;
-  width: fit-content;
-  margin: 4px auto 0;
+  justify-content: center;
+  gap: 12px;
 }
 @media (max-width: 560px) {
   .vinyl-deck {
