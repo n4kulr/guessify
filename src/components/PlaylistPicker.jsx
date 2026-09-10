@@ -482,8 +482,17 @@ export default function PlaylistPicker({ onPick, needsLogin = false }) {
     setTourStep(next);
   }
 
-  const shelfLoading = !data && !error && !ownerUnavailable;
-  const shelfEmpty = !shelfLoading && yours.length === 0;
+  // Keep the first paint light — don't mount the full shelf/charts while fetching.
+  if (!ownerUnavailable) {
+    if (error) return <div className="panel">{error}</div>;
+    if (!data) {
+      return (
+        <div className="loader">loading{needsLogin ? "" : " your"} playlists…</div>
+      );
+    }
+  }
+
+  const shelfEmpty = yours.length === 0;
 
   const cdsMode = yoursView === "cds";
   const touring = tourStep >= 0;
@@ -583,8 +592,8 @@ export default function PlaylistPicker({ onPick, needsLogin = false }) {
 
       {note && <div className="error-banner">{note}</div>}
 
-      {shelfLoading ? (
-        <p className="section-sub">loading playlists…</p>
+      {ownerUnavailable ? (
+        <p className="section-sub">Playlists aren’t set up for guests yet — log in with Spotify below.</p>
       ) : shelfEmpty ? (
         <p className="section-sub">
           No saved playlists here — pick a CD below, or type an artist / year.
