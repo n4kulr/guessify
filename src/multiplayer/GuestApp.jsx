@@ -772,7 +772,7 @@ export default function GuestApp({ code }) {
                         "see results"
                       ) : (
                         <>
-                          next song
+                          next
                           <span className="btn-next-arrow"> →</span>
                         </>
                       )}

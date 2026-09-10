@@ -275,7 +275,7 @@ Then use the **debug** FAB for screen-specific shortcuts.
 | **guess** / Enter | Submit title and/or artist |
 | **transport** | Play / pause the snippet |
 | **hint** | Auto masked title (free) |
-| **next song** / vote | Advance after reveal |
+| **next** / vote | Advance after reveal |
 | **play again** | Rematch same playlist (solo) |
 | **pick another playlist** | Back to picker |
 | **back home** | Leave race / party wrap |

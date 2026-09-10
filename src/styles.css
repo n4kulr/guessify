@@ -3513,7 +3513,7 @@ button.footer-privacy:hover {
      copy column, so it scales with the viewport rather than sitting at 16px. */
   .vinyl-deck-panel .reveal-clock-miss { font-size: clamp(11px, 2.9vw, 16px); }
   .vinyl-deck-next { padding: 8px 12px; font-size: 13px; }
-  /* Keep "next song" on two lines — the arrow is desktop-only. */
+  /* Keep "next" on two lines — the arrow is desktop-only. */
   .btn-next-arrow { display: none; }
 }
 @media (prefers-reduced-motion: reduce) {

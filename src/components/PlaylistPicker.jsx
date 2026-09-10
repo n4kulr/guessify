@@ -115,10 +115,9 @@ export default function PlaylistPicker({ onPick, needsLogin = false }) {
   }, []);
 
   useEffect(() => {
-    if (error) return;
-    if (!ownerUnavailable && !data) return;
     if (tourStep >= 0) return;
     if (!pickerTourPending()) return;
+    if (!ownerUnavailable && !error && !data) return;
     setTourStep(0);
   }, [data, ownerUnavailable, error, tourStep]);
 
@@ -483,10 +482,8 @@ export default function PlaylistPicker({ onPick, needsLogin = false }) {
     setTourStep(next);
   }
 
-  if (!ownerUnavailable) {
-    if (error) return <div className="panel">{error}</div>;
-    if (!data) return <div className="loader">loading{needsLogin ? "" : " your"} playlists…</div>;
-  }
+  const shelfLoading = !data && !error && !ownerUnavailable;
+  const shelfEmpty = !shelfLoading && yours.length === 0;
 
   const cdsMode = yoursView === "cds";
   const touring = tourStep >= 0;
@@ -496,10 +493,11 @@ export default function PlaylistPicker({ onPick, needsLogin = false }) {
   if (touring) pickerClass += " is-touring";
   let tourBody = "add multiple artists/albums";
   if (tour && tour.id === "record") {
-    tourBody = "Choose a playlist to start a game";
-    if (needsLogin) {
-      tourBody = "Choose a playlist to start a game (my curated list)";
-    }
+    tourBody = shelfEmpty
+      ? "Pick a CD below, or type an artist"
+      : needsLogin
+        ? "Choose a playlist to start a game (my curated list)"
+        : "Choose a playlist to start a game";
   } else if (tour && tour.id === "describe") {
     tourBody = "Type an artist, era, or album";
   }
@@ -585,11 +583,11 @@ export default function PlaylistPicker({ onPick, needsLogin = false }) {
 
       {note && <div className="error-banner">{note}</div>}
 
-      {ownerUnavailable ? (
-        <p className="section-sub">Playlists aren’t set up for guests yet — log in with Spotify below.</p>
-      ) : yours.length === 0 ? (
+      {shelfLoading ? (
+        <p className="section-sub">loading playlists…</p>
+      ) : shelfEmpty ? (
         <p className="section-sub">
-          No owned playlists found — make one on Spotify, or describe one below.
+          No saved playlists here — pick a CD below, or type an artist / year.
         </p>
       ) : (
         <>

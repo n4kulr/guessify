@@ -946,7 +946,7 @@ export default function HostParty({
                       "see results"
                     ) : (
                       <>
-                        next song
+                        next
                         <span className="btn-next-arrow"> →</span>
                       </>
                     )}

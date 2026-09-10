@@ -749,7 +749,7 @@ export default function Game({ playlist, me, onExit, onReplay }) {
                             "see results"
                           ) : (
                             <>
-                              next song
+                              next
                               <span className="btn-next-arrow"> →</span>
                             </>
                           )}

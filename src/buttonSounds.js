@@ -320,7 +320,7 @@ export function resolveButtonSound(el) {
     if (btn.classList.contains("is-voted") || t.includes("see results")) {
       return "see-results";
     }
-    if (t.includes("next song")) return "next-song";
+    if (/\bnext\b/.test(t)) return "next-song";
     if (t.includes("play again")) return "play-again";
     if (t.includes("back home") || t.includes("go home")) return "back-home";
     if (t.includes("start party")) return "start-party";

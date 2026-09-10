@@ -1515,7 +1515,7 @@ export default function OnlineRace({ profile, onExit, raceMode: raceModeProp }) 
                         "see results"
                       ) : (
                         <>
-                          next song
+                          next
                           <span className="btn-next-arrow"> →</span>
                         </>
                       )}
