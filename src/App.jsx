@@ -25,7 +25,7 @@ import PlayHowto, {
   HOWTO_KEY,
   PICKER_TOUR_KEY,
 } from "./components/PlayHowto.jsx";
-import { makeRoomCode, normalizeRaceMode } from "./multiplayer/constants.js";
+import { makeRoomCode, normalizeRaceMode, shuffle } from "./multiplayer/constants.js";
 import { loadLocalProfile, saveLocalProfile, hasSavedLocalProfile } from "./localProfile.js";
 import { loadTheme, DEFAULT_THEME, currentThemeMode } from "./themes.js";
 import { attachKeyboardSounds } from "./keyboardSounds.js";
@@ -85,6 +85,24 @@ export default function App() {
   const [raceMode, setRaceMode] = useState("classic"); // classic | timed
   // Capture ?fast=1 before history seeding strips the query.
   useRef(isFastTest());
+
+  // Shuffling happens here rather than inside Game so the tracks we warm are
+  // the exact tracks that get played. Warming playlist order while Game played
+  // a fresh shuffle meant most rounds still hit a cold fetch. `gameKey` bumps
+  // on "play again", giving a new order.
+  const soloPool = useMemo(
+    () => (playlist ? shuffle(playlist.tracks || []) : null),
+    [playlist, gameKey]
+  );
+  const soloPlaylist = useMemo(
+    () => (playlist && soloPool ? { ...playlist, tracks: soloPool } : null),
+    [playlist, soloPool]
+  );
+
+  useEffect(() => {
+    if (mode !== "solo" || !soloPool?.length) return;
+    void primePlaylistPreviews(soloPool, ROUND_COUNT + 2);
+  }, [mode, soloPool]);
 
   const howtoRef = useRef(howtoMode);
   const onlinePromptRef = useRef(onlinePrompt);
@@ -460,9 +478,6 @@ export default function App() {
   }
 
   function onPlaylistPicked(pl) {
-    // Warm iTunes + MP3 cache while we navigate; Game still gates until its
-    // shuffled round-1 track is actually ready.
-    void primePlaylistPreviews(pl?.tracks, ROUND_COUNT + 4);
     setPlaylist(pl);
     setPicking(false);
     if (mode === "multi") {
@@ -661,7 +676,7 @@ export default function App() {
           playlist && (
             <Game
               key={gameKey}
-              playlist={playlist}
+              playlist={soloPlaylist}
               me={me}
               onExit={leaveGame}
               onReplay={rematchSolo}

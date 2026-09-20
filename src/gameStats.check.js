@@ -13,13 +13,17 @@ import {
   solveCompareSeries,
   roundResultsFromLog,
 } from "./gameStats.js";
+import { STEPS, TOTAL } from "./multiplayer/constants.js";
 
-assert.equal(wallSecToStepBin(0), 2);
-assert.equal(wallSecToStepBin(0.8), 2);
-assert.equal(wallSecToStepBin(2), 2);
-assert.equal(wallSecToStepBin(3.2), 4);
-assert.equal(wallSecToStepBin(7), 7);
-assert.equal(wallSecToStepBin(25), 20);
+const [S0, S1] = STEPS;
+
+assert.equal(wallSecToStepBin(0), S0);
+assert.equal(wallSecToStepBin(S0 - 0.2), S0);
+assert.equal(wallSecToStepBin(S0), S0);
+assert.equal(wallSecToStepBin(S0 + 0.1), S1);
+assert.equal(wallSecToStepBin(S1), S1);
+assert.equal(wallSecToStepBin(TOTAL + 5), TOTAL);
+assert.equal(wallSecToStepBin(-1), null);
 
 assert.equal(formatSolveSec(null), "—");
 assert.equal(formatSolveSec(6800), "6.8s");
@@ -85,11 +89,15 @@ assert.equal(s.wins, 4);
 assert.equal(s.accuracy, 0.8);
 assert.equal(s.artistsClaimed, 3);
 assert.equal(s.bestStreak, 2);
-assert.equal(s.distribution[2], 1);
-assert.equal(s.distribution[4], 0);
-assert.equal(s.distribution[7], 1);
-assert.equal(s.distribution[11], 1);
-assert.equal(s.distribution[16], 1);
+// 1.8s, 5.2s, 9s and 15s solves, each landing in its own STEPS bin.
+assert.equal(
+  Object.values(s.distribution).reduce((a, b) => a + b, 0),
+  4
+);
+assert.equal(s.distribution[wallSecToStepBin(1.8)], 1);
+assert.equal(s.distribution[wallSecToStepBin(5.2)], 1);
+assert.equal(s.distribution[wallSecToStepBin(9)], 1);
+assert.equal(s.distribution[wallSecToStepBin(15)], 1);
 assert.equal(s.fastestMs, 1800);
 assert.equal(s.timeline.length, 5);
 assert.equal(s.timeline[2].won, false);

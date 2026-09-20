@@ -42,21 +42,21 @@ import {
   TOTAL,
   ROUND_COUNT,
   titlePointsForGuess,
+  skipCostFor,
+  streakMultiplier,
   ARTIST_BONUS,
-  SKIP_PENALTY,
+  ALMOST_POINTS,
   ROUND_MAX_POINTS,
   normalizeAvatar,
   randomAvatar,
-  shuffle,
 } from "../multiplayer/constants.js";
 
 const YOU_ID = "you";
 
 export default function Game({ playlist, me, onExit, onReplay }) {
-  const pool = useMemo(
-    () => shuffle(playlist.tracks || []),
-    [playlist]
-  );
+  // Already shuffled by App (see soloPool) — reshuffling here would decouple
+  // the rounds we play from the previews it warmed.
+  const pool = useMemo(() => playlist.tracks || [], [playlist]);
   const [rounds, setRounds] = useState(() =>
     pool.slice(0, Math.min(ROUND_COUNT, pool.length))
   );
@@ -98,6 +98,11 @@ export default function Game({ playlist, me, onExit, onReplay }) {
   const [sharePreview, setSharePreview] = useState(false);
   const [almostTitle, setAlmostTitle] = useState(null);
   const [almostArtist, setAlmostArtist] = useState(null);
+  /** Near-miss consolation pays once per round, not once per guess. */
+  const [almostPaid, setAlmostPaid] = useState(0);
+  const [winStreak, setWinStreak] = useState(0);
+  /** Streak multiplier applied to the round just scored (1 = none). */
+  const [roundMult, setRoundMult] = useState(1);
   const [roundLog, setRoundLog] = useState([]);
   const [playlistBests, setPlaylistBests] = useState(null);
   const [cueReady, setCueReady] = useState(false);
@@ -121,7 +126,8 @@ export default function Game({ playlist, me, onExit, onReplay }) {
   let skipWrapClass = "btn-skip-wrap";
   if (skipNudge) skipWrapClass += " is-nudging";
   const canControl = !!track;
-  const canSuggest = phase === "play" && !resolved && cueReady;
+  // Typing is the one thing you can do before the audio lands — don't block it.
+  const canSuggest = phase === "play" && !resolved;
   const roundArtists = track?.artists || [];
   const titleSuggest = useGuessSuggest({
     kind: "track",
@@ -168,6 +174,8 @@ export default function Game({ playlist, me, onExit, onReplay }) {
     setSkipPop(null);
     setAlmostTitle(null);
     setAlmostArtist(null);
+    setAlmostPaid(0);
+    setRoundMult(1);
     setPhase("play");
     roundStartedAt.current = Date.now();
   }
@@ -265,7 +273,7 @@ export default function Game({ playlist, me, onExit, onReplay }) {
         setBoardReady(true);
       }
 
-      warmUpcomingRounds(() => roundsRef.current, setRounds, roundIdx, 2);
+      warmUpcomingRounds(() => roundsRef.current, setRounds, roundIdx, 3);
     })();
     return () => {
       cancelled = true;
@@ -345,6 +353,7 @@ export default function Game({ playlist, me, onExit, onReplay }) {
     const nextNum = guessNum + 1;
     if (nextNum >= MAX_GUESSES) {
       pushRoundResult({ won: false, artistClaimed: artistBonusTaken });
+      setWinStreak(0);
       setOutcome("lose");
       playSnippet(null); // full preview until next song
     } else {
@@ -390,8 +399,13 @@ export default function Game({ playlist, me, onExit, onReplay }) {
     }
 
     if (win) {
-      const titlePts = titlePointsForGuess(guessNum);
-      setEarnedPts(titlePts + artistPts);
+      const streak = winStreak + 1;
+      const mult = streakMultiplier(streak);
+      const titlePts = Math.round(titlePointsForGuess(guessNum) * mult);
+      const solveMs = Date.now() - roundStartedAt.current;
+      setWinStreak(streak);
+      setRoundMult(mult);
+      setEarnedPts(titlePts + artistPts + almostPaid);
       setScore((s) => s + titlePts);
       pushRoundResult({
         won: true,
@@ -399,14 +413,26 @@ export default function Game({ playlist, me, onExit, onReplay }) {
       });
       setOutcome("win");
       setCelebrate(true);
-      fireConfetti("title");
+      // A 2s solve should look nothing like a 20s crawl.
+      fireConfetti("title", {
+        intensity: 1 - Math.min(1, solveMs / 1000 / TOTAL),
+      });
       playSnippet(null); // full preview until next song
     } else {
       // Unlimited guesses — only Skip unlocks more audio / ends the round.
       if (titleAlmost) setAlmostTitle(Date.now());
       if (artistAlmost) setAlmostArtist(Date.now());
       if (!artistOk && !titleAlmost && !artistAlmost) shakeEl(rootRef.current);
-      if (artistPts) setEarnedPts(artistPts);
+      // Being nearly right is worth something — but only once a round.
+      let almostPts = 0;
+      if ((titleAlmost || artistAlmost) && !almostPaid) {
+        almostPts = ALMOST_POINTS;
+        setAlmostPaid(almostPts);
+        setScore((s) => s + almostPts);
+      }
+      if (artistPts || almostPts) {
+        setEarnedPts((p) => p + artistPts + almostPts);
+      }
     }
   }
   submitGuessRef.current = submitGuess;
@@ -431,6 +457,11 @@ export default function Game({ playlist, me, onExit, onReplay }) {
     resetKey: roundIdx,
     onDue: () => setTitleHintText(titleHintMask(track.name)),
   });
+
+  useEffect(() => {
+    if (phase !== "play" || !resolved) return;
+    warmUpcomingRounds(() => roundsRef.current, setRounds, roundIdx, 3);
+  }, [phase, resolved, roundIdx]);
 
   function nextRound() {
     stopAudio();
@@ -582,11 +613,10 @@ export default function Game({ playlist, me, onExit, onReplay }) {
           </div>
         )}
 
-        {phase === "play" && !cueReady && !boardReady && (
-          <div className="loader cue-loader">cueing the record…</div>
-        )}
-
-        {phase === "play" && (cueReady || boardReady) && (
+        {/* The board renders straight away — GuessMedia's own `cueing` state
+            (spinner on the vinyl) covers the wait. Round 1 used to sit behind
+            a bare text loader for as long as the fetch took. */}
+        {phase === "play" && (
           <>
             <PlayerRail
               players={players}
@@ -605,6 +635,11 @@ export default function Game({ playlist, me, onExit, onReplay }) {
                         roundLog[roundIdx]?.wallMs ??
                         resolveRevealMs({ startedAt: roundStartedAt.current })
                       }
+                      pts={earnedPts}
+                      streak={winStreak}
+                      multiplier={roundMult}
+                      artistClaimed={artistBonusTaken}
+                      almostPts={almostPaid}
                     />
                     <span className="vinyl-deck-title">
                       {displayTitle(track.name)}
@@ -663,7 +698,15 @@ export default function Game({ playlist, me, onExit, onReplay }) {
               </div>
               <div className="progress-labels">
                 <span>0:00</span>
-                <span>{unlocked}s unlocked</span>
+                <span>
+                  {unlocked}s unlocked
+                  {!resolved && guessNum < MAX_GUESSES - 1 && (
+                    <span className="progress-next">
+                      {" "}
+                      → {STEPS[guessNum + 1]}s
+                    </span>
+                  )}
+                </span>
               </div>
             </div>
 
@@ -680,7 +723,6 @@ export default function Game({ playlist, me, onExit, onReplay }) {
                         className={`guess-input${titleHintText ? " guess-input--hint" : ""}`}
                         placeholder={titleHintText || "type or pick a song…"}
                         value={titleGuess}
-                        disabled={!cueReady}
                         {...titleSuggest.inputProps}
                         onChange={(e) => {
                           setAlmostTitle(null);
@@ -704,7 +746,7 @@ export default function Game({ playlist, me, onExit, onReplay }) {
                         className={`guess-input${revealedArtist ? " guess-input--locked" : ""}`}
                         placeholder="artist…"
                         value={revealedArtist || artistGuess}
-                        disabled={!!revealedArtist || !cueReady}
+                        disabled={!!revealedArtist}
                         {...artistSuggest.inputProps}
                         onChange={(e) => {
                           setAlmostArtist(null);
@@ -770,17 +812,14 @@ export default function Game({ playlist, me, onExit, onReplay }) {
                         </button>
                         <PenaltyPop
                           token={skipPop}
-                          pts={SKIP_PENALTY}
+                          pts={skipCostFor(guessNum - 1)}
                           onDone={() => setSkipPop(null)}
                         />
                       </div>
                       <button
                         className="btn btn-guess"
                         onClick={submitGuess}
-                        disabled={
-                          !cueReady ||
-                          (!titleGuess.trim() && !artistGuess.trim())
-                        }
+                        disabled={!titleGuess.trim() && !artistGuess.trim()}
                       >
                         <span className="btn-label">guess</span>
                         <span className="btn-hint">enter</span>

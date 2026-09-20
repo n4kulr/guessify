@@ -134,14 +134,18 @@ function drizzleTop(stage, colors, n = 90) {
  * @param {"title"|"victory"|"full"} mode
  *   title   — from below (song correct)
  *   victory — drizzle from top (game over)
+ * @param {{ intensity?: number }} [opts]
+ *   intensity 0–1 scales the burst, so a 2s solve is visibly bigger than a
+ *   20s crawl instead of both getting the same 120 pieces.
  */
-export function fireConfetti(mode = "title") {
+export function fireConfetti(mode = "title", { intensity = 0.5 } = {}) {
   if (typeof document === "undefined" || reducedMotion()) return;
 
   const kind = mode === "full" ? "title" : mode;
   const stage = ensureStage();
   const colors = themeColors();
+  const scale = Math.min(1, Math.max(0, Number(intensity) ?? 0.5));
 
-  if (kind === "victory") drizzleTop(stage, colors, 100);
-  else burstBelow(stage, colors, 120);
+  if (kind === "victory") drizzleTop(stage, colors, Math.round(60 + 90 * scale));
+  else burstBelow(stage, colors, Math.round(45 + 135 * scale));
 }

@@ -5,9 +5,12 @@
 import assert from "node:assert/strict";
 import {
   titlePointsForGuess,
+  skipCostFor,
+  streakMultiplier,
   timedTitlePoints,
   TITLE_POINTS,
   SKIP_PENALTY,
+  ALMOST_POINTS,
   TIMED_PLACE_STEP,
   isHintDue,
   TIMED_ROUND_MS,
@@ -21,12 +24,44 @@ assert.match(roomCode, /^[A-Z2-9]{6}$/);
 
 assert.equal(titlePointsForGuess(), TITLE_POINTS);
 assert.equal(titlePointsForGuess(0), 500);
-assert.equal(titlePointsForGuess(1), 500 - SKIP_PENALTY);
-assert.equal(titlePointsForGuess(2), 420);
-assert.equal(titlePointsForGuess(4), 340);
+// The first skip is free — being stuck shouldn't cost you to get unstuck.
+assert.equal(titlePointsForGuess(1), 500);
+assert.equal(titlePointsForGuess(2), 500 - SKIP_PENALTY);
+assert.equal(titlePointsForGuess(3), 420);
+assert.equal(titlePointsForGuess(5), 340);
 // The hint is automatic and free now — a second arg must not change the payout.
-assert.equal(titlePointsForGuess(4, true), 340);
+assert.equal(titlePointsForGuess(5, true), 340);
 assert.equal(titlePointsForGuess(20), 0);
+// Payout never climbs as you skip more.
+for (let n = 1; n <= 20; n++) {
+  assert.ok(
+    titlePointsForGuess(n) <= titlePointsForGuess(n - 1),
+    `payout must not rise at skip ${n}`
+  );
+}
+
+// skipCostFor takes the skip count *before* the skip: the first one is free.
+assert.equal(skipCostFor(0), 0);
+assert.equal(skipCostFor(1), SKIP_PENALTY);
+assert.equal(skipCostFor(4), SKIP_PENALTY);
+// ...and it must agree with what the payout actually drops by.
+for (let n = 0; n <= 8; n++) {
+  assert.equal(
+    titlePointsForGuess(n) - titlePointsForGuess(n + 1),
+    Math.min(skipCostFor(n), titlePointsForGuess(n)),
+    `skipCostFor(${n}) must match the real payout drop`
+  );
+}
+
+// Streak multiplier: nothing for a lone win, then 10% and 25%.
+assert.equal(streakMultiplier(0), 1);
+assert.equal(streakMultiplier(1), 1);
+assert.equal(streakMultiplier(2), 1.1);
+assert.equal(streakMultiplier(3), 1.25);
+assert.equal(streakMultiplier(9), 1.25);
+
+assert.equal(ALMOST_POINTS > 0, true);
+assert.equal(ALMOST_POINTS < TITLE_POINTS, true);
 assert.equal(timedTitlePoints(500, 0), 500);
 assert.equal(timedTitlePoints(500, 1), 500 - TIMED_PLACE_STEP);
 assert.equal(timedTitlePoints(100, 2), 0);

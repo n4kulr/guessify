@@ -69,6 +69,10 @@ function closeEnoughEdit(g, t) {
   if (d <= 3 && len >= 12) return true;
   if (d <= 2 && len >= 10) return true;
   if (d <= 1 && len >= 6) return true;
+  // Short titles were disproportionately strict ("helo" missed "hello").
+  // A shared first letter is what separates a typo from a different word:
+  // drake/brake diverge at once, helo/hello don't.
+  if (d <= 1 && len >= 4 && g[0] === t[0]) return true;
   return false;
 }
 

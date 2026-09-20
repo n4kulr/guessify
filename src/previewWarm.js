@@ -95,10 +95,31 @@ export function warmUpcomingRounds(getRounds, setRounds, fromIdx, count = 2) {
 /**
  * Fire-and-forget: resolve (+ warm) up to `limit` tracks so a later shuffle
  * still hits a hot iTunes + HTTP cache.
+ *
+ * Round 1 goes first and alone — firing every track at once saturates a phone
+ * link and makes the clip the player is actually waiting on arrive *later*.
+ * The rest trickle two at a time behind it.
  */
-export function primePlaylistPreviews(tracks, limit = 12) {
+export async function primePlaylistPreviews(tracks, limit = 12) {
   const list = (Array.isArray(tracks) ? tracks : []).slice(0, limit);
-  return Promise.all(list.map((t) => warmTrackPreview(t).catch(() => null)));
+  if (!list.length) return [];
+  const out = [await warmTrackPreview(list[0]).catch(() => null)];
+  for (let i = 1; i < list.length; i += 2) {
+    const batch = list.slice(i, i + 2);
+    out.push(
+      ...(await Promise.all(batch.map((t) => warmTrackPreview(t).catch(() => null))))
+    );
+  }
+  return out;
+}
+
+/**
+ * Cheap half of warming: resolve the preview URL (the slow network hop) without
+ * downloading the MP3. For hover intent, where the player may never commit.
+ */
+export function primePlaylistLookups(tracks, limit = 3) {
+  const list = (Array.isArray(tracks) ? tracks : []).slice(0, limit);
+  return Promise.all(list.map((t) => resolvePreview(t).catch(() => null)));
 }
 
 /** Patch one slot in a rounds array with previewUrl (no-op if unchanged). */

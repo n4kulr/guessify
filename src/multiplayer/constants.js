@@ -1,5 +1,7 @@
 // Shared game constants (imported by PartyKit room + React clients).
-export const STEPS = [2, 4, 7, 11, 16, 20];
+// 2s was a brutal cold open — the first listen now gives you something to work
+// with. Still six rungs (so the skip budget is unchanged) topping out at 20s.
+export const STEPS = [4, 7, 10, 13, 16, 20];
 export const MAX_GUESSES = STEPS.length;
 export const TOTAL = STEPS[STEPS.length - 1];
 export const ROUND_COUNT = 5;
@@ -10,6 +12,10 @@ export const TITLE_POINTS = 500;
 export const ARTIST_BONUS = 100;
 /** Cut from this round's title payout each skip (not banked score). */
 export const SKIP_PENALTY = 40;
+/** The first skip is free — being stuck shouldn't cost you to get unstuck. */
+export const FREE_SKIPS = 1;
+/** Consolation for a wrong-but-very-close title/artist guess (once a round). */
+export const ALMOST_POINTS = 25;
 /** @deprecated use TITLE_POINTS */
 export const TITLE_POINTS_SONG_FIRST = TITLE_POINTS;
 /** @deprecated title is never reduced after artist */
@@ -42,7 +48,24 @@ export function allPlayersMaxUnlocked(players = [], unlockByPlayer = {}) {
  */
 export function titlePointsForGuess(skips = 0) {
   const n = Math.max(0, Math.floor(Number(skips) || 0));
-  return Math.max(0, TITLE_POINTS - n * SKIP_PENALTY);
+  return Math.max(0, TITLE_POINTS - Math.max(0, n - FREE_SKIPS) * SKIP_PENALTY);
+}
+
+/** Does this skip actually cost anything? (First one of a round is free.) */
+export function skipCostFor(skips = 0) {
+  const n = Math.max(0, Math.floor(Number(skips) || 0));
+  return n < FREE_SKIPS ? 0 : SKIP_PENALTY;
+}
+
+/**
+ * Back-to-back solves pay a bonus: 2 in a row +10%, 3 or more +25%.
+ * @param {number} winStreak wins in a row *including* the one just scored
+ */
+export function streakMultiplier(winStreak = 0) {
+  const n = Math.max(0, Math.floor(Number(winStreak) || 0));
+  if (n >= 3) return 1.25;
+  if (n === 2) return 1.1;
+  return 1;
 }
 
 /** Timed (45s) rounds: wall-clock length before reveal. */

@@ -3526,6 +3526,8 @@ button.footer-privacy:hover {
 .progress-fill { height: 100%; background: var(--main-color); transition: width 0.35s ease; }
 .progress-tick { position: absolute; top: 0; bottom: 0; width: 2px; background: var(--sub-alt-color); opacity: 0.6; }
 .progress-labels { display: flex; justify-content: space-between; font-size: 12px; margin-top: 8px; color: var(--sub-color); }
+/* What the next skip buys — makes skip read as a gain, not only a cost. */
+.progress-next { opacity: 0.6; }
 
 .controls {
   display: flex;
@@ -3806,6 +3808,12 @@ button.footer-privacy:hover {
   top: -6px;
   transform: translate(-50%, -100%);
 }
+/* A free skip is good news — don't paint it in the error colour. */
+.penalty-pop--free {
+  color: #3ecf8e;
+  text-transform: lowercase;
+  letter-spacing: 0.04em;
+}
 .penalty-pop--hint {
   position: static;
   transform: none;
@@ -4083,6 +4091,21 @@ button.footer-privacy:hover {
   color: var(--error-color);
   letter-spacing: 0;
   text-transform: none;
+}
+.reveal-clock-pts {
+  font-family: "IBM Plex Mono", ui-monospace, monospace;
+  font-size: clamp(15px, 3.6vw, 18px);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  color: #3ecf8e;
+  line-height: 1;
+}
+.reveal-clock-pts--part { color: var(--sub-color); }
+.reveal-clock-streak {
+  font-size: 0.78em;
+  font-weight: 500;
+  opacity: 0.75;
+  letter-spacing: 0.02em;
 }
 @media (prefers-reduced-motion: reduce) {
   .inline-badge,

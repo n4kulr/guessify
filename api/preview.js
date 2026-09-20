@@ -17,9 +17,17 @@ export default async function handler(req, res) {
   try {
     const pick = await findPreview(title, artist, ctrl?.signal);
     if (!pick?.previewUrl) {
+      // Short TTL — a missing preview can show up later, but don't re-run
+      // six upstream searches for every player who hits the same dead track.
+      res.setHeader("Cache-Control", "public, s-maxage=3600");
       res.status(404).json({ error: "No preview found for this track." });
       return;
     }
+    // A track's preview URL is stable for weeks — let the edge serve repeats.
+    res.setHeader(
+      "Cache-Control",
+      "public, s-maxage=604800, stale-while-revalidate=2592000"
+    );
     res.status(200).json({
       previewUrl: pick.previewUrl,
       trackName: pick.trackName,
@@ -47,13 +55,26 @@ async function findPreview(title, artist, signal) {
     [artist, title].filter(Boolean).join(" ").trim(),
   ].filter((q, i, arr) => q && arr.indexOf(q) === i);
 
-  for (const term of queries) {
+  // The first query wins the overwhelming majority of the time, so hit both
+  // providers at once rather than paying iTunes' round trip before Deezer's.
+  // iTunes still wins ties — only its miss lets the Deezer result through.
+  const [firstItunes, firstDeezer] = await Promise.all([
+    itunesSearch(queries[0], signal).catch(() => []),
+    deezerSearch(queries[0], signal).catch(() => []),
+  ]);
+  const firstApple = pickBest(firstItunes, wantTitle, wantArtist);
+  if (firstApple?.previewUrl) return { ...firstApple, source: "itunes" };
+  const firstDz = pickBest(firstDeezer, wantTitle, wantArtist);
+  if (firstDz?.previewUrl) return { ...firstDz, source: "deezer" };
+
+  // Remaining fallback queries stay sequential — they're the rare path.
+  for (const term of queries.slice(1)) {
     const results = await itunesSearch(term, signal);
     const pick = pickBest(results, wantTitle, wantArtist);
     if (pick?.previewUrl) return { ...pick, source: "itunes" };
   }
 
-  for (const term of queries) {
+  for (const term of queries.slice(1)) {
     const results = await deezerSearch(term, signal);
     const pick = pickBest(results, wantTitle, wantArtist);
     if (pick?.previewUrl) return { ...pick, source: "deezer" };

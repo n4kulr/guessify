@@ -4,6 +4,7 @@ import ChartCdStack from "./ChartCdStack.jsx";
 import ChartPreviewDialog from "./ChartPreviewDialog.jsx";
 import PlaylistCdShelf from "./PlaylistCdShelf.jsx";
 import { shakeEl } from "../fx.js";
+import { primePlaylistLookups } from "../previewWarm.js";
 import { useTypewriterPh } from "../useTypewriterPh.js";
 import GuessSuggest, { useGuessSuggest } from "./GuessSuggest.jsx";
 import {
@@ -12,6 +13,9 @@ import {
 } from "./PlayHowto.jsx";
 
 const YOURS_PREVIEW = 6;
+
+/** Hover this long before prefetching — stops a mouse sweep firing every card. */
+const HOVER_INTENT_MS = 200;
 
 // Fixed display order for the "yours" shelf, matched case-insensitively by
 // name. Anything not on the list falls after it, shuffled.
@@ -91,6 +95,9 @@ export default function PlaylistPicker({ onPick, needsLogin = false }) {
   const [error, setError] = useState(null);
   const [ownerUnavailable, setOwnerUnavailable] = useState(false);
   const [loadingId, setLoadingId] = useState(null);
+  /** id -> in-flight/settled playlist fetch, seeded by hover intent. */
+  const prefetchRef = useRef(new Map());
+  const hoverTimerRef = useRef(null);
   const [note, setNote] = useState(null);
   const [showAllYours, setShowAllYours] = useState(false);
   const [chartQuery, setChartQuery] = useState("");
@@ -215,15 +222,52 @@ export default function PlaylistPicker({ onPick, needsLogin = false }) {
   const visibleYours = showAllYours ? yours : yours.slice(0, YOURS_PREVIEW);
   const hiddenYours = Math.max(0, yours.length - YOURS_PREVIEW);
 
+  /**
+   * Browsing the shelf is dead time. On hover intent, fetch the playlist (and
+   * resolve a couple of preview URLs) so a click has nothing left to wait for.
+   * Deduped per id; a failure drops out of the cache so the click can retry.
+   */
+  function prefetchPlaylist(p) {
+    if (!p?.owned) return null;
+    const cached = prefetchRef.current.get(p.id);
+    if (cached) return cached;
+    const url = p.liked ? "/api/liked" : `/api/playlist/${p.id}`;
+    const job = fetch(url, { credentials: "include" })
+      .then(async (res) => {
+        const d = await res.json();
+        if (!res.ok) throw new Error(d.error || "failed");
+        void primePlaylistLookups(d.tracks, 3);
+        return d;
+      })
+      .catch((err) => {
+        prefetchRef.current.delete(p.id);
+        throw err;
+      });
+    prefetchRef.current.set(p.id, job);
+    return job;
+  }
+
+  function onCardHover(p) {
+    clearTimeout(hoverTimerRef.current);
+    hoverTimerRef.current = setTimeout(() => {
+      try {
+        void prefetchPlaylist(p)?.catch(() => {});
+      } catch {
+        /* ignore */
+      }
+    }, HOVER_INTENT_MS);
+  }
+
+  function onCardLeave() {
+    clearTimeout(hoverTimerRef.current);
+  }
+
   async function chooseYours(p) {
     if (!p.owned) return;
     setLoadingId(p.id);
     setNote(null);
     try {
-      const url = p.liked ? "/api/liked" : `/api/playlist/${p.id}`;
-      const res = await fetch(url, { credentials: "include" });
-      const d = await res.json();
-      if (!res.ok) throw new Error(d.error || "failed");
+      const d = await prefetchPlaylist(p);
       if (d.playableCount < 2) {
         setNote(`"${p.name}" needs at least 2 tracks to play. Try another.`);
         setLoadingId(null);
@@ -614,6 +658,10 @@ export default function PlaylistPicker({ onPick, needsLogin = false }) {
                     key={p.id}
                     className={`record-card ${p.liked ? "liked-card" : ""}`}
                     onClick={() => chooseYours(p)}
+                    onMouseEnter={() => onCardHover(p)}
+                    onFocus={() => onCardHover(p)}
+                    onMouseLeave={onCardLeave}
+                    onBlur={onCardLeave}
                     disabled={loadingId !== null}
                   >
                     <div className="record-art">

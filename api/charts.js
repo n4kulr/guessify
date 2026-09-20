@@ -31,6 +31,10 @@ export default async function handler(req, res) {
         searchTags(key, suggest),
         searchArtists(key, suggest),
       ]);
+      res.setHeader(
+        "Cache-Control",
+        "public, s-maxage=3600, stale-while-revalidate=86400"
+      );
       res.status(200).json({ tags, artists });
     } catch (e) {
       console.error("lastfm suggest", e);
@@ -69,6 +73,11 @@ export default async function handler(req, res) {
     const { kind, name, tracks, fuzzy } = hit;
     const idKey = kind === "artist" ? `artist-${slug(name)}` : slug(name);
 
+    // Last.fm charts barely move hour to hour — serve repeats from the edge.
+    res.setHeader(
+      "Cache-Control",
+      "public, s-maxage=3600, stale-while-revalidate=86400"
+    );
     res.status(200).json({
       id: `lfm-${idKey}`,
       name: kind === "artist" ? `${name} essentials` : formatTagName(name),

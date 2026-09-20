@@ -57,8 +57,20 @@ assert.equal(isCorrect("daniel ceaser", "Daniel Caesar"), true);
 assert.equal(isCorrect("Daniel Ceaser", "Daniel Caesar"), true);
 assert.equal(matchesAnyArtist("daniel ceaser", ["Daniel Caesar"]), true);
 
-// Still reject short near-misses / garbage
+// Short titles: a dropped/typo'd letter is forgiven when the word still
+// starts the same way ("helo" is clearly reaching for "hello")...
+assert.equal(isCorrect("helo", "Hello"), true);
+assert.equal(isCorrect("Creeep", "Creep"), true);
+assert.equal(isCorrect("sicko mod", "Sicko Mode"), true);
+
+// ...but a different first letter is a different word, not a typo.
 assert.equal(isCorrect("brake", "Drake"), false);
+assert.equal(isCorrect("cake", "bake"), false);
+assert.equal(isCorrect("mine", "nine"), false);
+// Too short to guess at even with a shared first letter.
+assert.equal(isCorrect("ba", "be"), false);
+
+// Still reject short near-misses / garbage
 assert.equal(isCorrect("zzzzzzzzzz", "Daniel Caesar"), false);
 
 console.log("match.check: ok");

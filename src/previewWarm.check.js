@@ -9,6 +9,7 @@ import {
   warmAudioUrl,
   patchRoundsPreview,
   warmUpcomingRounds,
+  primePlaylistPreviews,
   CUE_FAIL_MS,
 } from "./previewWarm.js";
 
@@ -29,5 +30,30 @@ assert.equal(patchRoundsPreview(patched, 0, "https://example.com/a.mp3"), patche
 
 assert.equal(typeof warmUpcomingRounds, "function");
 warmUpcomingRounds(() => [], () => {}, 0, 1);
+
+// primePlaylistPreviews runs round 1 alone, then the rest two at a time.
+// Tracks that already carry a previewUrl never hit the network, so this
+// exercises the batching index math without stubbing fetch.
+const primed = (n) =>
+  Array.from({ length: n }, (_, i) => ({
+    id: String(i),
+    name: `t${i}`,
+    previewUrl: `https://example.com/${i}.mp3`,
+  }));
+
+assert.deepEqual(await primePlaylistPreviews([], 5), []);
+assert.deepEqual(await primePlaylistPreviews(null, 5), []);
+for (const n of [1, 2, 3, 4, 5, 8]) {
+  const got = await primePlaylistPreviews(primed(n), 12);
+  assert.equal(got.length, n, `expected ${n} results`);
+  // One result per track, still in play order — the warm order must match
+  // the round order or we'd be buffering the wrong songs.
+  assert.deepEqual(
+    got,
+    primed(n).map((t) => t.previewUrl)
+  );
+}
+// `limit` caps the work.
+assert.equal((await primePlaylistPreviews(primed(20), 6)).length, 6);
 
 console.log("previewWarm.check: ok");
