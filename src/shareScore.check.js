@@ -8,6 +8,7 @@ import {
   roundSharePayload,
   wrapLines,
   isNoPreviewError,
+  warmShareCover,
 } from "./shareScore.js";
 
 const solo = scoreSharePayload({ mode: "solo", score: 1200, maxScore: 3000 });
@@ -67,4 +68,49 @@ assert.match(long[0], /…$/);
 
 assert.equal(isNoPreviewError(new Error("no preview")), true);
 assert.equal(isNoPreviewError(new Error("audio load failed")), false);
+
+// --- cover warming -------------------------------------------------------
+// The artwork fetch is the only slow step in building a share card, so it is
+// cached and warmed at reveal time. Two things must hold: a warmed cover is
+// never fetched twice, and a failed one is not cached as a permanent miss.
+{
+  let calls = 0;
+  let failNext = false;
+  globalThis.fetch = async () => {
+    calls += 1;
+    if (failNext) return { ok: false };
+    return { ok: true, blob: async () => ({ type: "image/png" }) };
+  };
+  globalThis.createImageBitmap = async (blob) => ({ bitmap: blob.type });
+
+  assert.equal(await warmShareCover(""), null, "no src = no fetch");
+  assert.equal(await warmShareCover(null), null);
+  assert.equal(calls, 0, "empty src must not hit the network");
+
+  const a = await warmShareCover("https://cdn/art.jpg");
+  assert.ok(a, "warms a cover");
+  assert.equal(calls, 1);
+
+  // Second warm (and the real share press) reuse the decoded bitmap.
+  const b = await warmShareCover("https://cdn/art.jpg");
+  assert.equal(b, a, "same bitmap returned, not a fresh decode");
+  assert.equal(calls, 1, "a warmed cover is never fetched twice");
+
+  // Concurrent callers join one fetch rather than racing two.
+  const [c, d] = await Promise.all([
+    warmShareCover("https://cdn/two.jpg"),
+    warmShareCover("https://cdn/two.jpg"),
+  ]);
+  assert.equal(c, d);
+  assert.equal(calls, 2, "a press landing mid-warm joins the in-flight fetch");
+
+  // A failure must be evicted so a later share can retry.
+  failNext = true;
+  assert.equal(await warmShareCover("https://cdn/bad.jpg"), null);
+  assert.equal(calls, 3);
+  failNext = false;
+  assert.ok(await warmShareCover("https://cdn/bad.jpg"), "retries after a failure");
+  assert.equal(calls, 4);
+}
+
 console.log("shareScore.check: ok");

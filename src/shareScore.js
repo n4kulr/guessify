@@ -174,9 +174,55 @@ function fastestWin(timeline) {
   return wins.reduce((a, b) => (b.wallMs < a.wallMs ? b : a));
 }
 
+/**
+ * Decoded cover art by source URL.
+ *
+ * Fetching and decoding the artwork is the only slow step in building a share
+ * card — everything after it is local canvas work. Keeping the decoded bitmap
+ * lets `warmShareCover` do that work at reveal time, so pressing share is
+ * instant. Storing the *promise* also means a press that lands mid-warm joins
+ * the existing fetch instead of starting a second one.
+ */
+const coverCache = new Map();
+const COVER_CACHE_MAX = 64;
+
+function loadCover(src) {
+  if (!src || typeof fetch !== "function") return Promise.resolve(null);
+  const hit = coverCache.get(src);
+  if (hit) return hit;
+
+  // Failures are evicted so a later share can retry rather than being stuck
+  // with a permanently coverless card after one flaky fetch.
+  const job = fetchCover(src).then(
+    (img) => {
+      if (!img) coverCache.delete(src);
+      return img;
+    },
+    () => {
+      coverCache.delete(src);
+      return null;
+    }
+  );
+
+  if (coverCache.size >= COVER_CACHE_MAX) {
+    coverCache.delete(coverCache.keys().next().value);
+  }
+  coverCache.set(src, job);
+  return job;
+}
+
+/**
+ * Fetch + decode the artwork ahead of the share button being pressed.
+ * Callers can ignore the result — a failure just means the card renders
+ * without a cover — but it's returned so tests can await the warm.
+ * @returns {Promise<ImageBitmap|null>}
+ */
+export function warmShareCover(src) {
+  return loadCover(src);
+}
+
 /** Same-origin proxy so mzstatic/scdn art can be stamped without tainting. */
-async function loadCover(src) {
-  if (!src || typeof fetch !== "function") return null;
+async function fetchCover(src) {
   const ctrl = typeof AbortController !== "undefined" ? new AbortController() : null;
   const timer = ctrl ? setTimeout(() => ctrl.abort(), 8000) : null;
   try {

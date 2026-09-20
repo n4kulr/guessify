@@ -15,6 +15,7 @@ import {
   isNoPreviewError,
   renderRoundCard,
   roundSharePayload,
+  warmShareCover,
 } from "../shareScore.js";
 import { nextSpareTrack } from "../deadPreview.js";
 import { titleHintMask, displayTitle } from "../titleHint.js";
@@ -454,10 +455,14 @@ export default function Game({ playlist, me, onExit, onReplay }) {
     onDue: () => setTitleHintText(titleHintMask(track.name)),
   });
 
+  // The reveal is where the share button appears, so spend that idle moment
+  // fetching the artwork the card needs. Also covers the game-over wrap card,
+  // whose cover is the fastest round's — already warmed by then.
   useEffect(() => {
     if (phase !== "play" || !resolved) return;
     warmUpcomingRounds(() => roundsRef.current, setRounds, roundIdx, 3);
-  }, [phase, resolved, roundIdx]);
+    warmShareCover(track?.cover);
+  }, [phase, resolved, roundIdx]); // eslint-disable-line react-hooks/exhaustive-deps
 
   function nextRound() {
     stopAudio();
@@ -782,7 +787,7 @@ export default function Game({ playlist, me, onExit, onReplay }) {
                       <button className="btn btn-play" onClick={nextRound}>
                         <span className="btn-label">
                           {roundIdx + 1 >= rounds.length ? (
-                            "see results"
+                            "results"
                           ) : (
                             <>
                               next
