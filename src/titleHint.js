@@ -2,8 +2,10 @@
  * Mask a song title for the late-game hint.
  * Only the first HINT_MAX_LETTERS letters are shown (rest omitted).
  * Unknown letters are underscores with spaces so slots don't merge.
- * Example: "daisies" → "d _ _ s _ e s"
- *          "hello world" → "h _ _ l _   w _ _ l _"
+ * Punctuation (', ., etc.) always stays visible.
+ * First and last letter of each word always stay visible.
+ * Example: "daisies" → "d _ _ s _ _ s"
+ *          "Don't Stop" → "d _ _ ' t   s _ _ p"
  */
 
 export const HINT_MAX_LETTERS = 10;
@@ -16,6 +18,8 @@ const BLANK = "_";
  */
 const WORD_GAP = "   ";
 
+const isLetter = (ch) => /[a-zA-Z0-9]/.test(ch);
+
 /** Strip featured-artist credits for display + hints (matching still uses the raw title). */
 export function displayTitle(title = "") {
   let s = String(title || "").trim();
@@ -24,25 +28,36 @@ export function displayTitle(title = "") {
   return s.replace(/\s+/g, " ").trim();
 }
 
-function revealAt(i, len) {
-  if (len <= 1) return true;
-  if (i === 0) return true;
-  if (len >= 4 && i === len - 2) return true;
-  if (i % 3 === 0 && i !== len - 1) return true;
+/** Reveal pattern among a word's letters (0-based letter index). */
+function revealLetter(pos, letterCount) {
+  if (letterCount <= 1) return true;
+  if (pos === 0 || pos === letterCount - 1) return true;
+  // Extra mid-word crumbs so longer words aren't just ends + blanks.
+  if (pos % 3 === 0) return true;
   return false;
 }
 
-/** First N letters of the title (spaces kept between words; punct dropped). */
+/**
+ * First N letters of the title. Spaces kept between words; punctuation kept
+ * (does not count toward N). Trailing punct on the clipped word is kept.
+ */
 function clipTitleLetters(title, maxLetters) {
   let letters = 0;
   let out = "";
   for (const ch of String(title || "").trim()) {
-    if (/[a-zA-Z0-9]/.test(ch)) {
+    if (isLetter(ch)) {
       if (letters >= maxLetters) break;
       letters += 1;
       out += ch;
-    } else if (letters > 0 && /\s/.test(ch)) {
-      out += " ";
+    } else if (/\s/.test(ch)) {
+      if (letters >= maxLetters) break;
+      if (letters > 0) out += " ";
+    } else if (letters >= maxLetters) {
+      // Still on the clipped word — keep its trailing punct (e.g. "Mr.").
+      if (out && !/\s$/.test(out)) out += ch;
+      else break;
+    } else {
+      out += ch;
     }
   }
   return out.replace(/\s+/g, " ").trim();
@@ -57,12 +72,14 @@ export function titleHintMask(title) {
   for (const word of s.split(/\s+/)) {
     if (!word) continue;
     const chars = [...word];
-    const len = chars.length;
+    const letterCount = chars.filter(isLetter).length;
+    let letterPos = -1;
     words.push(
       chars
-        .map((ch, i) => {
-          if (!/[a-zA-Z0-9]/.test(ch)) return ch;
-          if (revealAt(i, len)) return ch.toLowerCase();
+        .map((ch) => {
+          if (!isLetter(ch)) return ch;
+          letterPos += 1;
+          if (revealLetter(letterPos, letterCount)) return ch.toLowerCase();
           return BLANK;
         })
         .join(" ")
