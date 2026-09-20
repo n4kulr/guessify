@@ -14,41 +14,78 @@ export function previewPipelineBroken(audio, output) {
   return output?.isContextSuspended?.() === true;
 }
 
-/** Close enough to t=0 that another seek would only stall playback. */
+/** Close enough to t=0 that a restart is not needed. */
 const AT_START_EPS = 0.05;
+const HAVE_CURRENT_DATA = 2;
 
 /**
- * Park an element at t=0 and resolve once the seek has settled.
- *
- * Seeking is async: assigning currentTime=0 and calling play() in the same
- * turn lets the first ~1s of audio leak out before the seek lands, which
- * restarts the opening — heard as the clip playing its first second twice.
- * Callers that pause-then-play (every playSnippet) used to race exactly that
- * way once we stopped reloading the resource on every press.
+ * Arm canplay/error listeners. Always attach before audio.load() — load can
+ * fire canplay in the same turn, and an early readyState check would miss it
+ * when we are about to drop readyState by reloading.
  */
-export function seekAudioToStart(audio) {
-  if (!audio) return Promise.resolve();
-  if (!audio.seeking && audio.currentTime < AT_START_EPS) {
-    return Promise.resolve();
-  }
-  return new Promise((resolve) => {
-    let settled = false;
-    const finish = () => {
-      if (settled) return;
-      settled = true;
-      audio.removeEventListener("seeked", finish);
-      clearTimeout(timer);
+export function armCanPlay(audio, timeoutMs = 8000) {
+  if (!audio) return Promise.reject(new Error("audio missing"));
+  return new Promise((resolve, reject) => {
+    let timer = null;
+    const cleanup = () => {
+      if (timer) clearTimeout(timer);
+      audio.removeEventListener("canplay", onReady);
+      audio.removeEventListener("error", onErr);
+    };
+    const onReady = () => {
+      cleanup();
       resolve();
     };
-    // ponytail: 500ms ceiling — a hung seek must not block the next press forever.
-    const timer = setTimeout(finish, 500);
-    audio.addEventListener("seeked", finish);
-    if (!audio.seeking) {
-      try {
-        audio.currentTime = 0;
-      } catch {
-        finish();
-      }
+    const onErr = () => {
+      cleanup();
+      reject(new Error("audio load failed"));
+    };
+    timer = setTimeout(() => {
+      cleanup();
+      reject(new Error("audio load timed out"));
+    }, timeoutMs);
+    audio.addEventListener("canplay", onReady, { once: true });
+    audio.addEventListener("error", onErr, { once: true });
+    // Already ready (no load coming) — resolve on next microtask so the
+    // caller can still sequence load() after arming when needed.
+    if (audio.readyState >= HAVE_CURRENT_DATA) {
+      queueMicrotask(() => {
+        if (audio.readyState >= HAVE_CURRENT_DATA) onReady();
+      });
     }
   });
+}
+
+/**
+ * Wait until the element can play, or reject on error / timeout.
+ * Use when no load() is about to run. Prefer armCanPlay + load() for reloads.
+ */
+export function waitUntilCanPlay(audio, timeoutMs = 8000) {
+  if (!audio) return Promise.reject(new Error("audio missing"));
+  if (audio.readyState >= HAVE_CURRENT_DATA) return Promise.resolve();
+  return armCanPlay(audio, timeoutMs);
+}
+
+/**
+ * Restart a clip that was already advanced (snippet auto-stop, scrub, etc.).
+ *
+ * Seeking back to 0 and calling play() still glitches real iTunes MP3s — the
+ * opening second plays, stalls, then restarts. load() rebuilds the decode
+ * pipeline at t=0 the same way a first play does; the URL is warm in HTTP
+ * cache so it is cheap. No-ops when already parked at the start with data.
+ */
+export async function reloadAudioToStart(audio) {
+  if (!audio) return;
+  if (
+    !audio.seeking &&
+    audio.currentTime < AT_START_EPS &&
+    audio.readyState >= HAVE_CURRENT_DATA
+  ) {
+    return;
+  }
+  // Arm first, then load — readyState is still high here, so waitUntilCanPlay
+  // would no-op and miss the post-load canplay.
+  const ready = armCanPlay(audio);
+  audio.load();
+  await ready;
 }

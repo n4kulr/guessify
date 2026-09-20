@@ -15,7 +15,12 @@ function stubWindow({ ios }) {
         globalThis.__lastCtx = this;
       }
       createMediaElementSource() {
-        return { connect() {} };
+        return {
+          connect() {},
+          disconnect() {
+            this.disconnected = true;
+          },
+        };
       }
       createGain() {
         return { gain: { value: 1 }, connect() {} };
@@ -87,6 +92,30 @@ assert.equal(contextStalled(undefined), false);
   assert.equal(api.getLevel(), 0, "iOS: muted survives a volume change");
   api.setMuted(false);
   assert.equal(api.getLevel(), 0.8, "iOS: unmute restores the current slider level");
+
+  // Fresh element on the same context — the iOS restart-without-glitch path.
+  assert.equal(api.usesWebAudio(), true);
+  const next = {
+    volume: 0.5,
+    muted: false,
+    crossOrigin: null,
+    preload: "auto",
+    playsInline: false,
+    pause() {
+      this.paused = true;
+    },
+    removeAttribute() {},
+    load() {},
+  };
+  const swapped = api.swapMediaElement(next);
+  assert.equal(swapped, next);
+  assert.equal(next.crossOrigin, "anonymous");
+  assert.equal(next.volume, 1);
+  assert.equal(api.getLevel(), 0.8, "iOS: gain survives an element swap");
+  api.setMuted(true);
+  assert.equal(next.muted, true);
+  assert.equal(api.getLevel(), 0, "iOS: mute still rides gain after swap");
+
   api.detach();
 }
 

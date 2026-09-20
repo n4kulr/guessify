@@ -21,12 +21,16 @@ export function contextStalled(state) {
   return state === "suspended" || state === "interrupted";
 }
 
-function needsGainFader() {
+export function needsGainFader() {
   if (typeof navigator === "undefined") return false;
   const ua = navigator.userAgent || "";
   if (/iPhone|iPad|iPod/i.test(ua)) return true;
   // iPadOS desktop UA
   return navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1;
+}
+
+function prepareMediaElement(el) {
+  el.playsInline = true;
 }
 
 export function attachVolumeControl(audio) {
@@ -35,24 +39,29 @@ export function attachVolumeControl(audio) {
 
   let ctx = null;
   let gain = null;
+  let source = null;
+  let media = audio;
+
+  prepareMediaElement(media);
 
   if (needsGainFader()) {
     try {
       const AC = window.AudioContext || window.webkitAudioContext;
       if (AC) {
         // Required before src for MediaElementSource + cross-origin previews.
-        audio.crossOrigin = "anonymous";
+        media.crossOrigin = "anonymous";
         ctx = new AC();
-        const source = ctx.createMediaElementSource(audio);
+        source = ctx.createMediaElementSource(media);
         gain = ctx.createGain();
         gain.gain.value = getVolume();
         source.connect(gain);
         gain.connect(ctx.destination);
-        audio.volume = 1;
+        media.volume = 1;
       }
     } catch {
       ctx = null;
       gain = null;
+      source = null;
     }
   }
 
@@ -64,7 +73,7 @@ export function attachVolumeControl(audio) {
     if (gain) {
       gain.gain.value = out;
     } else {
-      audio.volume = out;
+      media.volume = out;
     }
   };
 
@@ -76,11 +85,21 @@ export function attachVolumeControl(audio) {
   apply(getVolume());
   const unsub = subscribeVolume(apply);
 
+  const retire = (el) => {
+    try {
+      el.pause();
+      el.removeAttribute("src");
+      el.load();
+    } catch {
+      /* ignore */
+    }
+  };
+
   const api = {
     apply,
     /** Current gain (or element volume when Web Audio unavailable). */
     getLevel() {
-      return gain ? gain.gain.value : audio.volume;
+      return gain ? gain.gain.value : media.volume;
     },
     /**
      * Mute has to ride the same path as the slider: once WebKit hands the
@@ -90,7 +109,7 @@ export function attachVolumeControl(audio) {
      */
     setMuted(next) {
       muted = !!next;
-      audio.muted = muted;
+      media.muted = muted;
       push();
     },
     isMuted() {
@@ -107,11 +126,57 @@ export function attachVolumeControl(audio) {
     isContextSuspended() {
       return !!ctx && contextStalled(ctx.state);
     },
+    /** True when output rides MediaElementSource (iOS / iPadOS). */
+    usesWebAudio() {
+      return !!gain;
+    },
+    /**
+     * Point the fader at a fresh <audio>. Reusing a MediaElementSource-wired
+     * element after a snippet (load/seek/play) glitches the opening second on
+     * iOS Safari — heard as the first 1–2s twice. A new element on the same
+     * AudioContext + GainNode plays clean. Returns the element to use.
+     */
+    swapMediaElement(next) {
+      if (!next || next === media) return media;
+      prepareMediaElement(next);
+      if (ctx && gain) {
+        next.crossOrigin = "anonymous";
+        next.volume = 1;
+        next.muted = muted;
+        let nextSource;
+        try {
+          nextSource = ctx.createMediaElementSource(next);
+        } catch {
+          return media;
+        }
+        nextSource.connect(gain);
+        try {
+          source?.disconnect();
+        } catch {
+          /* already disconnected */
+        }
+        source = nextSource;
+      } else {
+        next.muted = muted;
+        next.volume = muted ? 0 : level;
+      }
+      wired.delete(media);
+      retire(media);
+      media = next;
+      wired.set(media, api);
+      push();
+      return media;
+    },
     detach() {
       unsub();
-      wired.delete(audio);
+      wired.delete(media);
+      try {
+        source?.disconnect();
+      } catch {
+        /* ignore */
+      }
     },
   };
-  wired.set(audio, api);
+  wired.set(media, api);
   return api;
 }

@@ -6,7 +6,9 @@ import assert from "node:assert/strict";
 import {
   previewIsActive,
   previewPipelineBroken,
-  seekAudioToStart,
+  reloadAudioToStart,
+  waitUntilCanPlay,
+  armCanPlay,
 } from "./previewLifecycle.js";
 
 assert.equal(previewIsActive({}), false);
@@ -26,72 +28,141 @@ assert.equal(
   false
 );
 
-// Already at start, not seeking → resolve without touching currentTime.
+// Already ready → waitUntilCanPlay resolves without listeners.
 {
-  let writes = 0;
+  let added = 0;
+  const audio = {
+    readyState: 2,
+    addEventListener() {
+      added += 1;
+    },
+    removeEventListener() {},
+  };
+  await waitUntilCanPlay(audio);
+  assert.equal(added, 0);
+}
+
+// Not ready → resolves on canplay.
+{
+  let canplay = null;
+  const audio = {
+    readyState: 1,
+    addEventListener(type, fn) {
+      if (type === "canplay") canplay = fn;
+    },
+    removeEventListener() {
+      canplay = null;
+    },
+  };
+  const p = waitUntilCanPlay(audio, 1000);
+  audio.readyState = 2;
+  canplay?.();
+  await p;
+}
+
+// Parked at start with data → reloadAudioToStart is a no-op.
+{
+  let loads = 0;
   const audio = {
     seeking: false,
-    get currentTime() {
-      return 0;
-    },
-    set currentTime(_v) {
-      writes += 1;
+    currentTime: 0,
+    readyState: 4,
+    load() {
+      loads += 1;
     },
     addEventListener() {},
     removeEventListener() {},
   };
-  await seekAudioToStart(audio);
-  assert.equal(writes, 0);
+  await reloadAudioToStart(audio);
+  assert.equal(loads, 0);
 }
 
-// Mid-clip → assign 0 and wait for seeked before resolving.
+// Mid-clip → arm, load (drops readyState), then canplay.
 {
-  let writes = 0;
-  let seeked = null;
+  let loads = 0;
+  let canplay = null;
   const audio = {
     seeking: false,
-    _t: 2.4,
-    get currentTime() {
-      return this._t;
-    },
-    set currentTime(v) {
-      writes += 1;
-      this._t = v;
-      queueMicrotask(() => seeked?.());
+    currentTime: 3.9,
+    readyState: 4,
+    load() {
+      loads += 1;
+      this.readyState = 1;
+      this.currentTime = 0;
+      queueMicrotask(() => {
+        this.readyState = 4;
+        canplay?.();
+      });
     },
     addEventListener(type, fn) {
-      if (type === "seeked") seeked = fn;
+      if (type === "canplay") canplay = fn;
     },
     removeEventListener() {
-      seeked = null;
+      canplay = null;
     },
   };
-  await seekAudioToStart(audio);
-  assert.equal(writes, 1);
+  await reloadAudioToStart(audio);
+  assert.equal(loads, 1);
   assert.equal(audio.currentTime, 0);
+  assert.equal(audio.readyState, 4);
 }
 
-// In-flight seek (e.g. leftover) → wait, don't assign again.
+// Mid-clip with sync canplay inside load() — must not hang.
 {
-  let writes = 0;
-  let seeked = null;
+  let loads = 0;
+  let canplay = null;
   const audio = {
-    seeking: true,
-    currentTime: 1.1,
-    set currentTime(_v) {
-      writes += 1;
+    seeking: false,
+    currentTime: 2,
+    readyState: 4,
+    load() {
+      loads += 1;
+      this.readyState = 0;
+      this.currentTime = 0;
+      this.readyState = 4;
+      canplay?.();
     },
     addEventListener(type, fn) {
-      if (type === "seeked") seeked = fn;
+      if (type === "canplay") canplay = fn;
     },
     removeEventListener() {
-      seeked = null;
+      canplay = null;
     },
   };
-  const p = seekAudioToStart(audio);
-  queueMicrotask(() => seeked?.());
+  await reloadAudioToStart(audio);
+  assert.equal(loads, 1);
+}
+
+// armCanPlay: load drops readyState before the "already ready" microtask —
+// must wait for the real canplay, not resolve early on stale readyState.
+{
+  let canplay = null;
+  let resolvedEarly = false;
+  const audio = {
+    readyState: 4,
+    addEventListener(type, fn) {
+      if (type === "canplay") canplay = fn;
+    },
+    removeEventListener() {
+      canplay = null;
+    },
+  };
+  const p = armCanPlay(audio, 1000).then(() => {
+    // readyState must be post-load ready, not the pre-load 4
+    assert.equal(audio.readyState, 2);
+  });
+  // Simulate load() dropping readyState in the same turn as arm.
+  audio.readyState = 0;
+  await Promise.resolve(); // flush arm's microtask — must NOT resolve yet
+  resolvedEarly = false;
+  p.then(() => {
+    resolvedEarly = true;
+  });
+  await Promise.resolve();
+  assert.equal(resolvedEarly, false);
+  audio.readyState = 2;
+  canplay?.();
   await p;
-  assert.equal(writes, 0);
 }
 
 console.log("previewLifecycle.check: ok");

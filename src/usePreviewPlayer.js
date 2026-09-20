@@ -6,8 +6,16 @@ import { markAudioWarm } from "./previewWarm.js";
 import {
   previewIsActive,
   previewPipelineBroken,
-  seekAudioToStart,
+  reloadAudioToStart,
+  armCanPlay,
 } from "./previewLifecycle.js";
+
+function newAudioShell() {
+  const audio = new Audio();
+  audio.preload = "none";
+  audio.playsInline = true;
+  return audio;
+}
 
 /**
  * Plays iTunes 30s preview MP3s in a plain <audio> element.
@@ -25,6 +33,7 @@ export function usePreviewPlayer() {
   const currentUrlRef = useRef(null);
   const selfPauseRef = useRef(false);
   const pauseRef = useRef(() => {});
+  const pauseListenerRef = useRef(null);
   const [errorMsg, setErrorMsg] = useState(null);
 
   function clearStop() {
@@ -65,9 +74,7 @@ export function usePreviewPlayer() {
     if (a) {
       selfPauseRef.current = true;
       a.pause();
-      // Don't seek here. playSnippet pause()-then-plays, and an in-flight
-      // seek races the next play() — the opening second leaks, then the seek
-      // lands and restarts it. Seeking belongs in play(), where we await it.
+      // Don't seek here. Seeking belongs in play()/element swap.
     }
     pauseGuessifyNowPlaying();
     const cb = onStopRef.current;
@@ -82,9 +89,7 @@ export function usePreviewPlayer() {
   }, []);
 
   useEffect(() => {
-    const audio = new Audio();
-    audio.preload = "none";
-    audio.playsInline = true;
+    const audio = newAudioShell();
     audioRef.current = audio;
     outputRef.current = attachVolumeControl(audio);
 
@@ -97,6 +102,9 @@ export function usePreviewPlayer() {
       finishPlayback();
     }
 
+    pauseListenerRef.current = onAudioPause;
+    audio.addEventListener("pause", onAudioPause);
+
     async function onVisibilityChange() {
       if (document.hidden) {
         if (previewIsActive(activeRefs())) pauseRef.current();
@@ -105,7 +113,7 @@ export function usePreviewPlayer() {
       // Await the resume before judging the pipeline: checking synchronously
       // raced the state change and could condemn a context that was fine.
       await outputRef.current?.resume();
-      if (previewPipelineBroken(audio, outputRef.current)) {
+      if (previewPipelineBroken(audioRef.current, outputRef.current)) {
         pauseRef.current();
       }
     }
@@ -113,29 +121,34 @@ export function usePreviewPlayer() {
     function onPageShow(e) {
       if (!e.persisted) return;
       // bfcache restore — React may still show "playing" while Web Audio is dead.
-      if (previewIsActive(activeRefs()) || !audio.paused) {
+      const a = audioRef.current;
+      if (previewIsActive(activeRefs()) || (a && !a.paused)) {
         pauseRef.current();
       }
       void outputRef.current?.resume();
     }
 
-    audio.addEventListener("pause", onAudioPause);
     document.addEventListener("visibilitychange", onVisibilityChange);
     window.addEventListener("pageshow", onPageShow);
 
     return () => {
-      audio.removeEventListener("pause", onAudioPause);
+      const a = audioRef.current;
+      if (a && pauseListenerRef.current) {
+        a.removeEventListener("pause", pauseListenerRef.current);
+      }
       document.removeEventListener("visibilitychange", onVisibilityChange);
       window.removeEventListener("pageshow", onPageShow);
       outputRef.current?.detach();
       outputRef.current = null;
       clearTimeout(stopTimer.current);
-      if (endedHandlerRef.current) {
-        audio.removeEventListener("ended", endedHandlerRef.current);
+      if (a && endedHandlerRef.current) {
+        a.removeEventListener("ended", endedHandlerRef.current);
         endedHandlerRef.current = null;
       }
-      audio.pause();
-      audio.removeAttribute("src");
+      if (a) {
+        a.pause();
+        a.removeAttribute("src");
+      }
       audioRef.current = null;
     };
   }, []);
@@ -148,12 +161,30 @@ export function usePreviewPlayer() {
       throw new Error("no preview");
     }
 
-    const audio = audioRef.current;
-    if (!audio) throw new Error("audio missing");
-
     clearStop();
     clearEnded();
     onStopRef.current = onStop || null;
+
+    let audio = audioRef.current;
+    if (!audio) throw new Error("audio missing");
+
+    // iOS MediaElementSource: reusing the same element after a snippet
+    // (load/seek/play) doubles the opening second. Swap in a fresh <audio>
+    // on the same AudioContext — same pipeline as a first play, which is fine.
+    const output = outputRef.current;
+    if (output?.usesWebAudio?.() && currentUrlRef.current) {
+      const prev = audio;
+      const next = newAudioShell();
+      if (pauseListenerRef.current) {
+        prev.removeEventListener("pause", pauseListenerRef.current);
+      }
+      audio = output.swapMediaElement(next);
+      audioRef.current = audio;
+      if (pauseListenerRef.current) {
+        audio.addEventListener("pause", pauseListenerRef.current);
+      }
+      currentUrlRef.current = null;
+    }
 
     // Safari can tear down a backgrounded tab's media resource: the element
     // keeps the same src but drops back to HAVE_NOTHING. Reusing it then
@@ -168,43 +199,27 @@ export function usePreviewPlayer() {
     if (currentUrlRef.current !== url || audio.readyState === HAVE_NOTHING) {
       currentUrlRef.current = url;
       audio.src = url;
-      await new Promise((resolve, reject) => {
-        if (audio.readyState >= 2) {
-          resolve();
-          return;
-        }
-        let timer = null;
-        const cleanup = () => {
-          if (timer) clearTimeout(timer);
-          audio.removeEventListener("canplay", onReady);
-          audio.removeEventListener("error", onErr);
-        };
-        const onReady = () => {
-          cleanup();
-          resolve();
-        };
-        const onErr = () => {
-          cleanup();
-          currentUrlRef.current = null;
-          setErrorMsg("Couldn't load preview audio.");
-          reject(new Error("audio load failed"));
-        };
-        timer = setTimeout(() => {
-          cleanup();
-          currentUrlRef.current = null;
-          setErrorMsg("Couldn't load preview audio.");
-          reject(new Error("audio load timed out"));
-        }, 8000);
-        audio.addEventListener("canplay", onReady, { once: true });
-        audio.addEventListener("error", onErr, { once: true });
+      try {
+        const ready = armCanPlay(audio);
         audio.load();
-      });
+        await ready;
+      } catch {
+        currentUrlRef.current = null;
+        setErrorMsg("Couldn't load preview audio.");
+        throw new Error("audio load failed");
+      }
+    } else {
+      // Desktop reuse: same URL mid-clip — reload from cache (no Web Audio).
+      try {
+        await reloadAudioToStart(audio);
+      } catch {
+        currentUrlRef.current = null;
+        setErrorMsg("Couldn't load preview audio.");
+        throw new Error("audio load failed");
+      }
     }
 
     markAudioWarm(url);
-    // Await the rewind. Fire-and-forget currentTime=0 before play() lets the
-    // first second leak out, then the seek lands and restarts it.
-    await seekAudioToStart(audio);
     await outputRef.current?.resume();
     try {
       await audio.play();
@@ -253,4 +268,4 @@ export function usePreviewPlayer() {
     prime,
     audio: audioRef,
   };
-};
+}
