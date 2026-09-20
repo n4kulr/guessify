@@ -2,8 +2,10 @@ import {
   rankTrackSuggestions,
   rankArtistSuggestions,
   SUGGEST_FETCH,
+  SUGGEST_OUT,
 } from "../src/suggestRank.js";
 import { enrichArtistCovers, enrichTrackCovers } from "./_suggestArt.js";
+import { rerankSuggestions } from "./_typesafe.js";
 
 const LASTFM = "https://ws.audioscrobbler.com/2.0/";
 const UA = { "User-Agent": "Guessify/1.0 (https://guessify.uk)" };
@@ -38,10 +40,13 @@ async function handleSearch(req, res) {
       kind === "track"
         ? await searchTracks(key, q)
         : await searchArtists(key, q);
-    const items =
+    // Catalogue rank keeps a shortlist; Jev may reorder when TYPESAFE_API_KEY is set.
+    const shortlist =
       kind === "track"
-        ? rankTrackSuggestions(raw, q, roundArtists)
-        : rankArtistSuggestions(raw, q, roundArtists);
+        ? rankTrackSuggestions(raw, q, roundArtists, 12)
+        : rankArtistSuggestions(raw, q, roundArtists, 12);
+    const reranked = await rerankSuggestions(q, shortlist, kind);
+    const items = (reranked || shortlist).slice(0, SUGGEST_OUT);
     res.setHeader("Cache-Control", "public, s-maxage=3600, stale-while-revalidate=86400");
     res.status(200).json({ items });
   } catch (e) {

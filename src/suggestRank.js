@@ -83,7 +83,7 @@ function keepRow(prev, next) {
  * Collapse noisy Last.fm track rows (same title many times — e.g. four
  * "Doves in the Wind" by SZA), keep one row per normalized title, rank the rest.
  */
-export function rankTrackSuggestions(raw = [], query = "", roundArtists = []) {
+export function rankTrackSuggestions(raw = [], query = "", roundArtists = [], limit = SUGGEST_OUT) {
   const q = String(query || "").trim();
   const best = new Map();
 
@@ -106,14 +106,15 @@ export function rankTrackSuggestions(raw = [], query = "", roundArtists = []) {
     if (keepRow(prev, next)) best.set(key, next);
   });
 
+  const n = Math.max(1, Number(limit) || SUGGEST_OUT);
   return [...best.values()]
     .sort((a, b) => b.score - a.score || b.listeners - a.listeners)
-    .slice(0, SUGGEST_OUT)
+    .slice(0, n)
     .map(({ name, artist }) => ({ name, artist }));
 }
 
 /** One row per artist; diacritic dupes collapse; popularity breaks ties. */
-export function rankArtistSuggestions(raw = [], query = "", roundArtists = []) {
+export function rankArtistSuggestions(raw = [], query = "", roundArtists = [], limit = SUGGEST_OUT) {
   const q = String(query || "").trim();
   const best = new Map();
 
@@ -134,8 +135,9 @@ export function rankArtistSuggestions(raw = [], query = "", roundArtists = []) {
     if (keepRow(prev, next)) best.set(key, next);
   });
 
+  const n = Math.max(1, Number(limit) || SUGGEST_OUT);
   return [...best.values()]
     .sort((a, b) => b.score - a.score || b.listeners - a.listeners)
-    .slice(0, SUGGEST_OUT)
+    .slice(0, n)
     .map(({ name }) => ({ name }));
 }

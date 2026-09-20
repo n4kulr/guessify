@@ -1,3 +1,5 @@
+import { triageFeedback } from "./_typesafe.js";
+
 export const config = {
   api: {
     bodyParser: {
@@ -89,6 +91,11 @@ export default async function handler(req, res) {
     return res.status(400).json({ error: "message too long" });
   }
 
+  const triage = message ? await triageFeedback(message) : null;
+  if (triage?.block) {
+    return res.status(400).json({ error: "feedback not accepted" });
+  }
+
   const quoted = message
     ? message
         .split("\n")
@@ -104,11 +111,18 @@ export default async function handler(req, res) {
 
   const embeds = [
     {
-      title: "feedback",
+      title: triage?.category ? `feedback · ${triage.category}` : "feedback",
       description: quoted.length > 4090 ? `${quoted.slice(0, 4080)}…` : quoted,
       color: 0xe9d5c6,
       timestamp: new Date().toISOString(),
       thumbnail: { url: artUrl },
+      ...(triage
+        ? {
+            footer: {
+              text: `urgency ${triage.urgency.toFixed(1)} · spam ${(triage.spam * 100).toFixed(0)}%`,
+            },
+          }
+        : {}),
     },
   ];
 

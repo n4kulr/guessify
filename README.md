@@ -184,6 +184,7 @@ Import the GitHub repo. Add env vars:
 | `VITE_PARTYKIT_HOST` | Cloudflare Worker host, **no** `https://` (after step 4) |
 | `OWNER_REFRESH_TOKEN` | optional — shows your playlists to logged-out visitors |
 | `DISCORD_WEBHOOK_URL` | optional — in-app feedback → Discord |
+| `TYPESAFE_API_KEY` | optional — [TypeSafe](https://typesafe.ai) Jev for feedback triage, chart intent, suggest rerank |
 
 ```bash
 node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"

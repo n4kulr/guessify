@@ -1,3 +1,5 @@
+import { pickChartCandidate } from "./_typesafe.js";
+
 const LASTFM = "https://ws.audioscrobbler.com/2.0/";
 const UA = { "User-Agent": "Guessify/1.0 (https://guessify.uk)" };
 
@@ -109,10 +111,20 @@ async function resolveChart(apiKey, { tag, artist, limit }) {
   });
 }
 
-/** Free-text: artist first (incl. fuzzy), then tag/era compounds. */
+/** Free-text: exact artist, then Jev pick among candidates, then sequential fallback. */
 async function resolveChartSmart(apiKey, raw, limit) {
   const exactArtist = await tryArtist(apiKey, raw, limit);
   if (exactArtist) return exactArtist;
+
+  const candidates = await collectChartCandidates(apiKey, raw);
+  const picked = await pickChartCandidate(raw, candidates);
+  if (picked) {
+    const hit =
+      picked.kind === "tag"
+        ? await tryTag(apiKey, picked.name, limit, true, raw)
+        : await tryArtist(apiKey, picked.name, limit, true, raw);
+    if (hit) return hit;
+  }
 
   const artists = await searchArtists(apiKey, raw);
   for (const a of artists.slice(0, 5)) {
@@ -134,6 +146,33 @@ async function resolveChartSmart(apiKey, raw, limit) {
     preferArtists: false,
     skipExact: tagRaw,
   });
+}
+
+/** Gather unique artist/tag candidates for Jev to choose among. */
+async function collectChartCandidates(apiKey, raw) {
+  const variants = queryVariants(raw).slice(0, 2);
+  const seen = new Set();
+  const out = [];
+
+  function add(kind, name) {
+    const n = String(name || "").trim();
+    if (!n) return;
+    const key = `${kind}:${n.toLowerCase()}`;
+    if (seen.has(key)) return;
+    seen.add(key);
+    out.push({ kind, name: n });
+  }
+
+  for (const q of variants) {
+    const [tags, artists] = await Promise.all([
+      searchTags(apiKey, q),
+      searchArtists(apiKey, q),
+    ]);
+    for (const a of artists.slice(0, 6)) add("artist", a.name);
+    for (const t of tags.slice(0, 6)) add("tag", t.name);
+  }
+
+  return out.slice(0, 12);
 }
 
 async function tryTag(apiKey, tag, limit, fuzzy = false, query) {
