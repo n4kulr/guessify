@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { formatSolveClock, formatSolveSec } from "../gameStats.js";
+import { formatSolveClock } from "../gameStats.js";
 
 /** Kept for callers that pass no detail — plain, but never just "you lost". */
 const MISS_LINES = ["aw man :(", "better luck next time :("];
@@ -41,22 +41,15 @@ export default function RoundRevealStats({
       ) : (
         <>
           <span className="reveal-clock-miss">{missLine}</span>
-          {showPts &&
-            (consolation > 0 ? (
-              <span className="reveal-clock-pts reveal-clock-pts--part">
-                still +{pts}
-                <span className="reveal-clock-streak">
-                  {" "}
-                  {artistClaimed ? "artist" : "so close"}
-                </span>
+          {showPts && consolation > 0 && (
+            <span className="reveal-clock-pts reveal-clock-pts--part">
+              still +{pts}
+              <span className="reveal-clock-streak">
+                {" "}
+                {artistClaimed ? "artist" : "so close"}
               </span>
-            ) : (
-              ms != null && (
-                <span className="reveal-clock-streak">
-                  you held out {formatSolveSec(ms)}
-                </span>
-              )
-            ))}
+            </span>
+          )}
         </>
       )}
     </div>

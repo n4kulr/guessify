@@ -12,6 +12,7 @@ function stubWindow({ ios }) {
       constructor() {
         this.state = "running";
         this.destination = {};
+        globalThis.__lastCtx = this;
       }
       createMediaElementSource() {
         return { connect() {} };
@@ -20,6 +21,7 @@ function stubWindow({ ios }) {
         return { gain: { value: 1 }, connect() {} };
       }
       async resume() {
+        if (this.state === "closed") throw new Error("closed");
         this.state = "running";
       }
     },
@@ -56,7 +58,16 @@ function stubWindow({ ios }) {
 
 stubWindow({ ios: true });
 const { setVolume } = await import("./volume.js");
-const { attachVolumeControl } = await import("./audioOutput.js");
+const { attachVolumeControl, contextStalled } = await import("./audioOutput.js");
+
+// WebKit parks the context as "interrupted" (not in the spec) on a tab switch,
+// backgrounding or a call. Treating only "suspended" as stalled meant we never
+// resumed it, so the audio stayed silent until the player reloaded the page.
+assert.equal(contextStalled("running"), false);
+assert.equal(contextStalled("suspended"), true);
+assert.equal(contextStalled("interrupted"), true);
+assert.equal(contextStalled("closed"), false);
+assert.equal(contextStalled(undefined), false);
 
 {
   const audio = { volume: 0.5, muted: false, crossOrigin: null };
@@ -76,6 +87,39 @@ const { attachVolumeControl } = await import("./audioOutput.js");
   assert.equal(api.getLevel(), 0, "iOS: muted survives a volume change");
   api.setMuted(false);
   assert.equal(api.getLevel(), 0.8, "iOS: unmute restores the current slider level");
+  api.detach();
+}
+
+// --- tab switch recovery -------------------------------------------------
+{
+  const audio = { volume: 0.5, muted: false, crossOrigin: null };
+  const api = attachVolumeControl(audio);
+  const ctx = globalThis.__lastCtx;
+
+  assert.equal(api.isContextSuspended(), false, "starts running");
+
+  // Backgrounding the tab, WebKit style.
+  ctx.state = "interrupted";
+  assert.equal(
+    api.isContextSuspended(),
+    true,
+    "an interrupted context must report as stalled — this is the bug that made "
+      + "audio die on tab switch until a refresh"
+  );
+  await api.resume();
+  assert.equal(ctx.state, "running", "resume() revives an interrupted context");
+  assert.equal(api.isContextSuspended(), false);
+
+  // The plain suspended path still works.
+  ctx.state = "suspended";
+  assert.equal(api.isContextSuspended(), true);
+  await api.resume();
+  assert.equal(ctx.state, "running");
+
+  // A closed context can't be revived — resume must not throw.
+  ctx.state = "closed";
+  assert.equal(api.isContextSuspended(), false, "closed is unrecoverable, not stalled");
+  await api.resume();
   api.detach();
 }
 

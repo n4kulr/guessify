@@ -4,7 +4,9 @@ export function previewIsActive({ onStop, stopTimer, endedHandler } = {}) {
 }
 
 /**
- * iOS WebKit: suspended AudioContext + element not paused = silent "playing".
+ * iOS WebKit: a stalled AudioContext ("suspended", or WebKit's non-standard
+ * "interrupted" after a tab switch / call) with the element not paused means a
+ * silent "playing" — the graph carries all the sound and it isn't running.
  * Caller should pause and clear UI when this returns true.
  */
 export function previewPipelineBroken(audio, output) {

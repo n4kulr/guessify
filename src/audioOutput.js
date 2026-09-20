@@ -7,6 +7,20 @@ import { getVolume, subscribeVolume } from "./volume.js";
  */
 const wired = new WeakMap();
 
+/**
+ * Context states that mean "no sound is reaching the speakers, but it can be".
+ *
+ * "interrupted" is WebKit-only and absent from the spec: iOS parks the context
+ * there on a tab switch, backgrounding, or a phone call. Once an element is fed
+ * through createMediaElementSource its audio ONLY travels the graph, so a
+ * stalled context is silent even though play() resolves and currentTime keeps
+ * advancing — which looked exactly like "the audio broke, I have to refresh".
+ * Checking only for "suspended" meant we never tried to resume it.
+ */
+export function contextStalled(state) {
+  return state === "suspended" || state === "interrupted";
+}
+
 function needsGainFader() {
   if (typeof navigator === "undefined") return false;
   const ua = navigator.userAgent || "";
@@ -83,16 +97,15 @@ export function attachVolumeControl(audio) {
       return muted;
     },
     async resume() {
-      if (ctx?.state === "suspended") {
-        try {
-          await ctx.resume();
-        } catch {
-          /* autoplay / gesture */
-        }
+      if (!ctx || !contextStalled(ctx.state)) return;
+      try {
+        await ctx.resume();
+      } catch {
+        /* autoplay / gesture */
       }
     },
     isContextSuspended() {
-      return ctx?.state === "suspended";
+      return !!ctx && contextStalled(ctx.state);
     },
     detach() {
       unsub();

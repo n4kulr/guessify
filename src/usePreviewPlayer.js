@@ -95,12 +95,14 @@ export function usePreviewPlayer() {
       finishPlayback();
     }
 
-    function onVisibilityChange() {
+    async function onVisibilityChange() {
       if (document.hidden) {
         if (previewIsActive(activeRefs())) pauseRef.current();
         return;
       }
-      void outputRef.current?.resume();
+      // Await the resume before judging the pipeline: checking synchronously
+      // raced the state change and could condemn a context that was fine.
+      await outputRef.current?.resume();
       if (previewPipelineBroken(audio, outputRef.current)) {
         pauseRef.current();
       }
@@ -151,7 +153,12 @@ export function usePreviewPlayer() {
     clearEnded();
     onStopRef.current = onStop || null;
 
-    if (currentUrlRef.current !== url) {
+    // Safari can tear down a backgrounded tab's media resource: the element
+    // keeps the same src but drops back to readyState 0. Reusing it then
+    // "plays" nothing until a reload, so treat an emptied element as a new
+    // URL and load it again rather than trusting the cached-src fast path.
+    const HAVE_CURRENT_DATA = 2;
+    if (currentUrlRef.current !== url || audio.readyState < HAVE_CURRENT_DATA) {
       currentUrlRef.current = url;
       audio.src = url;
       await new Promise((resolve, reject) => {
@@ -188,7 +195,12 @@ export function usePreviewPlayer() {
     }
 
     markAudioWarm(url);
-    audio.currentTime = 0;
+    // Seeking an element the browser has emptied throws InvalidStateError.
+    try {
+      audio.currentTime = 0;
+    } catch {
+      /* fresh load starts at 0 anyway */
+    }
     await outputRef.current?.resume();
     try {
       await audio.play();
