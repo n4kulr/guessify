@@ -3,7 +3,11 @@ import { resolvePreview } from "./itunes.js";
 import { attachVolumeControl } from "./audioOutput.js";
 import { pauseGuessifyNowPlaying, setGuessifyNowPlaying } from "./mediaSession.js";
 import { markAudioWarm } from "./previewWarm.js";
-import { previewIsActive, previewPipelineBroken } from "./previewLifecycle.js";
+import {
+  previewIsActive,
+  previewPipelineBroken,
+  seekAudioToStart,
+} from "./previewLifecycle.js";
 
 /**
  * Plays iTunes 30s preview MP3s in a plain <audio> element.
@@ -61,11 +65,9 @@ export function usePreviewPlayer() {
     if (a) {
       selfPauseRef.current = true;
       a.pause();
-      try {
-        a.currentTime = 0;
-      } catch {
-        /* ignore */
-      }
+      // Don't seek here. playSnippet pause()-then-plays, and an in-flight
+      // seek races the next play() — the opening second leaks, then the seek
+      // lands and restarts it. Seeking belongs in play(), where we await it.
     }
     pauseGuessifyNowPlaying();
     const cb = onStopRef.current;
@@ -157,11 +159,11 @@ export function usePreviewPlayer() {
     // keeps the same src but drops back to HAVE_NOTHING. Reusing it then
     // "plays" nothing until a reload, so treat an emptied element as a new URL.
     //
-    // It must be HAVE_NOTHING exactly, not "< HAVE_CURRENT_DATA": pause() seeks
-    // to 0, and an in-flight seek dips readyState to HAVE_METADATA. Testing for
-    // the dip re-downloaded the clip on every single press and started playback
-    // with nothing buffered, which stuttered the first second. A torn-down
-    // element loses its metadata too, so only 0 means genuinely gone.
+    // It must be HAVE_NOTHING exactly, not "< HAVE_CURRENT_DATA": an in-flight
+    // seek dips readyState to HAVE_METADATA. Testing for the dip re-downloaded
+    // the clip on every single press and started playback with nothing
+    // buffered, which stuttered the first second. A torn-down element loses
+    // its metadata too, so only 0 means genuinely gone.
     const HAVE_NOTHING = 0;
     if (currentUrlRef.current !== url || audio.readyState === HAVE_NOTHING) {
       currentUrlRef.current = url;
@@ -200,12 +202,9 @@ export function usePreviewPlayer() {
     }
 
     markAudioWarm(url);
-    // Seeking an element the browser has emptied throws InvalidStateError.
-    try {
-      audio.currentTime = 0;
-    } catch {
-      /* fresh load starts at 0 anyway */
-    }
+    // Await the rewind. Fire-and-forget currentTime=0 before play() lets the
+    // first second leak out, then the seek lands and restarts it.
+    await seekAudioToStart(audio);
     await outputRef.current?.resume();
     try {
       await audio.play();
