@@ -3,13 +3,18 @@
  * Only the first HINT_MAX_LETTERS letters are shown (rest omitted).
  * Unknown letters are underscores with spaces so slots don't merge.
  * Example: "daisies" → "d _ _ s _ e s"
- *          "hello world" → "h _ _ l _ · w _ _ l _"
+ *          "hello world" → "h _ _ l _   w _ _ l _"
  */
 
 export const HINT_MAX_LETTERS = 10;
 
 const BLANK = "_";
-const WORD_GAP = " · ";
+/**
+ * Word break in the mask. Plain spaces collapse to one when the mask is
+ * rendered as a placeholder, which would make the gap between words look
+ * identical to the gap between letters — so these are non-breaking spaces.
+ */
+const WORD_GAP = "   ";
 
 /** Strip featured-artist credits for display + hints (matching still uses the raw title). */
 export function displayTitle(title = "") {

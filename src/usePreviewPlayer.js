@@ -154,11 +154,16 @@ export function usePreviewPlayer() {
     onStopRef.current = onStop || null;
 
     // Safari can tear down a backgrounded tab's media resource: the element
-    // keeps the same src but drops back to readyState 0. Reusing it then
-    // "plays" nothing until a reload, so treat an emptied element as a new
-    // URL and load it again rather than trusting the cached-src fast path.
-    const HAVE_CURRENT_DATA = 2;
-    if (currentUrlRef.current !== url || audio.readyState < HAVE_CURRENT_DATA) {
+    // keeps the same src but drops back to HAVE_NOTHING. Reusing it then
+    // "plays" nothing until a reload, so treat an emptied element as a new URL.
+    //
+    // It must be HAVE_NOTHING exactly, not "< HAVE_CURRENT_DATA": pause() seeks
+    // to 0, and an in-flight seek dips readyState to HAVE_METADATA. Testing for
+    // the dip re-downloaded the clip on every single press and started playback
+    // with nothing buffered, which stuttered the first second. A torn-down
+    // element loses its metadata too, so only 0 means genuinely gone.
+    const HAVE_NOTHING = 0;
+    if (currentUrlRef.current !== url || audio.readyState === HAVE_NOTHING) {
       currentUrlRef.current = url;
       audio.src = url;
       await new Promise((resolve, reject) => {

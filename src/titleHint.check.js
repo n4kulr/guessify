@@ -7,7 +7,11 @@ import { titleHintMask, HINT_MAX_LETTERS, displayTitle } from "./titleHint.js";
 
 assert.equal(titleHintMask("daisies"), "d _ _ s _ e _");
 assert.equal(titleHintMask("Daisies"), "d _ _ s _ e _");
-assert.equal(titleHintMask("hello world"), "h _ _ l _ · w _ _ l _");
+assert.equal(titleHintMask("hello world"), "h _ _ l _   w _ _ l _");
+// No decorative separator — a word break is whitespace, nothing else.
+assert.equal(titleHintMask("hello world").includes("·"), false);
+// ...but not a plain space, which collapses into the letter gaps on render.
+assert.match(titleHintMask("hello world"), /_ +w/);
 
 const balloons = titleHintMask("House of Balloons / Glass Table Girls");
 assert.ok(!balloons.includes("/"), balloons);
