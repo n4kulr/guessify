@@ -12,8 +12,6 @@ export const TITLE_POINTS = 500;
 export const ARTIST_BONUS = 100;
 /** Cut from this round's title payout each skip (not banked score). */
 export const SKIP_PENALTY = 40;
-/** The first skip is free — being stuck shouldn't cost you to get unstuck. */
-export const FREE_SKIPS = 1;
 /** Consolation for a wrong-but-very-close title/artist guess (once a round). */
 export const ALMOST_POINTS = 25;
 /** @deprecated use TITLE_POINTS */
@@ -48,13 +46,7 @@ export function allPlayersMaxUnlocked(players = [], unlockByPlayer = {}) {
  */
 export function titlePointsForGuess(skips = 0) {
   const n = Math.max(0, Math.floor(Number(skips) || 0));
-  return Math.max(0, TITLE_POINTS - Math.max(0, n - FREE_SKIPS) * SKIP_PENALTY);
-}
-
-/** Does this skip actually cost anything? (First one of a round is free.) */
-export function skipCostFor(skips = 0) {
-  const n = Math.max(0, Math.floor(Number(skips) || 0));
-  return n < FREE_SKIPS ? 0 : SKIP_PENALTY;
+  return Math.max(0, TITLE_POINTS - n * SKIP_PENALTY);
 }
 
 /**

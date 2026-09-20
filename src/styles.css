@@ -3808,12 +3808,6 @@ button.footer-privacy:hover {
   top: -6px;
   transform: translate(-50%, -100%);
 }
-/* A free skip is good news — don't paint it in the error colour. */
-.penalty-pop--free {
-  color: #3ecf8e;
-  text-transform: lowercase;
-  letter-spacing: 0.04em;
-}
 .penalty-pop--hint {
   position: static;
   transform: none;

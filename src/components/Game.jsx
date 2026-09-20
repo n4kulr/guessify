@@ -42,10 +42,10 @@ import {
   TOTAL,
   ROUND_COUNT,
   titlePointsForGuess,
-  skipCostFor,
   streakMultiplier,
   ARTIST_BONUS,
   ALMOST_POINTS,
+  SKIP_PENALTY,
   ROUND_MAX_POINTS,
   normalizeAvatar,
   randomAvatar,
@@ -101,8 +101,6 @@ export default function Game({ playlist, me, onExit, onReplay }) {
   /** Near-miss consolation pays once per round, not once per guess. */
   const [almostPaid, setAlmostPaid] = useState(0);
   const [winStreak, setWinStreak] = useState(0);
-  /** Streak multiplier applied to the round just scored (1 = none). */
-  const [roundMult, setRoundMult] = useState(1);
   const [roundLog, setRoundLog] = useState([]);
   const [playlistBests, setPlaylistBests] = useState(null);
   const [cueReady, setCueReady] = useState(false);
@@ -175,7 +173,6 @@ export default function Game({ playlist, me, onExit, onReplay }) {
     setAlmostTitle(null);
     setAlmostArtist(null);
     setAlmostPaid(0);
-    setRoundMult(1);
     setPhase("play");
     roundStartedAt.current = Date.now();
   }
@@ -404,7 +401,6 @@ export default function Game({ playlist, me, onExit, onReplay }) {
       const titlePts = Math.round(titlePointsForGuess(guessNum) * mult);
       const solveMs = Date.now() - roundStartedAt.current;
       setWinStreak(streak);
-      setRoundMult(mult);
       setEarnedPts(titlePts + artistPts + almostPaid);
       setScore((s) => s + titlePts);
       pushRoundResult({
@@ -636,8 +632,6 @@ export default function Game({ playlist, me, onExit, onReplay }) {
                         resolveRevealMs({ startedAt: roundStartedAt.current })
                       }
                       pts={earnedPts}
-                      streak={winStreak}
-                      multiplier={roundMult}
                       artistClaimed={artistBonusTaken}
                       almostPts={almostPaid}
                     />
@@ -812,7 +806,7 @@ export default function Game({ playlist, me, onExit, onReplay }) {
                         </button>
                         <PenaltyPop
                           token={skipPop}
-                          pts={skipCostFor(guessNum - 1)}
+                          pts={SKIP_PENALTY}
                           onDone={() => setSkipPop(null)}
                         />
                       </div>

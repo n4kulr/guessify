@@ -5,12 +5,13 @@ import { formatSolveClock, formatSolveSec } from "../gameStats.js";
 const MISS_LINES = ["aw man :(", "better luck next time :("];
 
 /**
+ * A win shows the solve clock and nothing else — the title and artist sit
+ * right below it, and that's the whole reveal.
+ *
  * @param {object} p
  * @param {boolean} [p.youWon]
  * @param {number|null} [p.wallMs]
- * @param {number|null} [p.pts]        points banked this round (solo)
- * @param {number} [p.streak]          wins in a row including this one
- * @param {number} [p.multiplier]      streak multiplier applied to pts
+ * @param {number|null} [p.pts]        points banked this round (solo, loss only)
  * @param {boolean} [p.artistClaimed]  artist bonus was taken this round
  * @param {number} [p.almostPts]       consolation paid for a near miss
  */
@@ -18,8 +19,6 @@ export default function RoundRevealStats({
   youWon = false,
   wallMs = null,
   pts = null,
-  streak = 0,
-  multiplier = 1,
   artistClaimed = false,
   almostPts = 0,
 }) {
@@ -38,20 +37,7 @@ export default function RoundRevealStats({
       role="status"
     >
       {youWon ? (
-        <>
-          <span className="reveal-clock-time">{formatSolveClock(ms)}</span>
-          {showPts && (
-            <span className="reveal-clock-pts">
-              +{pts}
-              {multiplier > 1 && (
-                <span className="reveal-clock-streak">
-                  {" "}
-                  {streak} in a row ×{multiplier}
-                </span>
-              )}
-            </span>
-          )}
-        </>
+        <span className="reveal-clock-time">{formatSolveClock(ms)}</span>
       ) : (
         <>
           <span className="reveal-clock-miss">{missLine}</span>

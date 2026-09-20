@@ -5,7 +5,6 @@
 import assert from "node:assert/strict";
 import {
   titlePointsForGuess,
-  skipCostFor,
   streakMultiplier,
   timedTitlePoints,
   TITLE_POINTS,
@@ -24,32 +23,26 @@ assert.match(roomCode, /^[A-Z2-9]{6}$/);
 
 assert.equal(titlePointsForGuess(), TITLE_POINTS);
 assert.equal(titlePointsForGuess(0), 500);
-// The first skip is free — being stuck shouldn't cost you to get unstuck.
-assert.equal(titlePointsForGuess(1), 500);
-assert.equal(titlePointsForGuess(2), 500 - SKIP_PENALTY);
-assert.equal(titlePointsForGuess(3), 420);
-assert.equal(titlePointsForGuess(5), 340);
+// Every skip costs, including the first.
+assert.equal(titlePointsForGuess(1), 500 - SKIP_PENALTY);
+assert.equal(titlePointsForGuess(2), 420);
+assert.equal(titlePointsForGuess(4), 340);
 // The hint is automatic and free now — a second arg must not change the payout.
-assert.equal(titlePointsForGuess(5, true), 340);
+assert.equal(titlePointsForGuess(4, true), 340);
 assert.equal(titlePointsForGuess(20), 0);
-// Payout never climbs as you skip more.
+// Payout never climbs as you skip more, and each step costs SKIP_PENALTY
+// until it bottoms out at zero.
 for (let n = 1; n <= 20; n++) {
   assert.ok(
     titlePointsForGuess(n) <= titlePointsForGuess(n - 1),
     `payout must not rise at skip ${n}`
   );
 }
-
-// skipCostFor takes the skip count *before* the skip: the first one is free.
-assert.equal(skipCostFor(0), 0);
-assert.equal(skipCostFor(1), SKIP_PENALTY);
-assert.equal(skipCostFor(4), SKIP_PENALTY);
-// ...and it must agree with what the payout actually drops by.
 for (let n = 0; n <= 8; n++) {
   assert.equal(
     titlePointsForGuess(n) - titlePointsForGuess(n + 1),
-    Math.min(skipCostFor(n), titlePointsForGuess(n)),
-    `skipCostFor(${n}) must match the real payout drop`
+    Math.min(SKIP_PENALTY, titlePointsForGuess(n)),
+    `skip ${n + 1} must cost SKIP_PENALTY`
   );
 }
 
