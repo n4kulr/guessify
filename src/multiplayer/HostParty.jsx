@@ -880,7 +880,7 @@ export default function HostParty({
                   }}
                   onKeyDown={(e) => {
                     if (titleSuggest.handleKeyDown(e)) return;
-                    if (e.key === "Enter") submitGuess();
+                    if (e.key === "Enter" && !e.repeat) submitGuess();
                   }}
                 />
                 <GuessSuggest suggest={titleSuggest} />
@@ -904,7 +904,7 @@ export default function HostParty({
                   }}
                   onKeyDown={(e) => {
                     if (artistSuggest.handleKeyDown(e)) return;
-                    if (e.key === "Enter") submitGuess();
+                    if (e.key === "Enter" && !e.repeat) submitGuess();
                   }}
                 />
                 <GuessSuggest suggest={artistSuggest} />

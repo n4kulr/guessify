@@ -1449,7 +1449,7 @@ export default function OnlineRace({ profile, onExit, raceMode: raceModeProp }) 
                     }}
                     onKeyDown={(e) => {
                       if (titleSuggest.handleKeyDown(e)) return;
-                      if (e.key === "Enter") submitGuess();
+                      if (e.key === "Enter" && !e.repeat) submitGuess();
                     }}
                   />
                   <GuessSuggest suggest={titleSuggest} />
@@ -1473,7 +1473,7 @@ export default function OnlineRace({ profile, onExit, raceMode: raceModeProp }) 
                     }}
                     onKeyDown={(e) => {
                       if (artistSuggest.handleKeyDown(e)) return;
-                      if (e.key === "Enter") submitGuess();
+                      if (e.key === "Enter" && !e.repeat) submitGuess();
                     }}
                   />
                   <GuessSuggest suggest={artistSuggest} />

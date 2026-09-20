@@ -706,7 +706,7 @@ export default function GuestApp({ code }) {
                     }}
                     onKeyDown={(e) => {
                       if (titleSuggest.handleKeyDown(e)) return;
-                      if (e.key === "Enter") submitGuess();
+                      if (e.key === "Enter" && !e.repeat) submitGuess();
                     }}
                   />
                   <GuessSuggest suggest={titleSuggest} />
@@ -730,7 +730,7 @@ export default function GuestApp({ code }) {
                     }}
                     onKeyDown={(e) => {
                       if (artistSuggest.handleKeyDown(e)) return;
-                      if (e.key === "Enter") submitGuess();
+                      if (e.key === "Enter" && !e.repeat) submitGuess();
                     }}
                   />
                   <GuessSuggest suggest={artistSuggest} />

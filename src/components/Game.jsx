@@ -111,6 +111,17 @@ export default function Game({ playlist, me, onExit, onReplay }) {
   const { errorMsg, setErrorMsg, play, pause, prime } = usePreviewPlayer();
   const roundStartedAt = useRef(Date.now());
 
+  /**
+   * `resolved` and `playBusy` are state, so they still read false to a second
+   * handler firing in the same render cycle — an Enter key-repeat, a double
+   * tap, or picking a suggestion and hitting Enter. That let one guess resolve
+   * the round twice: double score, a duplicate row in the round log, and two
+   * playSnippet calls, the second yanking the clip back to 0 a moment after
+   * the first started it. These refs give the guards a value that updates now.
+   */
+  const resolvedRef = useRef(false);
+  const playBusyRef = useRef(false);
+
   const submitGuessRef = useRef(() => {});
 
   const track = rounds[roundIdx];
@@ -175,6 +186,7 @@ export default function Game({ playlist, me, onExit, onReplay }) {
     setAlmostArtist(null);
     setAlmostPaid(0);
     setPhase("play");
+    resolvedRef.current = false;
     roundStartedAt.current = Date.now();
   }
 
@@ -293,6 +305,7 @@ export default function Game({ playlist, me, onExit, onReplay }) {
   function stopAudio() {
     pause();
     setPlaying(false);
+    playBusyRef.current = false;
     setPlayBusy(false);
   }
 
@@ -300,6 +313,7 @@ export default function Game({ playlist, me, onExit, onReplay }) {
     if (!track) return;
     pause();
     setPlaying(false);
+    playBusyRef.current = true;
     setPlayBusy(true);
     try {
       await play(track, seconds, { onStop: () => setPlaying(false) });
@@ -316,12 +330,13 @@ export default function Game({ playlist, me, onExit, onReplay }) {
         }
       }
     } finally {
+      playBusyRef.current = false;
       setPlayBusy(false);
     }
   }
 
   async function togglePlay() {
-    if (!track || phase !== "play" || playBusy) return;
+    if (!track || phase !== "play" || playBusyRef.current) return;
     if (playing) {
       stopAudio();
       return;
@@ -331,7 +346,7 @@ export default function Game({ playlist, me, onExit, onReplay }) {
   }
 
   function startPlay() {
-    if (!track || phase !== "play" || playBusy || playing || resolved) return;
+    if (!track || phase !== "play" || playBusyRef.current || playing || resolved) return;
     playSnippet(unlocked);
   }
 
@@ -339,6 +354,7 @@ export default function Game({ playlist, me, onExit, onReplay }) {
     setScrubbing(true);
     pause();
     setPlaying(false);
+    playBusyRef.current = false;
     setPlayBusy(false);
   }
 
@@ -350,6 +366,7 @@ export default function Game({ playlist, me, onExit, onReplay }) {
   function consumeGuess() {
     const nextNum = guessNum + 1;
     if (nextNum >= MAX_GUESSES) {
+      resolvedRef.current = true;
       pushRoundResult({ won: false, artistClaimed: artistBonusTaken });
       setWinStreak(0);
       setOutcome("lose");
@@ -360,7 +377,7 @@ export default function Game({ playlist, me, onExit, onReplay }) {
   }
 
   function submitGuess(overrides = {}) {
-    if (phase !== "play" || resolved) return;
+    if (phase !== "play" || resolved || resolvedRef.current) return;
     const title = String(
       overrides.title !== undefined ? overrides.title : titleGuess
     ).trim();
@@ -397,6 +414,7 @@ export default function Game({ playlist, me, onExit, onReplay }) {
     }
 
     if (win) {
+      resolvedRef.current = true;
       const streak = winStreak + 1;
       const mult = streakMultiplier(streak);
       const titlePts = Math.round(titlePointsForGuess(guessNum) * mult);
@@ -435,7 +453,7 @@ export default function Game({ playlist, me, onExit, onReplay }) {
   submitGuessRef.current = submitGuess;
 
   function skip() {
-    if (phase !== "play" || resolved) return;
+    if (phase !== "play" || resolved || resolvedRef.current) return;
     setTitleGuess("");
     if (!revealedArtist) setArtistGuess("");
     stopAudio();
@@ -729,7 +747,7 @@ export default function Game({ playlist, me, onExit, onReplay }) {
                         }}
                         onKeyDown={(e) => {
                           if (titleSuggest.handleKeyDown(e)) return;
-                          if (e.key === "Enter") submitGuess();
+                          if (e.key === "Enter" && !e.repeat) submitGuess();
                         }}
                       />
                       <GuessSuggest suggest={titleSuggest} />
@@ -753,7 +771,7 @@ export default function Game({ playlist, me, onExit, onReplay }) {
                         }}
                         onKeyDown={(e) => {
                           if (artistSuggest.handleKeyDown(e)) return;
-                          if (e.key === "Enter") submitGuess();
+                          if (e.key === "Enter" && !e.repeat) submitGuess();
                         }}
                       />
                       <GuessSuggest suggest={artistSuggest} />
