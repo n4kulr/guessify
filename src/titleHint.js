@@ -1,14 +1,13 @@
 /**
  * Mask a song title for the late-game hint.
- * Only the first HINT_MAX_LETTERS letters are shown (rest omitted).
+ * Uses the full display title (feat./ft. credits stripped).
  * Unknown letters are underscores with spaces so slots don't merge.
- * Punctuation (', ., etc.) always stays visible.
+ * Punctuation (', ., /, etc.) always stays visible.
  * First and last letter of each word always stay visible.
  * Example: "daisies" → "d _ _ s _ _ s"
  *          "Don't Stop" → "d _ _ ' t   s _ _ p"
+ *          "monkey ft. bryson" → "m _ _ k _ y"
  */
-
-export const HINT_MAX_LETTERS = 10;
 
 const BLANK = "_";
 /**
@@ -37,35 +36,9 @@ function revealLetter(pos, letterCount) {
   return false;
 }
 
-/**
- * First N letters of the title. Spaces kept between words; punctuation kept
- * (does not count toward N). Trailing punct on the clipped word is kept.
- */
-function clipTitleLetters(title, maxLetters) {
-  let letters = 0;
-  let out = "";
-  for (const ch of String(title || "").trim()) {
-    if (isLetter(ch)) {
-      if (letters >= maxLetters) break;
-      letters += 1;
-      out += ch;
-    } else if (/\s/.test(ch)) {
-      if (letters >= maxLetters) break;
-      if (letters > 0) out += " ";
-    } else if (letters >= maxLetters) {
-      // Still on the clipped word — keep its trailing punct (e.g. "Mr.").
-      if (out && !/\s$/.test(out)) out += ch;
-      else break;
-    } else {
-      out += ch;
-    }
-  }
-  return out.replace(/\s+/g, " ").trim();
-}
-
 /** @param {string} title */
 export function titleHintMask(title) {
-  const s = clipTitleLetters(displayTitle(title), HINT_MAX_LETTERS);
+  const s = displayTitle(title);
   if (!s) return "";
 
   const words = [];
