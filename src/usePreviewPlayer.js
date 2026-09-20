@@ -210,7 +210,15 @@ export function usePreviewPlayer() {
     try {
       await audio.play();
     } catch (e) {
-      if (outputRef.current?.isContextSuspended?.()) {
+      // A rejected play() does not mean silence. WebKit rejects with
+      // AbortError whenever a play is interrupted by a pause or a load, and
+      // playback can already be under way by the time we get here — so
+      // calling play() again stacks a second start on top of the first, which
+      // is audible as an echo. Only recover when the element really is
+      // stopped; otherwise the rejection was cosmetic and we carry on.
+      if (!audio.paused) {
+        // Playing despite the rejection — nothing to recover.
+      } else if (outputRef.current?.isContextSuspended?.()) {
         try {
           await outputRef.current.resume();
           await audio.play();

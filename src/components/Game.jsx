@@ -283,7 +283,7 @@ export default function Game({ playlist, me, onExit, onReplay }) {
         setBoardReady(true);
       }
 
-      warmUpcomingRounds(() => roundsRef.current, setRounds, roundIdx, 3);
+      warmUpcomingRounds(() => roundsRef.current, setRounds, roundIdx, 2);
     })();
     return () => {
       cancelled = true;
@@ -476,9 +476,11 @@ export default function Game({ playlist, me, onExit, onReplay }) {
   // The reveal is where the share button appears, so spend that idle moment
   // fetching the artwork the card needs. Also covers the game-over wrap card,
   // whose cover is the fastest round's — already warmed by then.
+  //
+  // Deliberately does NOT warm upcoming audio: the full clip is playing right
+  // now, and pulling the next MP3s alongside it competes with playback.
   useEffect(() => {
     if (phase !== "play" || !resolved) return;
-    warmUpcomingRounds(() => roundsRef.current, setRounds, roundIdx, 3);
     warmShareCover(track?.cover);
   }, [phase, resolved, roundIdx]); // eslint-disable-line react-hooks/exhaustive-deps
 

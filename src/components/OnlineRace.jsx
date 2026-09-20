@@ -514,7 +514,7 @@ export default function OnlineRace({ profile, onExit, raceMode: raceModeProp }) 
         setBoardReady(true);
       }
 
-      warmUpcomingRounds(() => roundsRef.current, setRounds, roundIdx, 3);
+      warmUpcomingRounds(() => roundsRef.current, setRounds, roundIdx, 2);
     })();
     return () => {
       cancelled = true;
