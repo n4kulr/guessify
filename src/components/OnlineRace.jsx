@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { isCorrect, matchesAnyArtist, isAlmost, isAlmostAnyArtist } from "../match.js";
 import { usePreviewPlayer } from "../usePreviewPlayer.js";
+import { useSpaceTogglePlay } from "../useSpaceTogglePlay.js";
 import { fireConfetti, shakeEl } from "../fx.js";
 import GuessMedia from "./GuessMedia.jsx";
 import VinylDeck from "./VinylDeck.jsx";
@@ -473,6 +474,11 @@ export default function OnlineRace({ profile, onExit, raceMode: raceModeProp }) 
     }
     playSnippet(phase === "reveal" ? null : unlocked);
   }
+
+  useSpaceTogglePlay(
+    togglePlay,
+    !!track && (phase === "play" || phase === "reveal") && !sharePreview
+  );
 
   function startPlay() {
     if (!track || playBusy || localPlaying || phase !== "play") return;

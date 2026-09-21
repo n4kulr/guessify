@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import QRCode from "qrcode";
 import { usePartyRoom } from "./usePartyRoom.js";
 import { usePreviewPlayer } from "../usePreviewPlayer.js";
+import { useSpaceTogglePlay } from "../useSpaceTogglePlay.js";
 import { resolvePreview } from "../itunes.js";
 import { isAudioWarm, warmAudioUrl, primePlaylistPreviews, CUE_FAIL_MS } from "../previewWarm.js";
 import { STEPS, TOTAL, MAX_GUESSES, randomAvatar, normalizeAvatar, unlockSecondsFor, PLAYER_COLORS, nextVotesNeeded, activePlayerCount, SKIP_PENALTY, ROUND_COUNT, myRevealedArtist } from "./constants.js";
@@ -511,6 +512,8 @@ export default function HostParty({
     }
     playSnippet(phase === "reveal" ? null : unlocked);
   }
+
+  useSpaceTogglePlay(togglePlay, canPlay && !sharePreview);
 
   function startPlay() {
     if (!canPlay || playBusy || localPlaying || phase !== "play") return;

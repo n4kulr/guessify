@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { isCorrect, matchesAnyArtist, isAlmost, isAlmostAnyArtist } from "../match.js";
 import { usePreviewPlayer } from "../usePreviewPlayer.js";
+import { useSpaceTogglePlay } from "../useSpaceTogglePlay.js";
 import {
   isAudioWarm,
   warmAudioUrl,
@@ -344,6 +345,8 @@ export default function Game({ playlist, me, onExit, onReplay }) {
     const secs = resolved ? null : unlocked;
     await playSnippet(secs);
   }
+
+  useSpaceTogglePlay(togglePlay, phase === "play" && !!track && !sharePreview);
 
   function startPlay() {
     if (!track || phase !== "play" || playBusyRef.current || playing || resolved) return;

@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { usePartyRoom } from "./usePartyRoom.js";
 import { usePreviewPlayer } from "../usePreviewPlayer.js";
+import { useSpaceTogglePlay } from "../useSpaceTogglePlay.js";
 import { isAudioWarm, warmAudioUrl, CUE_FAIL_MS } from "../previewWarm.js";
 import { STEPS, TOTAL, MAX_GUESSES, randomAvatar, normalizeAvatar, unlockSecondsFor, PLAYER_COLORS, nextVotesNeeded, activePlayerCount, SKIP_PENALTY, myRevealedArtist } from "./constants.js";
 import { accentMatchingTheme } from "../themes.js";
@@ -392,6 +393,8 @@ export default function GuestApp({ code }) {
     const unlocked = unlockSecondsFor(state?.unlockByPlayer, playerId, state);
     playSnippet(state?.phase === "reveal" ? null : unlocked);
   }
+
+  useSpaceTogglePlay(togglePlay, canPlay && !sharePreview);
 
   function startPlay() {
     if (!canPlay || playBusy || localPlaying || state?.phase !== "play") return;
