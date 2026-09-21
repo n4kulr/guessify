@@ -295,14 +295,40 @@ export function clearLinkOwnerCookie(res) {
 }
 
 // --- fetch helpers shared by /api and /api/shared routes (session token vs owner token) ---
+
+/**
+ * Build the next /me/playlists offset. Do not follow Spotify's `page.next` —
+ * since Feb 2026 it often points at removed GET /users/{id}/playlists (403).
+ * @returns {number | null} next offset, or null when done
+ */
+export function nextMePlaylistsOffset(page, limit = 50) {
+  if (!page) return null;
+  const offset = Number(page.offset) || 0;
+  const total = Number(page.total) || 0;
+  const step = Number(page.limit) || limit;
+  const next = offset + step;
+  if (next >= total) return null;
+  if (!(page.items || []).length) return null;
+  return next;
+}
+
 export async function fetchPlaylistsData(token) {
   const me = await spotifyGet("https://api.spotify.com/v1/me", token);
   const meId = me.id;
 
   const playlists = [];
-  let next = "https://api.spotify.com/v1/me/playlists?limit=50";
-  while (next) {
-    const page = await spotifyGet(next, token);
+  const limit = 50;
+  // ponytail: cap pages — 1000 playlists is enough for the shelf; raise if needed
+  const MAX_PAGES = 20;
+  let offset = 0;
+  let pages = 0;
+
+  while (pages < MAX_PAGES) {
+    const page = await spotifyGet(
+      `https://api.spotify.com/v1/me/playlists?limit=${limit}&offset=${offset}`,
+      token
+    );
+    pages += 1;
     for (const p of page.items || []) {
       if (!p) continue;
       playlists.push({
@@ -315,7 +341,9 @@ export async function fetchPlaylistsData(token) {
         total: p.items?.total ?? p.tracks?.total ?? 0,
       });
     }
-    next = page.next;
+    const next = nextMePlaylistsOffset(page, limit);
+    if (next == null) break;
+    offset = next;
   }
 
   let liked = null;
@@ -378,13 +406,22 @@ export async function fetchPlaylistTracks(id, token) {
 
   // Feb 2026 API migration: GET /playlists/{id}/tracks was removed in favour
   // of /items, and each entry's `track` field was renamed to `item`.
+  // Limit max is 50 — do not follow page.next if it ever drifts off /items;
+  // paginate with offset instead (same class of Spotify bug as /me/playlists).
   const tracks = [];
-  let next =
-    `https://api.spotify.com/v1/playlists/${id}/items` +
-    `?fields=next,items(item(id,name,preview_url,artists(name),album(images)))&limit=100`;
+  const limit = 50;
+  let offset = 0;
+  let pages = 0;
+  const MAX_PAGES = 10; // 500 tracks — enough for a game
 
-  while (next) {
-    const page = await spotifyGet(next, token);
+  while (pages < MAX_PAGES) {
+    const page = await spotifyGet(
+      `https://api.spotify.com/v1/playlists/${id}/items` +
+        `?fields=total,offset,limit,items(item(id,name,preview_url,artists(name),album(images)))` +
+        `&limit=${limit}&offset=${offset}`,
+      token
+    );
+    pages += 1;
     for (const entry of page.items || []) {
       const t = entry.item;
       if (!t) continue;
@@ -396,7 +433,9 @@ export async function fetchPlaylistTracks(id, token) {
         cover: t.album?.images?.[0]?.url || null,
       });
     }
-    next = page.next;
+    const total = Number(page.total) || 0;
+    offset += limit;
+    if (offset >= total || !(page.items || []).length) break;
   }
 
   return {
