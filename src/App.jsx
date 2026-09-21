@@ -310,7 +310,8 @@ export default function App() {
           saveLocalProfile({ name: first, avatar: local.avatar });
         }
       } else {
-        if (body.error) setAuthError(body.error);
+        // 401 "Not logged in" is the normal logged-out response — not a banner.
+        if (res.status !== 401 && body.error) setAuthError(body.error);
         setMe(null);
         setStatus("loggedOut");
       }
