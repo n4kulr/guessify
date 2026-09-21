@@ -5919,6 +5919,8 @@ button.footer-privacy:hover {
   .topbar { padding: 14px 16px; flex-wrap: nowrap; }
   .theme-btn { max-width: min(120px, 28vw); padding: 0 10px; }
   .game { --game-pad: 18px; }
+  /* Demo board was cramped on phones — pull back 25%. */
+  .game.game--onboarding { zoom: 0.75; }
   .gameover-hero .turntable { width: 120px; height: 120px; }
   .gameover-score { font-size: 36px; }
   .gos-fast-art { width: 72px; height: 72px; }

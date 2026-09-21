@@ -623,7 +623,7 @@ export default function Game({ playlist, me, onExit, onReplay, onboarding = fals
     <>
     <div
       ref={rootRef}
-      className={`game mp-board mp-board--solo ${outcome === "win" ? "game--win" : ""} ${outcome === "lose" ? "game--lose" : ""}`}
+      className={`game mp-board mp-board--solo ${onboarding ? "game--onboarding" : ""} ${outcome === "win" ? "game--win" : ""} ${outcome === "lose" ? "game--lose" : ""}`}
     >
       <div className="mp-board-main">
         <div className="game-head">
