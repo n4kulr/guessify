@@ -25,13 +25,18 @@ import PlayHowto, {
   HOWTO_KEY,
   PICKER_TOUR_KEY,
 } from "./components/PlayHowto.jsx";
-import { makeRoomCode, normalizeRaceMode, shuffle } from "./multiplayer/constants.js";
+import { makeRoomCode, normalizeRaceMode, shuffle, ROUND_COUNT } from "./multiplayer/constants.js";
 import { loadLocalProfile, saveLocalProfile, hasSavedLocalProfile } from "./localProfile.js";
 import { loadTheme, DEFAULT_THEME, currentThemeMode } from "./themes.js";
 import { attachKeyboardSounds } from "./keyboardSounds.js";
 import { attachButtonSounds } from "./buttonSounds.js";
 import { primePlaylistPreviews } from "./previewWarm.js";
-import { ROUND_COUNT } from "./multiplayer/constants.js";
+import {
+  hasSeenOnboarding,
+  markOnboardingSeen,
+  clearOnboardingSeen,
+  loadOnboardingPlaylist,
+} from "./onboarding.js";
 
 function joinCodeFromPath() {
   const m = window.location.pathname.match(/^\/join\/([A-Za-z0-9]+)/i);
@@ -83,6 +88,10 @@ export default function App() {
   const [versionOpen, setVersionOpen] = useState(false);
   const [raceModePrompt, setRaceModePrompt] = useState(null); // null | "online"
   const [raceMode, setRaceMode] = useState("classic"); // classic | timed
+  /** undefined = still checking · null = skip · playlist = run demo Game */
+  const [demoPlaylist, setDemoPlaylist] = useState(() =>
+    joinCodeFromPath() || hasSeenOnboarding() ? null : undefined
+  );
   // Capture ?fast=1 before history seeding strips the query.
   useRef(isFastTest());
 
@@ -98,6 +107,28 @@ export default function App() {
     () => (playlist && soloPool ? { ...playlist, tracks: soloPool } : null),
     [playlist, soloPool]
   );
+
+  useEffect(() => {
+    if (joinCode) return;
+    if (demoPlaylist !== undefined) return;
+    let cancelled = false;
+    loadOnboardingPlaylist()
+      .then((pl) => {
+        if (!cancelled) setDemoPlaylist(pl);
+      })
+      .catch(() => {
+        markOnboardingSeen();
+        if (!cancelled) setDemoPlaylist(null);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [joinCode, demoPlaylist]);
+
+  function finishOnboarding() {
+    markOnboardingSeen();
+    setDemoPlaylist(null);
+  }
 
   useEffect(() => {
     if (mode !== "solo" || !soloPool?.length) return;
@@ -564,6 +595,14 @@ export default function App() {
               /* ignore */
             }
           },
+        },
+        {
+          id: "replay-onboarding",
+          label: "replay onboarding demo",
+          run: () => {
+            clearOnboardingSeen();
+            setDemoPlaylist(undefined);
+          },
         }
       );
     }
@@ -640,11 +679,27 @@ export default function App() {
       </header>
 
       <main className="stage">
-        {status === "checking" && <div className="loader">loading…</div>}
+        {status === "checking" && demoPlaylist == null && (
+          <div className="loader">loading…</div>
+        )}
+
+        {demoPlaylist === undefined && status !== "checking" && !joinCode && (
+          <div className="loader">cueing a demo…</div>
+        )}
+
+        {demoPlaylist && (
+          <Game
+            playlist={demoPlaylist}
+            me={me}
+            onboarding
+            onExit={finishOnboarding}
+          />
+        )}
 
         {status === "guest" && joinCode && <GuestApp code={joinCode} />}
 
-        {status === "loggedOut" &&
+        {demoPlaylist === null &&
+          status === "loggedOut" &&
           !joinCode &&
           !picking &&
           !playlist &&
@@ -657,7 +712,11 @@ export default function App() {
           />
         )}
 
-        {status === "loggedIn" && !playlist && !picking && mode !== "online" && (
+        {demoPlaylist === null &&
+          status === "loggedIn" &&
+          !playlist &&
+          !picking &&
+          mode !== "online" && (
           <Home
             me={me}
             onStartSolo={startSolo}
@@ -666,7 +725,9 @@ export default function App() {
           />
         )}
 
-        {(status === "loggedIn" || status === "loggedOut") && picking && (
+        {demoPlaylist === null &&
+          (status === "loggedIn" || status === "loggedOut") &&
+          picking && (
           <PlaylistPicker
             key={homeNonce}
             onPick={onPlaylistPicked}
@@ -674,7 +735,8 @@ export default function App() {
           />
         )}
 
-        {(status === "loggedIn" || status === "loggedOut") &&
+        {demoPlaylist === null &&
+          (status === "loggedIn" || status === "loggedOut") &&
           mode === "solo" &&
           playlist && (
             <Game
@@ -686,7 +748,8 @@ export default function App() {
             />
           )}
 
-        {(status === "loggedIn" || status === "loggedOut") &&
+        {demoPlaylist === null &&
+          (status === "loggedIn" || status === "loggedOut") &&
           mode === "multi" &&
           playlist &&
           roomCode &&
@@ -701,7 +764,8 @@ export default function App() {
             />
           )}
 
-        {(status === "loggedIn" || status === "loggedOut") &&
+        {demoPlaylist === null &&
+          (status === "loggedIn" || status === "loggedOut") &&
           mode === "online" &&
           onlineProfile && (
             <OnlineRace

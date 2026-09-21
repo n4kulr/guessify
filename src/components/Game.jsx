@@ -55,7 +55,7 @@ import {
 
 const YOU_ID = "you";
 
-export default function Game({ playlist, me, onExit, onReplay }) {
+export default function Game({ playlist, me, onExit, onReplay, onboarding = false }) {
   // Already shuffled by App (see soloPool) — reshuffling here would decouple
   // the rounds we play from the previews it warmed.
   const pool = useMemo(() => playlist.tracks || [], [playlist]);
@@ -491,6 +491,10 @@ export default function Game({ playlist, me, onExit, onReplay }) {
     stopAudio();
     setErrorMsg(null);
     if (roundIdx + 1 >= rounds.length) {
+      if (onboarding) {
+        onExit?.();
+        return;
+      }
       setPhase("over");
       return;
     }
@@ -521,15 +525,17 @@ export default function Game({ playlist, me, onExit, onReplay }) {
   }
 
   useEffect(() => {
+    if (onboarding) return;
     if (phase === "over") fireConfetti("victory");
-  }, [phase]);
+  }, [phase, onboarding]);
 
   useEffect(() => {
+    if (onboarding) return;
     if (phase !== "over") return;
     const id = playlist?.id || playlist?.name || "solo";
     const name = playlist?.name || "Solo";
     setPlaylistBests(recordPlaylistScore(id, name, score));
-  }, [phase]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [phase, onboarding]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const endStats = useMemo(
     () => (phase === "over" ? computeGameStats(roundLog, { score }) : null),
@@ -619,11 +625,11 @@ export default function Game({ playlist, me, onExit, onReplay }) {
           {/* The results screen has its own "pick another playlist" — one is enough. */}
           {phase !== "over" && (
             <button className="btn btn-mini" onClick={onExit}>
-              ← exit
+              {onboarding ? "skip demo" : "← exit"}
             </button>
           )}
           <div className="scoreboard">
-            <span className="scoreboard-label">solo</span>
+            <span className="scoreboard-label">{onboarding ? "demo" : "solo"}</span>
             <span className="scoreboard-value">{playlist.name}</span>
           </div>
         </div>
@@ -800,17 +806,23 @@ export default function Game({ playlist, me, onExit, onReplay }) {
                 <div className="guess-actions">
                   {resolved ? (
                     <>
-                      <button
-                        className="btn btn-share"
-                        onClick={() => setSharePreview(true)}
-                      >
-                        <span className="btn-label">share</span>
-                        <span className="btn-hint">image</span>
-                      </button>
+                      {!onboarding && (
+                        <button
+                          className="btn btn-share"
+                          onClick={() => setSharePreview(true)}
+                        >
+                          <span className="btn-label">share</span>
+                          <span className="btn-hint">image</span>
+                        </button>
+                      )}
                       <button className="btn btn-play" onClick={nextRound}>
                         <span className="btn-label">
                           {roundIdx + 1 >= rounds.length ? (
-                            "results"
+                            onboarding ? (
+                              "continue"
+                            ) : (
+                              "results"
+                            )
                           ) : (
                             <>
                               next
