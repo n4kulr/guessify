@@ -1767,12 +1767,6 @@ button.footer-privacy:hover {
   align-items: center;
   margin: 36px 0 22px;
 }
-.spotify-link-block {
-  margin-top: 8px;
-}
-.spotify-link-block .chart-search-input::placeholder {
-  color: var(--sub-color);
-}
 .chart-search-sub {
   margin-top: 4px;
   margin-bottom: 18px;

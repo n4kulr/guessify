@@ -34,6 +34,17 @@
     />
     <meta name="twitter:image" content="https://guessify.uk/og.png" />
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <!-- Session cookies are Domain=.guessify.uk — vercel.app never receives them. -->
+    <script>
+      (function () {
+        var h = location.hostname;
+        if (h === "localhost" || h.endsWith(".localhost")) return;
+        if (!/\.vercel\.app$/i.test(h)) return;
+        location.replace(
+          "https://guessify.uk" + location.pathname + location.search + location.hash
+        );
+      })();
+    </script>
     <!-- Audio + artwork origins: open the sockets before the first cue. -->
     <link rel="preconnect" href="https://itunes.apple.com" crossorigin />
     <link rel="preconnect" href="https://is1-ssl.mzstatic.com" crossorigin />

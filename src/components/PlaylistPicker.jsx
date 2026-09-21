@@ -105,7 +105,6 @@ export default function PlaylistPicker({ onPick, needsLogin = false }) {
   const chartPh = useTypewriterPh(CHART_PH_EXAMPLES, !!chartQuery);
   const [chartFieldError, setChartFieldError] = useState(false);
   const [chartFieldFading, setChartFieldFading] = useState(false);
-  const [linkQuery, setLinkQuery] = useState("");
   const [chartPreview, setChartPreview] = useState(null);
   const [stackLayers, setStackLayers] = useState([]);
   const [stackMix, setStackMix] = useState(null);
@@ -182,11 +181,26 @@ export default function PlaylistPicker({ onPick, needsLogin = false }) {
   useEffect(() => {
     // Logged out: the API falls back to the site owner's shared library.
     fetch("/api/playlists", { credentials: "include" })
-      .then((r) => (r.ok ? r.json() : Promise.reject(r)))
+      .then(async (r) => {
+        const body = await r.json().catch(() => ({}));
+        if (!r.ok) {
+          const err = new Error(body.error || "failed");
+          err.status = r.status;
+          throw err;
+        }
+        return body;
+      })
       .then(setData)
-      .catch((r) => {
-        if (needsLogin && r?.status === 503) setOwnerUnavailable(true);
-        else setError(needsLogin ? "Couldn't load playlists." : "Couldn't load your playlists.");
+      .catch((err) => {
+        if (needsLogin && err?.status === 503) setOwnerUnavailable(true);
+        else
+          setError(
+            err?.message && err.message !== "failed"
+              ? err.message
+              : needsLogin
+                ? "Couldn't load playlists."
+                : "Couldn't load your playlists."
+          );
       });
   }, [needsLogin]);
 
@@ -282,38 +296,6 @@ export default function PlaylistPicker({ onPick, needsLogin = false }) {
     }
   }
 
-  async function submitSpotifyLink(e) {
-    e.preventDefault();
-    const parsed = parseSpotifyLink(linkQuery);
-    if (!parsed) {
-      setNote(
-        "Paste an open.spotify.com album or playlist link (or a spotify:album:… / spotify:playlist:… URI)."
-      );
-      return;
-    }
-    const { kind, id } = parsed;
-    setLoadingId(`link:${kind}:${id}`);
-    setNote(null);
-    try {
-      const qs = kind === "album" ? "?kind=album" : "";
-      const res = await fetch(`/api/playlist/${id}${qs}`, {
-        credentials: "include",
-      });
-      const d = await res.json();
-      if (!res.ok) throw new Error(d.error || "Couldn't load that link.");
-      if (d.playableCount < 2) {
-        setNote(`“${d.name || id}” needs at least 2 tracks to play.`);
-        setLoadingId(null);
-        return;
-      }
-      void primePlaylistLookups(d.tracks, 3);
-      onPick(d);
-    } catch (err) {
-      setNote(err.message || "Couldn't load that link.");
-      setLoadingId(null);
-    }
-  }
-
   async function chooseChart(tag, { artist = false } = {}) {
     const clean = String(tag || "").trim();
     if (!clean) return;
@@ -366,16 +348,41 @@ export default function PlaylistPicker({ onPick, needsLogin = false }) {
     }, 1400);
   }
 
-  /** Free-text “describe it” → load chart, show paper preview, then play. */
+  /** Free-text “describe it” → Spotify link, or Last.fm chart → paper preview. */
   async function previewChartSearch(query, { artist = false } = {}) {
     const clean = String(query || "").trim();
     if (!clean || chartFieldError) return;
-    const id = `chart:${clean.toLowerCase()}`;
-    setLoadingId(id);
     setNote(null);
     clearTimeout(chartErrorTimer.current);
     setChartFieldError(false);
     setChartFieldFading(false);
+
+    const spotify = parseSpotifyLink(clean);
+    if (spotify) {
+      const { kind, id } = spotify;
+      setLoadingId(`link:${kind}:${id}`);
+      try {
+        const qs = kind === "album" ? "?kind=album" : "";
+        const res = await fetch(`/api/playlist/${id}${qs}`, {
+          credentials: "include",
+        });
+        const d = await res.json();
+        if (!res.ok) throw new Error(d.error || "link miss");
+        if (d.playableCount < 2) {
+          failChartSearch();
+          return;
+        }
+        void primePlaylistLookups(d.tracks, 3);
+        setChartPreview(d);
+        setLoadingId(null);
+      } catch {
+        failChartSearch();
+      }
+      return;
+    }
+
+    const id = `chart:${clean.toLowerCase()}`;
+    setLoadingId(id);
     try {
       let qs = `q=${encodeURIComponent(clean)}`;
       if (artist) qs = `artist=${encodeURIComponent(clean)}`;
@@ -749,7 +756,9 @@ export default function PlaylistPicker({ onPick, needsLogin = false }) {
       >
       <div className="chart-search-block">
         <h3 className="picker-section-title">or describe it!</h3>
-        <p className="section-sub chart-search-sub">(artist/era/album)</p>
+        <p className="section-sub chart-search-sub">
+          (artist / era / album / Spotify link)
+        </p>
         <form className="chart-search" onSubmit={submitChartSearch}>
           <div className="join-code-row">
             <div className="chart-search-field" ref={chartFieldRef}>
@@ -788,7 +797,7 @@ export default function PlaylistPicker({ onPick, needsLogin = false }) {
                   autoCorrect="off"
                   spellCheck={false}
                   aria-invalid={chartFieldError || undefined}
-                  aria-label="type your pick, artist, era, or album"
+                  aria-label="type an artist, era, album, or paste a Spotify link"
                 />
               </label>
               <GuessSuggest suggest={chartSuggest} />
@@ -800,43 +809,12 @@ export default function PlaylistPicker({ onPick, needsLogin = false }) {
                 loadingId !== null || chartFieldError || !chartQuery.trim()
               }
             >
-              {loadingId?.startsWith("chart:") ? "…" : "play"}
+              {loadingId?.startsWith("chart:") || loadingId?.startsWith("link:")
+                ? "…"
+                : "play"}
             </button>
           </div>
           {tour && tour.id === "describe" && tourCard}
-        </form>
-      </div>
-
-      <div className="chart-search-block spotify-link-block">
-        <h3 className="picker-section-title">or paste a Spotify link</h3>
-        <p className="section-sub chart-search-sub">
-          album anytime · playlist only if you own it
-        </p>
-        <form className="chart-search" onSubmit={submitSpotifyLink}>
-          <div className="join-code-row">
-            <div className="chart-search-field">
-              <label className="chart-search-label">
-                <input
-                  className="guess-input join-code-input chart-search-input"
-                  placeholder="https://open.spotify.com/album/…"
-                  value={linkQuery}
-                  onChange={(e) => setLinkQuery(e.target.value)}
-                  disabled={loadingId !== null}
-                  autoCorrect="off"
-                  spellCheck={false}
-                  autoCapitalize="off"
-                  aria-label="paste a Spotify album or playlist link"
-                />
-              </label>
-            </div>
-            <button
-              type="submit"
-              className="btn btn-play"
-              disabled={loadingId !== null || !linkQuery.trim()}
-            >
-              {loadingId?.startsWith("link:") ? "…" : "play"}
-            </button>
-          </div>
         </form>
       </div>
       </div>
