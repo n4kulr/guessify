@@ -1,4 +1,9 @@
-import { requireSession, spotifyGet } from "./_lib.js";
+import {
+  requireSession,
+  spotifyGet,
+  spotifyClientError,
+  clearSession,
+} from "./_lib.js";
 
 export default async function handler(req, res) {
   const auth = await requireSession(req, res);
@@ -12,6 +17,12 @@ export default async function handler(req, res) {
     });
   } catch (e) {
     console.error(e);
-    res.status(500).json({ error: "Failed to load profile" });
+    const known = spotifyClientError(e);
+    if (known) {
+      clearSession(res);
+      res.status(known.status).json({ error: known.error });
+      return;
+    }
+    res.status(e.status || 500).json({ error: "Failed to load profile" });
   }
 }

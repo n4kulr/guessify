@@ -215,6 +215,22 @@ export async function spotifyGet(url, token) {
   return r.json();
 }
 
+/**
+ * Map known Spotify failures to a client-facing message.
+ * @returns {{ status: number, error: string } | null}
+ */
+export function spotifyClientError(e) {
+  const body = String(e?.body || e?.message || "");
+  if (/not registered for this application/i.test(body)) {
+    return {
+      status: 403,
+      error:
+        "This Spotify account isn’t on Guessify’s allowlist. Add its email under Spotify Developer Dashboard → User Management, then log in again.",
+    };
+  }
+  return null;
+}
+
 // Return a valid access token, refreshing (and re-writing the cookie) if needed.
 export async function ensureAccess(session, res) {
   if (Date.now() < session.expiresAt - 5000) return session.access;

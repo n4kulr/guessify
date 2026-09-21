@@ -299,17 +299,19 @@ export default function App() {
   async function checkMe() {
     try {
       const res = await fetch("/api/me", { credentials: "include" });
+      const body = await res.json().catch(() => ({}));
       if (res.ok) {
-        const user = await res.json();
-        setMe(user);
+        setMe(body);
         setStatus("loggedIn");
         // Spotify nickname wins over the locally saved online name.
-        const first = user.displayName?.split(/\s+/)[0]?.trim().slice(0, 16);
+        const first = body.displayName?.split(/\s+/)[0]?.trim().slice(0, 16);
         if (first) {
           const local = loadLocalProfile();
           saveLocalProfile({ name: first, avatar: local.avatar });
         }
       } else {
+        if (body.error) setAuthError(body.error);
+        setMe(null);
         setStatus("loggedOut");
       }
     } catch {
