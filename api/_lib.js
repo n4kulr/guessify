@@ -51,19 +51,55 @@ export function decrypt(str) {
 }
 
 // --- request/response helpers ---
-export function getBase(req) {
-  // Prefer a fixed public URL so OAuth redirect_uri + cookies stay on one host
-  // (preview/custom domains otherwise break state cookies → login loops).
-  const configured = (process.env.APP_BASE_URL || "").replace(/\/$/, "");
-  if (configured) return configured;
 
+/** Apex hostname from APP_BASE_URL, or null (localhost / unset). */
+export function configuredCookieDomain() {
+  const configured = (process.env.APP_BASE_URL || "").replace(/\/$/, "");
+  if (!configured) return null;
+  try {
+    const host = new URL(configured).hostname.replace(/^www\./, "");
+    if (!host || host === "localhost" || host.endsWith(".localhost")) return null;
+    return host;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Public origin for OAuth redirect_uri + post-login redirects.
+ * - On *.vercel.app / localhost: use the request host so the state cookie matches.
+ * - Otherwise prefer APP_BASE_URL apex so www and bare domain share one callback.
+ */
+export function getBase(req) {
+  const configured = (process.env.APP_BASE_URL || "").replace(/\/$/, "");
   const proto = String(req.headers["x-forwarded-proto"] || "https")
     .split(",")[0]
     .trim();
   const host = String(req.headers["x-forwarded-host"] || req.headers.host || "")
     .split(",")[0]
     .trim();
-  return `${proto}://${host}`;
+  const requestBase = host ? `${proto}://${host}` : configured || "";
+
+  if (
+    host &&
+    (host === "localhost" ||
+      host.startsWith("localhost:") ||
+      host.endsWith(".localhost") ||
+      host.endsWith(".vercel.app"))
+  ) {
+    return requestBase;
+  }
+
+  if (configured) {
+    try {
+      const u = new URL(configured);
+      u.hostname = u.hostname.replace(/^www\./, "");
+      return u.origin;
+    } catch {
+      return configured;
+    }
+  }
+  return requestBase;
 }
 
 export function redirect(res, url) {
@@ -74,6 +110,9 @@ export function redirect(res, url) {
 function cookie(name, value, { maxAge } = {}) {
   const parts = [`${name}=${value}`, "Path=/", "HttpOnly", "SameSite=Lax", "Secure"];
   if (maxAge != null) parts.push(`Max-Age=${maxAge}`);
+  // Share gs_state / session across apex + www (Spotify callback uses APP_BASE_URL apex).
+  const domain = configuredCookieDomain();
+  if (domain) parts.push(`Domain=.${domain}`);
   return parts.join("; ");
 }
 
@@ -348,5 +387,59 @@ export async function fetchPlaylistTracks(id, token) {
     total: tracks.length,
     playableCount: tracks.length,
     tracks,
+  };
+}
+
+// Client-credentials token for catalog endpoints (albums). Cached per warm lambda.
+let ccTokenCache = null; // { access, expiresAt }
+
+export async function clientCredentialsAccess() {
+  if (ccTokenCache && Date.now() < ccTokenCache.expiresAt - 5000) {
+    return ccTokenCache.access;
+  }
+  const data = await tokenRequest({ grant_type: "client_credentials" });
+  ccTokenCache = {
+    access: data.access_token,
+    expiresAt: Date.now() + data.expires_in * 1000,
+  };
+  return ccTokenCache.access;
+}
+
+/** Album → same shape as fetchPlaylistTracks. Works without user login. */
+export async function fetchAlbumAsPlaylist(id, token, market = "US") {
+  const meta = await spotifyGet(
+    `https://api.spotify.com/v1/albums/${id}?market=${encodeURIComponent(market)}`,
+    token
+  );
+  const cover = meta.images?.[0]?.url || null;
+  const tracks = [];
+  let next =
+    `https://api.spotify.com/v1/albums/${id}/tracks` +
+    `?limit=50&market=${encodeURIComponent(market)}`;
+
+  while (next) {
+    const page = await spotifyGet(next, token);
+    for (const t of page.items || []) {
+      if (!t?.id) continue;
+      tracks.push({
+        id: t.id,
+        name: t.name,
+        artists: (t.artists || []).map((a) => a.name),
+        previewUrl: t.preview_url,
+        cover,
+      });
+    }
+    next = page.next;
+  }
+
+  return {
+    id,
+    name: meta.name,
+    owner: (meta.artists || []).map((a) => a.name).join(", "),
+    cover,
+    total: tracks.length,
+    playableCount: tracks.length,
+    tracks,
+    kind: "album",
   };
 }

@@ -11,6 +11,7 @@ import {
   pickerTourPending,
   markPickerTourSeen,
 } from "./PlayHowto.jsx";
+import { parseSpotifyLink } from "../spotifyLink.js";
 
 const YOURS_PREVIEW = 6;
 
@@ -104,6 +105,7 @@ export default function PlaylistPicker({ onPick, needsLogin = false }) {
   const chartPh = useTypewriterPh(CHART_PH_EXAMPLES, !!chartQuery);
   const [chartFieldError, setChartFieldError] = useState(false);
   const [chartFieldFading, setChartFieldFading] = useState(false);
+  const [linkQuery, setLinkQuery] = useState("");
   const [chartPreview, setChartPreview] = useState(null);
   const [stackLayers, setStackLayers] = useState([]);
   const [stackMix, setStackMix] = useState(null);
@@ -276,6 +278,38 @@ export default function PlaylistPicker({ onPick, needsLogin = false }) {
       onPick(d);
     } catch (err) {
       setNote(err.message || "Couldn't load that playlist. Try another.");
+      setLoadingId(null);
+    }
+  }
+
+  async function submitSpotifyLink(e) {
+    e.preventDefault();
+    const parsed = parseSpotifyLink(linkQuery);
+    if (!parsed) {
+      setNote(
+        "Paste an open.spotify.com album or playlist link (or a spotify:album:… / spotify:playlist:… URI)."
+      );
+      return;
+    }
+    const { kind, id } = parsed;
+    setLoadingId(`link:${kind}:${id}`);
+    setNote(null);
+    try {
+      const qs = kind === "album" ? "?kind=album" : "";
+      const res = await fetch(`/api/playlist/${id}${qs}`, {
+        credentials: "include",
+      });
+      const d = await res.json();
+      if (!res.ok) throw new Error(d.error || "Couldn't load that link.");
+      if (d.playableCount < 2) {
+        setNote(`“${d.name || id}” needs at least 2 tracks to play.`);
+        setLoadingId(null);
+        return;
+      }
+      void primePlaylistLookups(d.tracks, 3);
+      onPick(d);
+    } catch (err) {
+      setNote(err.message || "Couldn't load that link.");
       setLoadingId(null);
     }
   }
@@ -770,6 +804,39 @@ export default function PlaylistPicker({ onPick, needsLogin = false }) {
             </button>
           </div>
           {tour && tour.id === "describe" && tourCard}
+        </form>
+      </div>
+
+      <div className="chart-search-block spotify-link-block">
+        <h3 className="picker-section-title">or paste a Spotify link</h3>
+        <p className="section-sub chart-search-sub">
+          album anytime · playlist only if you own it
+        </p>
+        <form className="chart-search" onSubmit={submitSpotifyLink}>
+          <div className="join-code-row">
+            <div className="chart-search-field">
+              <label className="chart-search-label">
+                <input
+                  className="guess-input join-code-input chart-search-input"
+                  placeholder="https://open.spotify.com/album/…"
+                  value={linkQuery}
+                  onChange={(e) => setLinkQuery(e.target.value)}
+                  disabled={loadingId !== null}
+                  autoCorrect="off"
+                  spellCheck={false}
+                  autoCapitalize="off"
+                  aria-label="paste a Spotify album or playlist link"
+                />
+              </label>
+            </div>
+            <button
+              type="submit"
+              className="btn btn-play"
+              disabled={loadingId !== null || !linkQuery.trim()}
+            >
+              {loadingId?.startsWith("link:") ? "…" : "play"}
+            </button>
+          </div>
         </form>
       </div>
       </div>

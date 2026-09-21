@@ -1,6 +1,14 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "installCommand": "npm install",
+  "redirects": [
+    {
+      "source": "/:path*",
+      "has": [{ "type": "host", "value": "www.guessify.uk" }],
+      "destination": "https://guessify.uk/:path*",
+      "permanent": true
+    }
+  ],
   "rewrites": [
     { "source": "/join/:code", "destination": "/index.html" },
     { "source": "/pick", "destination": "/index.html" },
