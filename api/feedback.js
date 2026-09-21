@@ -103,19 +103,12 @@ export default async function handler(req, res) {
         .join("\n")
     : "> _(screenshot only)_";
 
-  const base = String(process.env.APP_BASE_URL || "https://guessify.uk").replace(
-    /\/$/,
-    ""
-  );
-  const artUrl = `${base}/feedback-discord.png`;
-
   const embeds = [
     {
       title: triage?.category ? `feedback · ${triage.category}` : "feedback",
       description: quoted.length > 4090 ? `${quoted.slice(0, 4080)}…` : quoted,
       color: 0xe9d5c6,
       timestamp: new Date().toISOString(),
-      thumbnail: { url: artUrl },
       ...(triage
         ? {
             footer: {
@@ -134,9 +127,6 @@ export default async function handler(req, res) {
         image: { url: `attachment://${images[i].filename}` },
       });
     }
-  } else {
-    embeds[0].image = { url: artUrl };
-    delete embeds[0].thumbnail;
   }
 
   try {
