@@ -33,6 +33,7 @@ import PenaltyPop from "./PenaltyPop.jsx";
 import AlmostFlash from "./AlmostFlash.jsx";
 import GameOverStats, { GameOverHero } from "./GameOverStats.jsx";
 import RoundRevealStats from "./RoundRevealStats.jsx";
+import OnboardingCoach from "./OnboardingCoach.jsx";
 import PlayerRail from "../multiplayer/PlayerRail.jsx";
 import { computeGameStats, resolveRevealMs } from "../gameStats.js";
 import { recordPlaylistScore } from "../playlistBests.js";
@@ -108,6 +109,8 @@ export default function Game({ playlist, me, onExit, onReplay, onboarding = fals
   const [cueReady, setCueReady] = useState(false);
   /** After the first cue, keep the board up and spin the vinyl center instead. */
   const [boardReady, setBoardReady] = useState(false);
+  /** Onboarding coach: vinyl tap → then guess field. */
+  const [coachStep, setCoachStep] = useState(onboarding ? "vinyl" : null);
 
   const { errorMsg, setErrorMsg, play, pause, prime } = usePreviewPlayer();
   const roundStartedAt = useRef(Date.now());
@@ -338,6 +341,7 @@ export default function Game({ playlist, me, onExit, onReplay, onboarding = fals
 
   async function togglePlay() {
     if (!track || phase !== "play" || playBusyRef.current) return;
+    if (onboarding && coachStep === "vinyl") setCoachStep("guess");
     if (playing) {
       stopAudio();
       return;
@@ -350,6 +354,7 @@ export default function Game({ playlist, me, onExit, onReplay, onboarding = fals
 
   function startPlay() {
     if (!track || phase !== "play" || playBusyRef.current || playing || resolved) return;
+    if (onboarding && coachStep === "vinyl") setCoachStep("guess");
     playSnippet(unlocked);
   }
 
@@ -679,29 +684,35 @@ export default function Game({ playlist, me, onExit, onReplay, onboarding = fals
                 ) : null
               }
             >
-              <GuessMedia
-                mode="vinyl"
-                revealed={resolved}
-                spinning={spinning}
-                celebrate={celebrate}
-                cover={track.cover}
-                title={displayTitle(track.name)}
-                artist={(track.artists || []).join(", ")}
-                canControl={canControl && cueReady}
-                interactive={canControl && cueReady}
-                cueing={!cueReady}
-                vinylTitle={
-                  canControl && cueReady
-                    ? playing
-                      ? "click to pause · drag to scrub"
-                      : "click to play · drag to scrub"
-                    : undefined
-                }
-                onTogglePlay={togglePlay}
-                onPrimeAudio={prime}
-                onScrubStart={onVinylScrubStart}
-                onScrubEnd={onVinylScrubEnd}
-              />
+              <div className="onboard-vinyl-anchor">
+                {onboarding && coachStep === "vinyl" && cueReady && !resolved && (
+                  <OnboardingCoach step="vinyl" />
+                )}
+                <GuessMedia
+                  mode="vinyl"
+                  revealed={resolved}
+                  spinning={spinning}
+                  celebrate={celebrate}
+                  cover={track.cover}
+                  title={displayTitle(track.name)}
+                  artist={(track.artists || []).join(", ")}
+                  canControl={canControl && cueReady}
+                  interactive={canControl && cueReady}
+                  cueing={!cueReady}
+                  hideSpinNudge={onboarding}
+                  vinylTitle={
+                    canControl && cueReady
+                      ? playing
+                        ? "click to pause · drag to scrub"
+                        : "click to play · drag to scrub"
+                      : undefined
+                  }
+                  onTogglePlay={togglePlay}
+                  onPrimeAudio={prime}
+                  onScrubStart={onVinylScrubStart}
+                  onScrubEnd={onVinylScrubEnd}
+                />
+              </div>
             </VinylDeck>
 
             {errorMsg && !resolved && (
@@ -747,9 +758,14 @@ export default function Game({ playlist, me, onExit, onReplay, onboarding = fals
               <div className="guess-fields">
                   <div className="guess-title-row">
                     <div className="guess-title-field" ref={titleFieldRef}>
+                      {onboarding &&
+                        coachStep === "guess" &&
+                        !resolved && (
+                          <OnboardingCoach step="guess" />
+                        )}
                       <input
                         className={`guess-input${titleHintText ? " guess-input--hint" : ""}`}
-                        placeholder={titleHintText || "type or pick a song…"}
+                        placeholder={titleHintText || "type the song title…"}
                         value={titleGuess}
                         {...titleSuggest.inputProps}
                         onChange={(e) => {

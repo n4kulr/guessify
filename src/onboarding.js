@@ -1,4 +1,4 @@
-const KEY = "guessify-onboarding-v2";
+const KEY = "guessify-onboarding-v3";
 
 export function hasSeenOnboarding() {
   try {

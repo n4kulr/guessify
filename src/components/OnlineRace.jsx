@@ -1444,7 +1444,7 @@ export default function OnlineRace({ profile, onExit, raceMode: raceModeProp }) 
                     placeholder={
                       lockedIn
                         ? "locked in — waiting…"
-                        : titleHintText || "type or pick a song…"
+                        : titleHintText || "type the song title…"
                     }
                     value={lockedIn ? "" : titleGuess}
                     disabled={lockedIn || !cueReady}

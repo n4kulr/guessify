@@ -872,7 +872,7 @@ export default function HostParty({
                 <input
                   className={`guess-input${titleHintText || lockedIn ? " guess-input--hint" : ""}${lockedIn ? " guess-input--locked" : ""}`}
                   placeholder={
-                    lockedIn ? "locked in — waiting…" : titleHintText || "type or pick a song…"
+                    lockedIn ? "locked in — waiting…" : titleHintText || "type the song title…"
                   }
                   value={lockedIn ? "" : titleGuess}
                   disabled={lockedIn || !cueReady}

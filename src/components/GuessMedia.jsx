@@ -19,6 +19,7 @@ export default function GuessMedia({
   canControl = false,
   interactive = true,
   cueing = false,
+  hideSpinNudge = false,
   vinylTitle,
   onTogglePlay,
   onPrimeAudio,
@@ -116,7 +117,7 @@ export default function GuessMedia({
         )
       )}
       <div className={`tonearm ${spinning ? "tonearm--on" : ""}`} />
-      {!revealed && interactive && !cueing && <SpinMeNudge />}
+      {!revealed && interactive && !cueing && !hideSpinNudge && <SpinMeNudge />}
     </div>
   );
 }
