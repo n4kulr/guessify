@@ -67,8 +67,8 @@ export function configuredCookieDomain() {
 
 /**
  * Public origin for OAuth redirect_uri + post-login redirects.
- * - On *.vercel.app / localhost: use the request host so the state cookie matches.
- * - Otherwise prefer APP_BASE_URL apex so www and bare domain share one callback.
+ * Prefer APP_BASE_URL apex so Spotify always sees one registered URI.
+ * Localhost keeps the request host so local cookies match.
  */
 export function getBase(req) {
   const configured = (process.env.APP_BASE_URL || "").replace(/\/$/, "");
@@ -80,15 +80,12 @@ export function getBase(req) {
     .trim();
   const requestBase = host ? `${proto}://${host}` : configured || "";
 
-  if (
-    host &&
-    (host === "localhost" ||
-      host.startsWith("localhost:") ||
-      host.endsWith(".localhost") ||
-      host.endsWith(".vercel.app"))
-  ) {
-    return requestBase;
-  }
+  const isLocal =
+    host === "localhost" ||
+    host.startsWith("localhost:") ||
+    host.endsWith(".localhost");
+
+  if (isLocal) return requestBase;
 
   if (configured) {
     try {
@@ -100,6 +97,29 @@ export function getBase(req) {
     }
   }
   return requestBase;
+}
+
+/** True when the browser host is not the OAuth apex (e.g. vercel.app preview). */
+export function oauthNeedsApexBounce(req) {
+  const apex = getBase(req);
+  if (!apex || !process.env.APP_BASE_URL) return false;
+  const host = String(req.headers["x-forwarded-host"] || req.headers.host || "")
+    .split(",")[0]
+    .trim()
+    .replace(/:\d+$/, "");
+  if (
+    !host ||
+    host === "localhost" ||
+    host.startsWith("localhost:") ||
+    host.endsWith(".localhost")
+  ) {
+    return false;
+  }
+  try {
+    return host.replace(/^www\./, "") !== new URL(apex).hostname;
+  } catch {
+    return false;
+  }
 }
 
 export function redirect(res, url) {

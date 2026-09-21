@@ -1,9 +1,24 @@
 import crypto from "node:crypto";
-import { SCOPES, getBase, redirect, setStateCookie, setLinkOwnerCookie } from "./_lib.js";
+import {
+  SCOPES,
+  getBase,
+  redirect,
+  setStateCookie,
+  setLinkOwnerCookie,
+  oauthNeedsApexBounce,
+} from "./_lib.js";
 
 export default function handler(req, res) {
   const clientId = process.env.SPOTIFY_CLIENT_ID;
   if (!clientId) return res.status(500).json({ error: "Server missing SPOTIFY_CLIENT_ID" });
+
+  // Preview / alternate hosts can't set cookies for guessify.uk, and Spotify
+  // only allows the registered redirect_uri — bounce to the apex first.
+  if (oauthNeedsApexBounce(req)) {
+    const q = new URLSearchParams(req.query).toString();
+    redirect(res, `${getBase(req)}/api/login${q ? `?${q}` : ""}`);
+    return;
+  }
 
   const state = crypto.randomBytes(16).toString("hex");
   setStateCookie(res, state);
