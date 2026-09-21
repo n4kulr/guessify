@@ -911,7 +911,8 @@ button.footer-privacy:hover {
   right: 100%;
   top: 50%;
   margin-right: 4px;
-  transform: translateY(-42%);
+  /* Tip aims at vinyl hub (path ends slightly down-right without this). */
+  transform: translateY(-42%) rotate(-12deg);
 }
 .onboard-coach-label {
   font-family: "Caveat", "Segoe Print", "Comic Sans MS", cursive;
@@ -928,8 +929,8 @@ button.footer-privacy:hover {
   fill: none;
 }
 @keyframes onboard-coach-in {
-  from { opacity: 0; transform: translate(-10px, -42%); }
-  to { opacity: 1; transform: translateY(-42%); }
+  from { opacity: 0; transform: translate(-10px, -42%) rotate(-12deg); }
+  to { opacity: 1; transform: translateY(-42%) rotate(-12deg); }
 }
 @media (prefers-reduced-motion: reduce) {
   .onboard-coach { animation: none; }
