@@ -17,6 +17,8 @@ export default function Login({ error, onStartSolo, onStartMulti, onStartOnline 
     token_exchange_failed:
       "Spotify didn’t hand back a token. try again in a minute.",
     access_denied: "Spotify login was cancelled.",
+    login_paused:
+      "Spotify login is paused while Guessify is on Spotify’s limited-user mode.",
   }[error];
 
   return (
