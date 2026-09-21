@@ -1,0 +1,624 @@
+<!doctype html>
+<html lang="en-GB">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>Guessify — onboarding mock</title>
+  <meta name="robots" content="noindex" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Lexend+Deca:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg: #323437;
+      --main: #e2b714;
+      --sub: #646669;
+      --sub-alt: #2c2e31;
+      --text: #d1d0c5;
+      --err: #ca4754;
+      --ok: #7ac70c;
+      --font: "Lexend Deca", system-ui, sans-serif;
+      --radius: 10px;
+    }
+    * { box-sizing: border-box; }
+    html, body { height: 100%; margin: 0; }
+    body {
+      font-family: var(--font);
+      color: var(--text);
+      background: var(--bg);
+      -webkit-font-smoothing: antialiased;
+    }
+    body::before {
+      content: "";
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      background-image: radial-gradient(
+        color-mix(in srgb, var(--text) 10%, transparent) 1px,
+        transparent 1px
+      );
+      background-size: 10px 10px;
+      opacity: 0.35;
+    }
+    .screen {
+      position: relative;
+      z-index: 1;
+      min-height: 100%;
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 28px 20px 40px;
+      text-align: center;
+    }
+    .screen.is-on { display: flex; }
+
+    .eyebrow {
+      font-size: 12px;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: var(--sub);
+      margin: 0 0 10px;
+    }
+    h1 {
+      margin: 0 0 8px;
+      font-size: clamp(28px, 6vw, 42px);
+      font-weight: 700;
+      letter-spacing: -0.03em;
+    }
+    h1 span { color: var(--main); }
+    .hint {
+      margin: 0 0 28px;
+      max-width: 34ch;
+      color: var(--sub);
+      font-size: 15px;
+      line-height: 1.45;
+    }
+
+    .btn {
+      appearance: none;
+      border: 2px solid color-mix(in srgb, var(--text) 22%, transparent);
+      background: var(--sub-alt);
+      color: var(--text);
+      font: 600 15px/1 var(--font);
+      padding: 12px 22px;
+      border-radius: 999px;
+      cursor: pointer;
+      transition: 0.15s ease;
+    }
+    .btn:hover { background: var(--main); color: var(--bg); border-color: var(--main); }
+    .btn-play {
+      background: var(--main);
+      color: var(--bg);
+      border-color: var(--main);
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      padding: 14px 26px;
+      font-size: 16px;
+    }
+    .btn-play:hover { filter: brightness(1.08); }
+    .btn-ghost {
+      background: transparent;
+      border-color: transparent;
+      color: var(--sub);
+      font-weight: 500;
+      font-size: 13px;
+      margin-top: 14px;
+    }
+    .btn-ghost:hover { color: var(--text); background: transparent; border-color: transparent; }
+    .btn:disabled { opacity: 0.45; cursor: wait; }
+
+    /* —— round —— */
+    .round-top {
+      width: min(100%, 420px);
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      margin-bottom: 22px;
+    }
+    .pill {
+      font-size: 12px;
+      color: var(--sub);
+      background: var(--sub-alt);
+      padding: 6px 10px;
+      border-radius: 999px;
+    }
+    .steps {
+      display: flex;
+      gap: 6px;
+    }
+    .step {
+      width: 28px;
+      height: 6px;
+      border-radius: 99px;
+      background: var(--sub-alt);
+    }
+    .step.on { background: var(--main); }
+    .step.used { background: color-mix(in srgb, var(--main) 35%, var(--sub-alt)); }
+
+    .vinyl-wrap {
+      position: relative;
+      width: min(72vw, 260px);
+      aspect-ratio: 1;
+      margin: 0 auto 22px;
+      cursor: pointer;
+    }
+    .vinyl {
+      width: 100%;
+      height: 100%;
+      border-radius: 50%;
+      background:
+        radial-gradient(circle at 50% 50%, #1a1a1a 0 14%, transparent 15%),
+        repeating-radial-gradient(circle at 50% 50%,
+          #111 0 2px, #1c1c1c 2px 4px);
+      box-shadow:
+        0 0 0 10px color-mix(in srgb, var(--text) 8%, transparent),
+        0 18px 40px rgba(0,0,0,0.45);
+      transition: transform 0.2s ease;
+    }
+    .vinyl.is-spin {
+      animation: spin 2.4s linear infinite;
+    }
+    .vinyl-label {
+      position: absolute;
+      inset: 28%;
+      border-radius: 50%;
+      overflow: hidden;
+      background: var(--sub-alt);
+      display: grid;
+      place-items: center;
+      font-size: 28px;
+      color: var(--main);
+    }
+    .vinyl-label img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .unlock {
+      margin: 0 0 18px;
+      font-size: 13px;
+      color: var(--sub);
+    }
+    .unlock b { color: var(--main); font-weight: 600; }
+
+    .guess-row {
+      width: min(100%, 420px);
+      display: flex;
+      gap: 8px;
+      margin-bottom: 12px;
+    }
+    .guess-row input {
+      flex: 1;
+      min-width: 0;
+      font: 500 15px/1.2 var(--font);
+      color: var(--text);
+      background: var(--sub-alt);
+      border: 2px solid color-mix(in srgb, var(--text) 22%, transparent);
+      border-radius: var(--radius);
+      padding: 12px 14px;
+      outline: none;
+    }
+    .guess-row input:focus {
+      border-color: color-mix(in srgb, var(--main) 70%, transparent);
+    }
+    .guess-row .btn { border-radius: var(--radius); padding: 0 16px; }
+
+    .actions {
+      width: min(100%, 420px);
+      display: flex;
+      gap: 10px;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+    .flash {
+      min-height: 22px;
+      margin: 10px 0 0;
+      font-size: 14px;
+      font-weight: 600;
+    }
+    .flash.bad { color: var(--err); }
+    .flash.ok { color: var(--ok); }
+    .flash.mid { color: var(--main); }
+
+    /* —— reveal —— */
+    .reveal-card {
+      width: min(100%, 380px);
+      background: var(--sub-alt);
+      border-radius: 16px;
+      padding: 22px 20px 20px;
+      text-align: left;
+    }
+    .reveal-card .cover {
+      width: 88px;
+      height: 88px;
+      border-radius: 8px;
+      object-fit: cover;
+      background: #222;
+      float: left;
+      margin: 0 14px 8px 0;
+    }
+    .reveal-card .title {
+      margin: 0 0 4px;
+      font-size: 20px;
+      font-weight: 700;
+    }
+    .reveal-card .artist {
+      margin: 0 0 12px;
+      color: var(--sub);
+      font-size: 14px;
+    }
+    .reveal-card .blurb {
+      clear: both;
+      margin: 14px 0 0;
+      font-size: 14px;
+      line-height: 1.5;
+      color: var(--text);
+    }
+    .reveal-card .blurb em { color: var(--main); font-style: normal; font-weight: 600; }
+
+    /* —— landing —— */
+    .landing {
+      width: min(100%, 520px);
+      text-align: left;
+    }
+    .landing .hero-title {
+      font-size: clamp(40px, 9vw, 64px);
+      letter-spacing: -0.04em;
+      margin: 0 0 6px;
+    }
+    .landing .tag {
+      margin: 0 0 28px;
+      color: var(--sub);
+      font-size: 16px;
+    }
+    .landing .tag em {
+      display: block;
+      margin-top: 6px;
+      color: var(--text);
+      font-style: italic;
+      font-weight: 500;
+    }
+    .home-actions {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      max-width: 280px;
+    }
+    .home-actions .btn { width: 100%; justify-content: center; border-radius: var(--radius); }
+    .mock-note {
+      margin-top: 36px;
+      padding-top: 16px;
+      border-top: 1px solid color-mix(in srgb, var(--text) 12%, transparent);
+      font-size: 12px;
+      color: var(--sub);
+      line-height: 1.5;
+      max-width: 46ch;
+    }
+    .mock-note code {
+      font-size: 11px;
+      background: var(--sub-alt);
+      padding: 1px 5px;
+      border-radius: 4px;
+    }
+  </style>
+</head>
+<body>
+  <!-- 1. Gate (autoplay needs a tap) -->
+  <section id="gate" class="screen is-on" aria-label="Start tutorial">
+    <p class="eyebrow">first visit · 20 sec</p>
+    <h1>guess<span>ify</span></h1>
+    <p class="hint">Quick demo round so you know the vibe. One famous song. Then you’re in.</p>
+    <button type="button" class="btn btn-play" id="startBtn">
+      <span aria-hidden="true">▶</span> tap to try a round
+    </button>
+    <button type="button" class="btn btn-ghost" id="skipAll">skip — take me home</button>
+  </section>
+
+  <!-- 2. Play round -->
+  <section id="round" class="screen" aria-label="Demo round">
+    <div class="round-top">
+      <span class="pill">demo · round 1/1</span>
+      <div class="steps" aria-label="guess attempts">
+        <span class="step on" data-step="0"></span>
+        <span class="step" data-step="1"></span>
+        <span class="step" data-step="2"></span>
+        <span class="step" data-step="3"></span>
+        <span class="step" data-step="4"></span>
+        <span class="step" data-step="5"></span>
+      </div>
+    </div>
+
+    <div class="vinyl-wrap" id="vinylBtn" title="play / pause" role="button" tabindex="0">
+      <div class="vinyl" id="vinyl"></div>
+      <div class="vinyl-label" id="coverSlot">♪</div>
+    </div>
+
+    <p class="unlock">you hear <b id="secs">1</b>s — skip unlocks more</p>
+
+    <form class="guess-row" id="guessForm">
+      <input id="guessInput" type="text" autocomplete="off" autocorrect="off" spellcheck="false" placeholder="song title…" aria-label="guess the song" />
+      <button type="submit" class="btn">guess</button>
+    </form>
+
+    <div class="actions">
+      <button type="button" class="btn" id="playBtn">play</button>
+      <button type="button" class="btn" id="skipBtn">skip (+time)</button>
+    </div>
+    <p class="flash" id="flash" aria-live="polite"></p>
+  </section>
+
+  <!-- 3. Reveal -->
+  <section id="reveal" class="screen" aria-label="Reveal">
+    <p class="eyebrow" id="revealEyebrow">nice</p>
+    <div class="reveal-card">
+      <img class="cover" id="revealCover" alt="" width="88" height="88" />
+      <p class="title" id="revealTitle">Blinding Lights</p>
+      <p class="artist" id="revealArtist">The Weeknd</p>
+      <p class="blurb">
+        That’s Guessify: short clip → name the track.
+        Skips buy you more seconds. Misses cost points.
+        <em>Ready for real playlists?</em>
+      </p>
+    </div>
+    <button type="button" class="btn btn-play" id="toLanding" style="margin-top: 22px;">
+      continue to guessify
+    </button>
+  </section>
+
+  <!-- 4. Fake landing -->
+  <section id="landing" class="screen" aria-label="Landing">
+    <div class="landing">
+      <p class="eyebrow">you’d land here</p>
+      <h1 class="hero-title">guess<span>ify</span></h1>
+      <p class="tag">
+        Your playlists. One-second snippets.
+        <em>name that song!</em>
+      </p>
+      <div class="home-actions">
+        <button type="button" class="btn btn-play">play solo</button>
+        <button type="button" class="btn">host a game</button>
+        <button type="button" class="btn">play online</button>
+      </div>
+      <p class="mock-note">
+        Mock only — open <code>public/mocks/onboarding.html</code> or
+        <code>/mocks/onboarding.html</code> on the site.
+        <button type="button" class="btn btn-ghost" id="replay" style="margin: 8px 0 0; padding: 0;">↺ replay onboarding</button>
+      </p>
+    </div>
+  </section>
+
+  <script>
+    const STEPS = [1, 2, 4, 7, 11, 16]; // seconds unlocked per guess index
+    const ANSWER = "blinding lights";
+    const ARTISTS = ["the weeknd", "weeknd"];
+
+    const $ = (id) => document.getElementById(id);
+    const screens = ["gate", "round", "reveal", "landing"];
+
+    let track = {
+      name: "Blinding Lights",
+      artist: "The Weeknd",
+      previewUrl: null,
+      cover: null,
+    };
+    let guessNum = 0;
+    let playing = false;
+    let resolved = false;
+    let audio = null;
+
+    function show(id) {
+      screens.forEach((s) => $(s).classList.toggle("is-on", s === id));
+    }
+
+    function unlocked() {
+      return STEPS[Math.min(guessNum, STEPS.length - 1)];
+    }
+
+    function syncSteps() {
+      document.querySelectorAll(".step").forEach((el) => {
+        const i = Number(el.dataset.step);
+        el.classList.toggle("on", i === guessNum && !resolved);
+        el.classList.toggle("used", i < guessNum || resolved);
+      });
+      $("secs").textContent = String(unlocked());
+    }
+
+    function setFlash(msg, kind) {
+      const el = $("flash");
+      el.textContent = msg || "";
+      el.className = "flash" + (kind ? " " + kind : "");
+    }
+
+    function stopAudio() {
+      if (audio) {
+        audio.pause();
+        audio.currentTime = 0;
+      }
+      playing = false;
+      $("vinyl").classList.remove("is-spin");
+      $("playBtn").textContent = "play";
+    }
+
+    async function playSnippet(full) {
+      if (!audio || !track.previewUrl) {
+        setFlash("preview didn’t load — still try guessing", "mid");
+        return;
+      }
+      stopAudio();
+      const secs = full ? null : unlocked();
+      try {
+        audio.currentTime = 0;
+        await audio.play();
+        playing = true;
+        $("vinyl").classList.add("is-spin");
+        $("playBtn").textContent = "pause";
+        if (secs != null) {
+          window.clearTimeout(playSnippet._t);
+          playSnippet._t = window.setTimeout(stopAudio, secs * 1000);
+        }
+      } catch {
+        setFlash("tap play again (browser blocked audio)", "mid");
+      }
+    }
+
+    function togglePlay() {
+      if (playing) stopAudio();
+      else playSnippet(resolved);
+    }
+
+    function normalize(s) {
+      return String(s || "")
+        .toLowerCase()
+        .replace(/\(.*?\)|\[.*?\]/g, " ")
+        .replace(/[^a-z0-9\s]/g, " ")
+        .replace(/\s+/g, " ")
+        .trim()
+        .replace(/^(the|a|an)\s+/, "");
+    }
+
+    function endRound(won) {
+      resolved = true;
+      stopAudio();
+      $("revealEyebrow").textContent = won ? "you got it" : "it was…";
+      $("revealTitle").textContent = track.name;
+      $("revealArtist").textContent = track.artist;
+      if (track.cover) {
+        $("revealCover").src = track.cover;
+        $("revealCover").style.display = "";
+      } else {
+        $("revealCover").style.display = "none";
+      }
+      show("reveal");
+      if (track.previewUrl) playSnippet(true);
+    }
+
+    function onGuess(raw) {
+      if (resolved) return;
+      const g = normalize(raw);
+      if (!g) return;
+      if (g === ANSWER || ARTISTS.some((a) => g === a)) {
+        // artist-only: be nice in demo but prefer title
+        if (ARTISTS.includes(g) && g !== ANSWER) {
+          setFlash("that’s the artist — what’s the song?", "mid");
+          return;
+        }
+        setFlash("correct!", "ok");
+        endRound(true);
+        return;
+      }
+      // loose contains
+      if (ANSWER.includes(g) && g.length >= 5) {
+        setFlash("so close — keep going", "mid");
+      } else {
+        setFlash("nope", "bad");
+      }
+      guessNum += 1;
+      syncSteps();
+      if (guessNum >= STEPS.length) {
+        endRound(false);
+        return;
+      }
+      playSnippet(false);
+    }
+
+    async function loadTrack() {
+      try {
+        const url =
+          "https://itunes.apple.com/search?term=" +
+          encodeURIComponent("Blinding Lights The Weeknd") +
+          "&entity=song&limit=5";
+        const res = await fetch(url);
+        const data = await res.json();
+        const hit =
+          (data.results || []).find((r) =>
+            /blinding lights/i.test(r.trackName || "")
+          ) || data.results?.[0];
+        if (hit?.previewUrl) {
+          track = {
+            name: hit.trackName || track.name,
+            artist: hit.artistName || track.artist,
+            previewUrl: hit.previewUrl,
+            cover: (hit.artworkUrl100 || "").replace("100x100", "300x300"),
+          };
+          audio = new Audio(track.previewUrl);
+          audio.preload = "auto";
+          if (track.cover) {
+            $("coverSlot").innerHTML =
+              '<img alt="" src="' + track.cover + '" />';
+          }
+        }
+      } catch (e) {
+        console.warn(e);
+      }
+    }
+
+    $("startBtn").addEventListener("click", async () => {
+      $("startBtn").disabled = true;
+      $("startBtn").textContent = "cueing…";
+      await loadTrack();
+      guessNum = 0;
+      resolved = false;
+      syncSteps();
+      setFlash("");
+      show("round");
+      $("guessInput").focus();
+      await playSnippet(false);
+      $("startBtn").disabled = false;
+      $("startBtn").innerHTML = "<span aria-hidden=\"true\">▶</span> tap to try a round";
+    });
+
+    $("skipAll").addEventListener("click", () => show("landing"));
+    $("toLanding").addEventListener("click", () => {
+      stopAudio();
+      show("landing");
+    });
+    $("replay").addEventListener("click", () => {
+      stopAudio();
+      guessNum = 0;
+      resolved = false;
+      syncSteps();
+      setFlash("");
+      show("gate");
+    });
+
+    $("playBtn").addEventListener("click", togglePlay);
+    $("vinylBtn").addEventListener("click", togglePlay);
+    $("vinylBtn").addEventListener("keydown", (e) => {
+      if (e.code === "Space" || e.key === "Enter") {
+        e.preventDefault();
+        togglePlay();
+      }
+    });
+
+    $("skipBtn").addEventListener("click", () => {
+      if (resolved) return;
+      guessNum += 1;
+      syncSteps();
+      setFlash("unlocked " + unlocked() + "s", "mid");
+      if (guessNum >= STEPS.length) endRound(false);
+      else playSnippet(false);
+    });
+
+    $("guessForm").addEventListener("submit", (e) => {
+      e.preventDefault();
+      onGuess($("guessInput").value);
+      $("guessInput").value = "";
+    });
+
+    // PC space toggle when not typing
+    window.addEventListener("keydown", (e) => {
+      if (!$("round").classList.contains("is-on")) return;
+      if (e.code !== "Space" || e.repeat) return;
+      if (e.target.closest("input, textarea, button, a")) return;
+      e.preventDefault();
+      togglePlay();
+    });
+
+    syncSteps();
+  </script>
+</body>
+</html>
