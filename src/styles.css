@@ -892,13 +892,10 @@ button.footer-privacy:hover {
   text-shadow: 0 1px 0 color-mix(in srgb, var(--bg-color) 75%, transparent);
 }
 
-/* First-visit demo: pencil coach pointing at vinyl / guess field */
+/* First-visit demo: pencil coach from the left of the vinyl */
 .onboard-vinyl-anchor {
   position: relative;
   display: inline-block;
-}
-.guess-title-field {
-  position: relative;
 }
 .onboard-coach {
   position: absolute;
@@ -907,41 +904,23 @@ button.footer-privacy:hover {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 2px;
+  gap: 0;
   animation: onboard-coach-in 0.35s ease-out;
 }
 .onboard-coach--vinyl {
-  left: 50%;
-  top: -8px;
-  transform: translate(-108%, -70%);
-}
-.onboard-coach--guess {
-  left: 12px;
-  top: -6px;
-  transform: translateY(-100%);
-  align-items: flex-start;
-}
-.onboard-coach-copy {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  max-width: 16ch;
+  right: 100%;
+  top: 50%;
+  margin-right: 4px;
+  transform: translateY(-42%);
 }
 .onboard-coach-label {
   font-family: "Caveat", "Segoe Print", "Comic Sans MS", cursive;
   font-size: 22px;
   font-weight: 600;
-  line-height: 1.15;
+  line-height: 1.1;
+  margin-bottom: -2px;
   color: color-mix(in srgb, var(--text-color) 72%, #6b5e4e);
-  text-align: center;
-}
-.onboard-coach--guess .onboard-coach-label { text-align: left; }
-.onboard-coach-hint {
-  font-family: "Caveat", "Segoe Print", "Comic Sans MS", cursive;
-  font-size: 15px;
-  font-weight: 500;
-  line-height: 1.2;
-  color: color-mix(in srgb, var(--main-color) 70%, var(--text-color));
+  white-space: nowrap;
 }
 .onboard-coach-svg { display: block; overflow: visible; }
 .onboard-coach-stroke {
@@ -949,19 +928,11 @@ button.footer-privacy:hover {
   fill: none;
 }
 @keyframes onboard-coach-in {
-  from { opacity: 0; transform: translate(-108%, -78%); }
-  to { opacity: 1; transform: translate(-108%, -70%); }
-}
-.onboard-coach--guess {
-  animation: onboard-coach-guess-in 0.35s ease-out;
-}
-@keyframes onboard-coach-guess-in {
-  from { opacity: 0; transform: translateY(-108%); }
-  to { opacity: 1; transform: translateY(-100%); }
+  from { opacity: 0; transform: translate(-10px, -42%); }
+  to { opacity: 1; transform: translateY(-42%); }
 }
 @media (prefers-reduced-motion: reduce) {
-  .onboard-coach,
-  .onboard-coach--guess { animation: none; }
+  .onboard-coach { animation: none; }
 }
 
 .steps { list-style: none; padding: 0; margin: 0 0 26px; display: flex; flex-direction: column; gap: 10px; font-size: 15px; }
@@ -3684,7 +3655,7 @@ button.footer-privacy:hover {
 .guess-input-wrap.is-answered .guess-fields { visibility: hidden; }
 /* Drop the row's own top margin at the reveal so the gap is just the bar's 20px. */
 .guess-input-wrap.is-answered .guess-actions { margin-top: 0; }
-.guess-fields { display: flex; gap: 8px; align-items: stretch; }
+.guess-fields { display: flex; flex-direction: column; gap: 8px; align-items: stretch; }
 .guess-fields .guess-input { flex: 1; min-width: 0; }
 .guess-title-row,
 .guess-artist-row {
@@ -5954,7 +5925,6 @@ button.footer-privacy:hover {
   .gos-fast-time { font-size: 18px; }
   .game:has(.gameover)::before { width: 200px; height: 200px; right: -70px; top: -80px; }
   .game:has(.gameover)::after { width: 190px; height: 190px; right: -125px; bottom: -130px; }
-  .guess-fields { flex-direction: column; }
   .hero-left { padding-right: 80px; }
   .hero-right { width: min(320px, 92vw); }
   .hero-right .demo { transform: translateX(calc(100% - 44px)); }

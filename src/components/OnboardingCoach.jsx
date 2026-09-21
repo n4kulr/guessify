@@ -1,35 +1,17 @@
 import { useId } from "react";
 
-/**
- * Hand-drawn pencil arrow + label for the first-visit demo.
- * step: "vinyl" | "guess"
- */
-export default function OnboardingCoach({ step }) {
+/** Pencil arrow from the left of the vinyl — label sits above the stroke. */
+export default function OnboardingCoach() {
   const markerId = useId().replace(/:/g, "");
-  if (step !== "vinyl" && step !== "guess") return null;
-
-  const vinyl = step === "vinyl";
-  const label = vinyl ? "tap here" : "type the song title…";
-  const hint = vinyl ? null : "hint: most streamed song ever";
-  // Arrow curves toward the target (vinyl center / title field).
-  const path = vinyl
-    ? "M18 8 C 28 18, 42 36, 52 58"
-    : "M62 8 C 48 22, 34 40, 28 58";
 
   return (
-    <div
-      className={`onboard-coach onboard-coach--${step}`}
-      aria-hidden="true"
-    >
-      <div className="onboard-coach-copy">
-        <span className="onboard-coach-label">{label}</span>
-        {hint && <span className="onboard-coach-hint">{hint}</span>}
-      </div>
+    <div className="onboard-coach onboard-coach--vinyl" aria-hidden="true">
+      <span className="onboard-coach-label">tap here</span>
       <svg
         className="onboard-coach-svg"
-        viewBox="0 0 72 68"
-        width="72"
-        height="68"
+        viewBox="0 0 88 36"
+        width="88"
+        height="36"
         fill="none"
       >
         <defs>
@@ -52,9 +34,10 @@ export default function OnboardingCoach({ step }) {
             />
           </marker>
         </defs>
+        {/* Left → right into the vinyl */}
         <path
           className="onboard-coach-stroke"
-          d={path}
+          d="M8 18 C 28 10, 52 10, 78 18"
           strokeWidth="2.4"
           strokeLinecap="round"
           markerEnd={`url(#${markerId})`}

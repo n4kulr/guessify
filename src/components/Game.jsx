@@ -109,8 +109,8 @@ export default function Game({ playlist, me, onExit, onReplay, onboarding = fals
   const [cueReady, setCueReady] = useState(false);
   /** After the first cue, keep the board up and spin the vinyl center instead. */
   const [boardReady, setBoardReady] = useState(false);
-  /** Onboarding coach: vinyl tap → then guess field. */
-  const [coachStep, setCoachStep] = useState(onboarding ? "vinyl" : null);
+  /** Onboarding: pencil cue on the vinyl until the first tap. */
+  const [showVinylCoach, setShowVinylCoach] = useState(!!onboarding);
 
   const { errorMsg, setErrorMsg, play, pause, prime } = usePreviewPlayer();
   const roundStartedAt = useRef(Date.now());
@@ -341,7 +341,7 @@ export default function Game({ playlist, me, onExit, onReplay, onboarding = fals
 
   async function togglePlay() {
     if (!track || phase !== "play" || playBusyRef.current) return;
-    if (onboarding && coachStep === "vinyl") setCoachStep("guess");
+    if (onboarding && showVinylCoach) setShowVinylCoach(false);
     if (playing) {
       stopAudio();
       return;
@@ -354,7 +354,7 @@ export default function Game({ playlist, me, onExit, onReplay, onboarding = fals
 
   function startPlay() {
     if (!track || phase !== "play" || playBusyRef.current || playing || resolved) return;
-    if (onboarding && coachStep === "vinyl") setCoachStep("guess");
+    if (onboarding && showVinylCoach) setShowVinylCoach(false);
     playSnippet(unlocked);
   }
 
@@ -685,8 +685,8 @@ export default function Game({ playlist, me, onExit, onReplay, onboarding = fals
               }
             >
               <div className="onboard-vinyl-anchor">
-                {onboarding && coachStep === "vinyl" && cueReady && !resolved && (
-                  <OnboardingCoach step="vinyl" />
+                {onboarding && showVinylCoach && cueReady && !resolved && (
+                  <OnboardingCoach />
                 )}
                 <GuessMedia
                   mode="vinyl"
@@ -758,11 +758,6 @@ export default function Game({ playlist, me, onExit, onReplay, onboarding = fals
               <div className="guess-fields">
                   <div className="guess-title-row">
                     <div className="guess-title-field" ref={titleFieldRef}>
-                      {onboarding &&
-                        coachStep === "guess" &&
-                        !resolved && (
-                          <OnboardingCoach step="guess" />
-                        )}
                       <input
                         className={`guess-input${titleHintText ? " guess-input--hint" : ""}`}
                         placeholder={titleHintText || "type the song title…"}
