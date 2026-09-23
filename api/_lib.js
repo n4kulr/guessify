@@ -518,3 +518,65 @@ export async function fetchAlbumAsPlaylist(id, token, market = "US") {
     kind: "album",
   };
 }
+
+// --- public playlist fallback: Spotify's embed page ---
+// Since Feb 2026 the API only reads playlists the token's account owns or
+// collaborates on. The public embed page still ships the track list as JSON.
+// ponytail: scraped, undocumented page, capped at 100 tracks, and may break
+// whenever Spotify changes it. Drop this if the app ever gets extended quota.
+
+/** Parse an open.spotify.com/embed/playlist page into fetchPlaylistTracks' shape, or null. */
+export function parseEmbedPlaylist(html, id) {
+  const m = String(html || "").match(
+    /<script id="__NEXT_DATA__" type="application\/json">([\s\S]+?)<\/script>/
+  );
+  if (!m) return null;
+  let entity;
+  try {
+    entity = JSON.parse(m[1])?.props?.pageProps?.state?.data?.entity;
+  } catch {
+    return null;
+  }
+  if (!entity || !Array.isArray(entity.trackList)) return null;
+  const tracks = entity.trackList
+    .filter((t) => t?.title && /^spotify:track:/.test(t.uri || ""))
+    .map((t) => ({
+      id: t.uri.slice("spotify:track:".length),
+      name: t.title,
+      artists: String(t.subtitle || "")
+        .split(/,\s*/)
+        .map((a) => a.trim())
+        .filter(Boolean),
+      // Spotify's own clips run ~16s, shorter than a full unlock — let
+      // /api/preview find the usual 30s one instead.
+      previewUrl: null,
+      cover: null,
+    }));
+  if (!tracks.length) return null;
+  return {
+    id,
+    name: entity.name || entity.title || "playlist",
+    owner: entity.authors?.[0]?.name || entity.subtitle || "",
+    cover: entity.coverArt?.sources?.[0]?.url || null,
+    total: tracks.length,
+    playableCount: tracks.length,
+    tracks,
+  };
+}
+
+export async function fetchPlaylistFromEmbed(id) {
+  const ctrl = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), 8000);
+  try {
+    const r = await fetch(`https://open.spotify.com/embed/playlist/${id}`, {
+      signal: ctrl.signal,
+      headers: { "User-Agent": "Mozilla/5.0 (compatible; Guessify/1.0)" },
+    });
+    if (!r.ok) return null;
+    return parseEmbedPlaylist(await r.text(), id);
+  } catch {
+    return null;
+  } finally {
+    clearTimeout(timer);
+  }
+}
