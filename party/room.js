@@ -32,6 +32,7 @@ const LEAVE_AFTER_MS = 45 * 60 * 1000;
 const ROOM_TTL_MS = 6 * 60 * 60 * 1000;
 /** Host + up to 3 guests. */
 const MAX_PLAYERS = 4;
+const GUESS_GAP_MS = 250;
 
 /**
  * Multiplayer room (PartyServer / Cloudflare Durable Object).
@@ -201,6 +202,7 @@ export class Room extends Server {
     } catch {
       return;
     }
+    if (!msg || typeof msg !== "object") return;
 
     switch (msg.type) {
       case "host":
@@ -286,7 +288,7 @@ export class Room extends Server {
       const claimedId = typeof msg.playerId === "string" ? msg.playerId : "";
       const isRealHost =
         !!senderPlayer?.isHost ||
-        !!(hostPlayer && claimedId && claimedId === hostPlayer.id);
+        !!(hostPlayer && claimedId && claimedId === hostPlayer.id && ownsSeat(hostPlayer, msg));
       if (!isRealHost) {
         sender.send(JSON.stringify({ type: "error", error: "This room already has a host." }));
         return;
@@ -298,6 +300,7 @@ export class Room extends Server {
       const avatar = normalizeAvatar(msg.avatar || randomAvatar(), PLAYER_COLORS[0]);
       const hostPlayer = {
         id: crypto.randomUUID(),
+        secret: crypto.randomUUID(),
         connId: sender.id,
         name: hostName,
         color: avatar.color,
@@ -343,7 +346,7 @@ export class Room extends Server {
         updatedAt: Date.now(),
       };
       sender.send(
-        JSON.stringify({ type: "hosted", role: "host", playerId: hostPlayer.id })
+        JSON.stringify({ type: "hosted", role: "host", playerId: hostPlayer.id, secret: hostPlayer.secret })
       );
       this.broadcastState();
       void this.persist();
@@ -358,6 +361,7 @@ export class Room extends Server {
       const avatar = normalizeAvatar(msg.avatar || randomAvatar(), PLAYER_COLORS[0]);
       hostPlayer = {
         id: crypto.randomUUID(),
+        secret: crypto.randomUUID(),
         connId: sender.id,
         name: String(this.state.hostName).split(/\s+/)[0].slice(0, 16) || "host",
         color: avatar.color,
@@ -394,7 +398,7 @@ export class Room extends Server {
     }
 
     sender.send(
-      JSON.stringify({ type: "hosted", role: "host", playerId: hostPlayer.id })
+      JSON.stringify({ type: "hosted", role: "host", playerId: hostPlayer.id, secret: hostPlayer.secret })
     );
     this.broadcastState();
     void this.persist();
@@ -433,6 +437,7 @@ export class Room extends Server {
     const avatar = normalizeAvatar(msg.avatar || randomAvatar(), fallback);
     const player = {
       id: crypto.randomUUID(),
+      secret: crypto.randomUUID(),
       connId: sender.id,
       name,
       color: avatar.color,
@@ -445,7 +450,7 @@ export class Room extends Server {
     };
     this.state.players.push(player);
 
-    sender.send(JSON.stringify({ type: "joined", role: "guest", playerId: player.id }));
+    sender.send(JSON.stringify({ type: "joined", role: "guest", playerId: player.id, secret: player.secret }));
     this.broadcastState();
     void this.persist();
   }
@@ -483,7 +488,7 @@ export class Room extends Server {
       return;
     }
     const player = this.state.players.find((p) => p.id === msg.playerId);
-    if (!player) {
+    if (!player || !ownsSeat(player, msg)) {
       sender.send(JSON.stringify({ type: "error", error: "Player not found — join again." }));
       return;
     }
@@ -500,6 +505,7 @@ export class Room extends Server {
         type: player.isHost ? "hosted" : "joined",
         role: player.isHost ? "host" : "guest",
         playerId: player.id,
+        secret: player.secret,
       })
     );
     this.broadcastState();
@@ -552,8 +558,12 @@ export class Room extends Server {
       return;
     }
 
-    const title = String(msg.title || "").trim();
-    let artist = String(msg.artist || "").trim();
+    // Every guess rebroadcasts the whole list — bound its rate and size.
+    const now = Date.now();
+    if (now - (player.lastGuessAt || 0) < GUESS_GAP_MS) return;
+    player.lastGuessAt = now;
+    const title = String(msg.title || "").trim().slice(0, 120);
+    let artist = String(msg.artist || "").trim().slice(0, 120);
     const timed = this.state.raceMode === "timed";
     const artistLocked = timed
       ? !!this.state.artistByPlayer?.[player.id]
@@ -1080,6 +1090,29 @@ export class Room extends Server {
   }
 
   broadcastState() {
-    this.broadcast(JSON.stringify({ type: "state", state: this.snapshot() }));
+    const snap = this.snapshot();
+    if (snap.phase !== "play" || snap.raceMode !== "timed") {
+      this.broadcast(JSON.stringify({ type: "state", state: snap }));
+      return;
+    }
+    // Timed: a lock-in carries the answer, so each player only sees their own.
+    for (const conn of this.getConnections()) {
+      const me = this.playerFor(conn)?.id;
+      const state = {
+        ...snap,
+        guesses: snap.guesses.map((g) =>
+          g.playerId === me || g.skip
+            ? g
+            : { ...g, title: null, artist: null, titleOk: false, artistOk: false, almostTitle: false, almostArtist: false }
+        ),
+        artistByPlayer: me && snap.artistByPlayer[me] ? { [me]: snap.artistByPlayer[me] } : {},
+      };
+      conn.send(JSON.stringify({ type: "state", state }));
+    }
   }
+}
+
+/** Seats from before secrets existed have none — let those reclaim by id. */
+function ownsSeat(player, msg) {
+  return !player.secret || msg.secret === player.secret;
 }

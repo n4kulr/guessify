@@ -67,6 +67,13 @@ export function usePartyRoom(code, { enabled = true } = {}) {
         return;
       }
       if (msg.type === "state") setState(msg.state);
+      if ((msg.type === "hosted" || msg.type === "joined") && msg.secret) {
+        try {
+          sessionStorage.setItem(`${playerKey(code)}-secret`, msg.secret);
+        } catch {
+          /* ignore */
+        }
+      }
       if (msg.type === "hosted") {
         setRole("host");
         if (msg.playerId) {
@@ -102,6 +109,13 @@ export function usePartyRoom(code, { enabled = true } = {}) {
   function send(msg) {
     const s = socketRef.current;
     if (!s || s.readyState !== WebSocket.OPEN) return;
+    if (msg.type === "rejoin" || msg.type === "host") {
+      try {
+        msg = { ...msg, secret: sessionStorage.getItem(`${playerKey(code)}-secret`) || undefined };
+      } catch {
+        /* ignore */
+      }
+    }
     s.send(JSON.stringify(msg));
   }
 

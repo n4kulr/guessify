@@ -262,6 +262,11 @@ export default function App() {
     resetToHomeUi();
   }
 
+  // New screen starts at the top, not wherever the picker was scrolled to.
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [picking, playlist, mode, roomCode, onlineProfile]);
+
   useEffect(() => attachKeyboardSounds(), []);
   useEffect(() => attachButtonSounds(), []);
 
@@ -331,7 +336,7 @@ export default function App() {
     try {
       const res = await fetch("/api/me", { credentials: "include" });
       const body = await res.json().catch(() => ({}));
-      if (res.ok) {
+      if (res.ok && body.loggedIn) {
         setMe(body);
         setStatus("loggedIn");
         // Spotify nickname wins over the locally saved online name.

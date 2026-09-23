@@ -1,11 +1,16 @@
 import {
   requireSession,
+  readSession,
   spotifyGet,
   spotifyClientError,
   clearSession,
 } from "./_lib.js";
 
 export default async function handler(req, res) {
+  if (!readSession(req)) {
+    res.status(200).json({ loggedIn: false });
+    return;
+  }
   const auth = await requireSession(req, res);
   if (!auth) return;
   try {
