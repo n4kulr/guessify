@@ -315,8 +315,12 @@ export default function Game({ playlist, me, onExit, onReplay, onboarding = fals
 
   async function playSnippet(seconds) {
     if (!track) return;
-    pause();
-    setPlaying(false);
+    // Full preview after a live snippet: don't pause first — play() extends
+    // in place. A pause+replay drops the gesture and trips autoplay.
+    if (!(seconds == null && playing)) {
+      pause();
+      setPlaying(false);
+    }
     playBusyRef.current = true;
     setPlayBusy(true);
     try {
@@ -405,7 +409,6 @@ export default function Game({ playlist, me, onExit, onReplay, onboarding = fals
     const win = titleOk;
 
     setTitleGuess("");
-    stopAudio();
 
     // Correct artist = small bonus + locks the field. Title still pays full.
     let artistPts = 0;
@@ -442,6 +445,7 @@ export default function Game({ playlist, me, onExit, onReplay, onboarding = fals
       });
       playSnippet(null); // full preview until next song
     } else {
+      stopAudio();
       // Unlimited guesses — only Skip unlocks more audio / ends the round.
       if (titleAlmost) setAlmostTitle(Date.now());
       if (artistAlmost) setAlmostArtist(Date.now());
@@ -464,7 +468,8 @@ export default function Game({ playlist, me, onExit, onReplay, onboarding = fals
     if (phase !== "play" || resolved || resolvedRef.current) return;
     setTitleGuess("");
     if (!revealedArtist) setArtistGuess("");
-    stopAudio();
+    // Final skip ends the round with a full preview — keep audio if it's live.
+    if (guessNum + 1 < MAX_GUESSES) stopAudio();
     setSkipPop(Date.now());
     shakeEl(skipWrapRef.current);
     consumeGuess();

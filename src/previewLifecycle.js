@@ -4,6 +4,14 @@ export function previewIsActive({ onStop, stopTimer, endedHandler } = {}) {
 }
 
 /**
+ * Round-end full preview: keep a live same-URL clip instead of pause+replay
+ * (replay loses the user-gesture session → autoplay rejection).
+ */
+export function shouldExtendToFull(playFull, { paused, currentUrl, url } = {}) {
+  return !!(playFull && !paused && currentUrl && currentUrl === url);
+}
+
+/**
  * iOS WebKit: a stalled AudioContext ("suspended", or WebKit's non-standard
  * "interrupted" after a tab switch / call) with the element not paused means a
  * silent "playing" — the graph carries all the sound and it isn't running.

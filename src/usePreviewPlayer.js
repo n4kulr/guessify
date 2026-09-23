@@ -8,6 +8,7 @@ import {
   previewPipelineBroken,
   reloadAudioToStart,
   armCanPlay,
+  shouldExtendToFull,
 } from "./previewLifecycle.js";
 
 function newAudioShell() {
@@ -153,20 +154,48 @@ export function usePreviewPlayer() {
     };
   }, []);
 
+  function armFullUntilEnd(audio, onStop) {
+    clearStop();
+    clearEnded();
+    onStopRef.current = onStop || null;
+    const onEnded = () => pauseRef.current();
+    endedHandlerRef.current = onEnded;
+    audio.addEventListener("ended", onEnded);
+    setGuessifyNowPlaying();
+  }
+
   const play = useCallback(async (track, seconds, { onStop } = {}) => {
     setErrorMsg(null);
     void outputRef.current?.resume();
+
+    const playFull = seconds == null || seconds === Infinity;
+    let audio = audioRef.current;
+    if (!audio) throw new Error("audio missing");
+
+    // Kill the snippet cut before any await — otherwise the timer can pause
+    // mid-resolve and we fall into a gesture-less restart.
+    if (playFull && !audio.paused) clearStop();
+
     const url = await resolvePreview(track);
     if (!url) {
       throw new Error("no preview");
     }
 
+    // Round-end: keep a live same-URL clip instead of pause+replay (autoplay).
+    if (
+      shouldExtendToFull(playFull, {
+        paused: audio.paused,
+        currentUrl: currentUrlRef.current,
+        url,
+      })
+    ) {
+      armFullUntilEnd(audio, onStop);
+      return;
+    }
+
     clearStop();
     clearEnded();
     onStopRef.current = onStop || null;
-
-    let audio = audioRef.current;
-    if (!audio) throw new Error("audio missing");
 
     // iOS MediaElementSource: reusing the same element after a snippet
     // (load/seek/play) doubles the opening second. Swap in a fresh <audio>
@@ -245,16 +274,12 @@ export function usePreviewPlayer() {
         throw e;
       }
     }
-    setGuessifyNowPlaying();
-
-    const playFull = seconds == null || seconds === Infinity;
     if (playFull) {
-      const onEnded = () => pauseRef.current();
-      endedHandlerRef.current = onEnded;
-      audio.addEventListener("ended", onEnded);
+      armFullUntilEnd(audio, onStop);
       return;
     }
 
+    setGuessifyNowPlaying();
     const secs = Math.max(0.5, Number(seconds) || 1);
     clearStop();
     stopTimer.current = setTimeout(() => pauseRef.current(), secs * 1000);

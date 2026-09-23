@@ -320,8 +320,10 @@ export default function GuestApp({ code }) {
 
   async function playSnippet(seconds) {
     if (!canPlay) return;
-    pause();
-    setLocalPlaying(false);
+    if (!(seconds == null && localPlaying)) {
+      pause();
+      setLocalPlaying(false);
+    }
     setPlayBusy(true);
     try {
       await play(playTrack, seconds, {

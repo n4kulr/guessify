@@ -446,8 +446,10 @@ export default function OnlineRace({ profile, onExit, raceMode: raceModeProp }) 
 
   async function playSnippet(seconds) {
     if (!track) return;
-    pause();
-    setLocalPlaying(false);
+    if (!(seconds == null && localPlaying)) {
+      pause();
+      setLocalPlaying(false);
+    }
     setPlayBusy(true);
     try {
       await play(track, seconds, { onStop: () => setLocalPlaying(false) });
@@ -962,7 +964,8 @@ export default function OnlineRace({ profile, onExit, raceMode: raceModeProp }) 
 
     setTitleGuess("");
     setArtistGuess("");
-    stopAudio();
+    // Keep audio through a title win — reveal extends the live clip.
+    if (!titleOk) stopAudio();
 
     let artistPts = 0;
     if (artistOk) {

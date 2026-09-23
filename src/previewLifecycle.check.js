@@ -9,11 +9,29 @@ import {
   reloadAudioToStart,
   waitUntilCanPlay,
   armCanPlay,
+  shouldExtendToFull,
 } from "./previewLifecycle.js";
 
 assert.equal(previewIsActive({}), false);
 assert.equal(previewIsActive({ onStop: () => {} }), true);
 assert.equal(previewIsActive({ stopTimer: 1 }), true);
+
+assert.equal(
+  shouldExtendToFull(true, { paused: false, currentUrl: "a", url: "a" }),
+  true
+);
+assert.equal(
+  shouldExtendToFull(true, { paused: true, currentUrl: "a", url: "a" }),
+  false
+);
+assert.equal(
+  shouldExtendToFull(false, { paused: false, currentUrl: "a", url: "a" }),
+  false
+);
+assert.equal(
+  shouldExtendToFull(true, { paused: false, currentUrl: "a", url: "b" }),
+  false
+);
 
 assert.equal(
   previewPipelineBroken({ paused: false }, { isContextSuspended: () => true }),

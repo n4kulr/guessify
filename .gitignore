@@ -13,6 +13,7 @@ Flat Assets.zip
 .wrangler/
 
 # generated / local-only
+.firecrawl/
 graphify-out/
 .claude/
 previews/
