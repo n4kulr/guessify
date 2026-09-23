@@ -1,4 +1,4 @@
-import { useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useId, useMemo, useRef, useState } from "react";
 import ChartCdSpindle from "./ChartCdSpindle.jsx";
 import ChartCdStack from "./ChartCdStack.jsx";
 import ChartPreviewDialog from "./ChartPreviewDialog.jsx";
@@ -79,18 +79,6 @@ const CHART_PH_EXAMPLES = [
   "gemini rights",
 ];
 
-const PICKER_TOUR = [
-  { id: "record", title: "Pick a record" },
-  { id: "stack", title: "Make your own playlist" },
-  { id: "describe", title: "Or describe it" },
-];
-
-function pickerTourClass(step, id) {
-  if (step < 0) return "";
-  if (PICKER_TOUR[step] && PICKER_TOUR[step].id === id) return "picker-tour-focus";
-  return "picker-tour-dim";
-}
-
 export default function PlaylistPicker({ onPick, needsLogin = false }) {
   const [data, setData] = useState(null); // { playlists, liked }
   const [error, setError] = useState(null);
@@ -115,59 +103,16 @@ export default function PlaylistPicker({ onPick, needsLogin = false }) {
   const loginModalTitleId = useId();
   const chartFieldRef = useRef(null);
   const chartErrorTimer = useRef(0);
-  const tourCardRef = useRef(null);
-  const [tourStep, setTourStep] = useState(-1);
+  const [introOpen, setIntroOpen] = useState(pickerTourPending);
 
   useEffect(() => {
     return () => clearTimeout(chartErrorTimer.current);
   }, []);
 
-  useEffect(() => {
-    if (tourStep >= 0) return;
-    if (!pickerTourPending()) return;
-    if (!ownerUnavailable && !error && !data) return;
-    setTourStep(0);
-  }, [data, ownerUnavailable, error, tourStep]);
-
-  useLayoutEffect(() => {
-    if (tourStep < 0) return undefined;
-    const card = tourCardRef.current;
-    if (!card) return undefined;
-    const btn = card.querySelector("button");
-    if (btn) btn.focus({ preventScroll: true });
-    // Record step is already at the top — scrolling the card to center
-    // hides “Pick a record…”. Later steps still need the jump.
-    if (tourStep === 0) return undefined;
-
-    let behavior = "smooth";
-    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
-      behavior = "auto";
-    }
-
-    function go() {
-      card.scrollIntoView({ behavior, block: "center", inline: "nearest" });
-    }
-    const frame = requestAnimationFrame(go);
-    return () => cancelAnimationFrame(frame);
-  }, [tourStep]);
-
-  useEffect(() => {
-    if (tourStep < 0) return undefined;
-    function onKey(e) {
-      if (e.key !== "Escape") return;
-      setTourStep((step) => {
-        if (step < 0) return step;
-        const next = step + 1;
-        if (next >= PICKER_TOUR.length) {
-          markPickerTourSeen();
-          return -1;
-        }
-        return next;
-      });
-    }
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [tourStep]);
+  function closeIntro() {
+    markPickerTourSeen();
+    setIntroOpen(false);
+  }
 
   useEffect(() => {
     if (!showLoginModal) return;
@@ -557,16 +502,6 @@ export default function PlaylistPicker({ onPick, needsLogin = false }) {
     setYoursView((v) => (v === "cds" ? "list" : "cds"));
   }
 
-  function advancePickerTour() {
-    const next = tourStep + 1;
-    if (next >= PICKER_TOUR.length) {
-      markPickerTourSeen();
-      setTourStep(-1);
-      return;
-    }
-    setTourStep(next);
-  }
-
   // Keep the first paint light — don't mount the full shelf/charts while fetching.
   if (!ownerUnavailable) {
     if (error) return <div className="panel">{error}</div>;
@@ -580,74 +515,15 @@ export default function PlaylistPicker({ onPick, needsLogin = false }) {
   const shelfEmpty = yours.length === 0;
 
   const cdsMode = yoursView === "cds";
-  const touring = tourStep >= 0;
-  let tour = null;
-  if (touring) tour = PICKER_TOUR[tourStep];
-  let pickerClass = "picker";
-  if (touring) pickerClass += " is-touring";
-  let tourBody = "add multiple artists/albums";
-  if (tour && tour.id === "record") {
-    tourBody = shelfEmpty
-      ? "Pick a CD below, or type an artist"
-      : needsLogin
-        ? "Choose a playlist to start a game (my curated list)"
-        : "Choose a playlist to start a game";
-  } else if (tour && tour.id === "describe") {
-    tourBody = "Type an artist, era, or album";
-  }
-  let tourBtn = "next";
-  if (tourStep === PICKER_TOUR.length - 1) tourBtn = "got it";
-
-  const tourIndex = tourStep + 1;
-  const tourCount = PICKER_TOUR.length;
-  let tourCard = null;
-  if (tour) {
-    tourCard = (
-      <div
-        key={tourStep}
-        ref={tourCardRef}
-        className="picker-tour-card"
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="picker-tour-title"
-        aria-describedby="picker-tour-step picker-tour-body"
-      >
-        <div className="spotlight-head">
-          <span className="picker-tour-mark" aria-hidden="true">
-            ?
-          </span>
-          <h2 id="picker-tour-title" className="spotlight-title">
-            {tour.title}
-          </h2>
-          <span id="picker-tour-step" className="picker-tour-step">
-            {tourIndex}/{tourCount}
-          </span>
-        </div>
-        <p id="picker-tour-body" className="spotlight-hint">
-          {tourBody}
-        </p>
-        <div className="spotlight-actions">
-          <button
-            type="button"
-            className="btn btn-big btn-play"
-            onClick={advancePickerTour}
-          >
-            <span className="btn-play-icon" aria-hidden="true" />
-            {tourBtn}
-          </button>
-        </div>
-      </div>
-    );
-  }
-
-  let stackTourSlot = null;
-  if (tour && tour.id === "stack") stackTourSlot = tourCard;
 
   return (
-    <div className={pickerClass}>
-      <div
-        className={`picker-tour-section ${pickerTourClass(tourStep, "record")}`.trim()}
-      >
+    <div className="picker">
+      {introOpen && (
+        <PickerIntro
+          curated={needsLogin && !shelfEmpty}
+          onClose={closeIntro}
+        />
+      )}
       <div className="picker-heading">
         {yours.length > 0 && (
           <button
@@ -747,13 +623,6 @@ export default function PlaylistPicker({ onPick, needsLogin = false }) {
         </>
       )}
 
-      {tour && tour.id === "record" && tourCard}
-
-      </div>
-
-      <div
-        className={`picker-tour-section picker-tour-describe ${pickerTourClass(tourStep, "describe")}`.trim()}
-      >
       <div className="chart-search-block">
         <h3 className="picker-section-title">or describe it!</h3>
         <p className="section-sub chart-search-sub">
@@ -814,22 +683,15 @@ export default function PlaylistPicker({ onPick, needsLogin = false }) {
                 : "play"}
             </button>
           </div>
-          {tour && tour.id === "describe" && tourCard}
         </form>
       </div>
-      </div>
 
-      <div className={`picker-tour-section ${pickerTourClass(tourStep, "spindle")}`.trim()}>
       <ChartCdSpindle
         packs={CHART_PACKS}
         loadingId={loadingId}
         onChoose={chooseChart}
       />
-      </div>
 
-      <div
-        className={`picker-tour-section picker-tour-stack ${pickerTourClass(tourStep, "stack")}`.trim()}
-      >
       <ChartCdStack
         layers={stackLayers}
         mix={stackMix}
@@ -838,9 +700,7 @@ export default function PlaylistPicker({ onPick, needsLogin = false }) {
         onAdd={addStackLayer}
         onPutBack={() => setStackInsertOpen(false)}
         onPutInPlayer={putStackInPlayer}
-        tourSlot={stackTourSlot}
       />
-      </div>
 
       {chartPreview && (
         <ChartPreviewDialog
@@ -907,6 +767,75 @@ export default function PlaylistPicker({ onPick, needsLogin = false }) {
           </div>
         </div>
       )}
+    </div>
+  );
+}
+
+/** First visit only: one card explaining the three ways to pick. */
+function PickerIntro({ curated, onClose }) {
+  const titleId = useId();
+  const okRef = useRef(null);
+
+  useEffect(() => {
+    okRef.current?.focus();
+    function onKey(e) {
+      if (e.key === "Escape" || e.key === "Enter") onClose();
+    }
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [onClose]);
+
+  return (
+    <div
+      className="spotlight-scrim play-howto-scrim"
+      role="presentation"
+      onMouseDown={(e) => {
+        if (e.target === e.currentTarget) onClose();
+      }}
+    >
+      <div
+        className="spotlight-card play-howto"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby={titleId}
+      >
+        <div className="spotlight-head">
+          <h2 id={titleId} className="spotlight-title">
+            three ways to pick your music
+          </h2>
+          <p className="spotlight-hint">Choose one and the game starts.</p>
+        </div>
+
+        <ol className="play-howto-steps">
+          <li>
+            <b>Pick a record.</b>{" "}
+            {curated
+              ? "Tap a CD on the shelf to play one of my hand-picked playlists."
+              : "Tap a CD on the shelf to play one of your playlists."}
+          </li>
+          <li>
+            <b>Describe it.</b> Type an artist, era, or album, or paste a
+            Spotify link, and we’ll build the playlist. You can also grab a
+            genre from the CD case.
+          </li>
+          <li>
+            <b>Make your own.</b> Stack a few artists, albums, or eras into one
+            mix, then put it in the player.
+          </li>
+        </ol>
+
+        <div className="spotlight-actions">
+          <button
+            ref={okRef}
+            type="button"
+            className="btn btn-big btn-play"
+            onClick={onClose}
+          >
+            <span className="btn-play-icon" aria-hidden="true" />
+            got it
+          </button>
+        </div>
+      </div>
     </div>
   );
 }

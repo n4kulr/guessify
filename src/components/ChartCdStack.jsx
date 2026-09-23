@@ -15,7 +15,6 @@ export default function ChartCdStack({
   onAdd,
   onPutBack,
   onPutInPlayer,
-  tourSlot = null,
 }) {
   const busy = stackBusy;
   const [stackQuery, setStackQuery] = useState("");
@@ -116,7 +115,6 @@ export default function ChartCdStack({
             {stackBusy ? "…" : "add"}
           </button>
         </div>
-        {tourSlot}
       </form>
 
       <div
