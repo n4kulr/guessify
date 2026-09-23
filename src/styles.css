@@ -5912,6 +5912,102 @@ button.footer-privacy:hover {
   letter-spacing: 0.12em;
   opacity: 0.7;
 }
+/* Picker intro: tiny looping demo beside each way to pick. */
+.picker-intro-steps { gap: 8px; margin-bottom: 4px; }
+.picker-intro-steps li {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 12px 8px 8px;
+}
+.pi-text { font-size: 14px; line-height: 1.35; }
+.pi-vis {
+  flex: none;
+  width: 72px;
+  height: 44px;
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--bg-color) 70%, transparent);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  --pi-loop: 3.2s;
+}
+.pi-vis--pick { gap: 5px; }
+.pi-case {
+  width: 15px;
+  height: 17px;
+  border-radius: 3px;
+  background: color-mix(in srgb, var(--text-color) 16%, transparent);
+  border-top: 3px solid color-mix(in srgb, var(--text-color) 38%, transparent);
+}
+.pi-case--on { animation: pi-pick var(--pi-loop) ease-in-out infinite; }
+@keyframes pi-pick {
+  0%, 25% { transform: none; background: color-mix(in srgb, var(--text-color) 16%, transparent); }
+  40%, 80% {
+    transform: translateY(-5px) scale(1.12);
+    background: color-mix(in srgb, var(--main-color) 55%, transparent);
+    border-top-color: var(--main-color);
+  }
+  100% { transform: none; }
+}
+.pi-field {
+  width: 58px;
+  height: 20px;
+  border-radius: 5px;
+  border: 1px solid color-mix(in srgb, var(--text-color) 22%, transparent);
+  display: flex;
+  align-items: center;
+  padding: 0 5px;
+  box-sizing: border-box;
+}
+.pi-typed {
+  font: 600 10px/1 "IBM Plex Mono", ui-monospace, monospace;
+  color: var(--main-color);
+  white-space: nowrap;
+  overflow: hidden;
+  width: 0;
+  border-right: 1.5px solid var(--main-color);
+  padding-right: 1px;
+  animation: pi-type var(--pi-loop) steps(5, end) infinite;
+}
+@keyframes pi-type {
+  0%, 10% { width: 0; }
+  50%, 85% { width: 5ch; }
+  100% { width: 0; }
+}
+.pi-vis--stack { flex-direction: column; gap: 3px; }
+.pi-disc {
+  width: 52px;
+  height: 14px;
+  border-radius: 3px;
+  font: 600 8px/14px "IBM Plex Mono", ui-monospace, monospace;
+  text-align: center;
+  color: var(--bg-color);
+  animation: var(--pi-loop) cubic-bezier(0.34, 1.4, 0.64, 1) infinite;
+}
+.pi-disc--2 { background: var(--main-color); animation-name: pi-drop-first; }
+.pi-disc--1 {
+  background: color-mix(in srgb, var(--main-color) 22%, var(--sub-alt-color));
+  color: var(--main-color);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--main-color) 45%, transparent);
+  animation-name: pi-drop-second;
+}
+@keyframes pi-drop-first {
+  0%, 8% { opacity: 0; transform: translateY(-18px); }
+  22%, 88% { opacity: 1; transform: none; }
+  100% { opacity: 0; transform: none; }
+}
+@keyframes pi-drop-second {
+  0%, 36% { opacity: 0; transform: translateY(-18px); }
+  50%, 88% { opacity: 1; transform: none; }
+  100% { opacity: 0; transform: none; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .pi-case--on, .pi-typed, .pi-disc { animation: none; }
+  .pi-case--on { background: color-mix(in srgb, var(--main-color) 55%, transparent); transform: translateY(-3px); }
+  .pi-typed { width: 5ch; }
+}
 .play-howto .spotlight-actions { justify-content: stretch; }
 .play-howto .spotlight-actions .btn { width: 100%; justify-content: center; }
 .play-howto-foot {

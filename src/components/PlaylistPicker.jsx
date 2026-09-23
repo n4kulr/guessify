@@ -806,21 +806,35 @@ function PickerIntro({ curated, onClose }) {
           <p className="spotlight-hint">Choose one and the game starts.</p>
         </div>
 
-        <ol className="play-howto-steps">
+        <ol className="play-howto-steps picker-intro-steps">
           <li>
-            <b>Pick a record.</b>{" "}
-            {curated
-              ? "Tap a CD on the shelf to play one of my hand-picked playlists."
-              : "Tap a CD on the shelf to play one of your playlists."}
+            <span className="pi-vis pi-vis--pick" aria-hidden="true">
+              <span className="pi-case" />
+              <span className="pi-case pi-case--on" />
+              <span className="pi-case" />
+            </span>
+            <span className="pi-text">
+              <b>Pick</b> a CD from {curated ? "my shelf" : "your shelf"}
+            </span>
           </li>
           <li>
-            <b>Describe it.</b> Type an artist, era, or album, or paste a
-            Spotify link, and we’ll build the playlist. You can also grab a
-            genre from the CD case.
+            <span className="pi-vis pi-vis--type" aria-hidden="true">
+              <span className="pi-field">
+                <span className="pi-typed">drake</span>
+              </span>
+            </span>
+            <span className="pi-text">
+              <b>Describe</b> an artist, era, or <b>Spotify link</b>
+            </span>
           </li>
           <li>
-            <b>Make your own.</b> Stack a few artists, albums, or eras into one
-            mix, then put it in the player.
+            <span className="pi-vis pi-vis--stack" aria-hidden="true">
+              <span className="pi-disc pi-disc--1">lil uzi</span>
+              <span className="pi-disc pi-disc--2">drake</span>
+            </span>
+            <span className="pi-text">
+              <b>Stack</b> artists into <b>one mix</b>
+            </span>
           </li>
         </ol>
 
