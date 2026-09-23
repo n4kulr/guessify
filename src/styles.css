@@ -5867,51 +5867,7 @@ button.footer-privacy:hover {
      contrast in themes where bg and sub-alt are close (e.g. matrix). */
   background: color-mix(in srgb, var(--text-color) 6%, var(--sub-alt-color));
 }
-.play-howto-steps li:has(.howto-ctrl) {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
 .play-howto-steps b { color: var(--main-color); font-weight: 600; }
-.howto-ctrl {
-  flex: none;
-  pointer-events: none;
-}
-.play-howto-steps .guess-transport-switch {
-  width: 52px;
-  min-width: 52px;
-  height: 26px;
-  padding: 2px;
-}
-.play-howto-steps .guess-transport-thumb {
-  top: 2px;
-  left: 2px;
-  height: calc(100% - 4px);
-  width: calc(50% - 2px);
-}
-.howto-ctrl--skip {
-  display: inline-flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 1px;
-  padding: 4px 8px 3px;
-  border-radius: calc(var(--radius) - 2px);
-  border: 1.5px solid color-mix(in srgb, var(--text-color) 22%, transparent);
-  background: transparent;
-  color: var(--text-color);
-  box-shadow: none;
-  font-size: 9px;
-  font-weight: 700;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  line-height: 1.1;
-}
-.howto-ctrl--skip .btn-hint {
-  font-size: 7px;
-  font-weight: 600;
-  letter-spacing: 0.12em;
-  opacity: 0.7;
-}
 /* Picker intro: tiny looping demo beside each way to pick. */
 .picker-intro-steps { gap: 8px; margin-bottom: 4px; }
 .picker-intro-steps li {
@@ -6003,7 +5959,123 @@ button.footer-privacy:hover {
   50%, 88% { opacity: 1; transform: none; }
   100% { opacity: 0; transform: none; }
 }
+/* How to play demos */
+.pi-vis--play { gap: 8px; }
+.pi-play {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--main-color);
+  color: var(--bg-color);
+  display: grid;
+  place-items: center;
+  animation: pi-press var(--pi-loop) ease-in-out infinite;
+}
+.pi-play svg { margin-left: 1px; }
+@keyframes pi-press {
+  0%, 14%, 24%, 100% { transform: none; }
+  18% { transform: scale(0.82); }
+}
+.pi-eq { display: flex; align-items: flex-end; gap: 2px; height: 16px; }
+.pi-eq span {
+  width: 3px;
+  height: 100%;
+  border-radius: 2px;
+  background: color-mix(in srgb, var(--main-color) 70%, transparent);
+  transform-origin: bottom;
+  transform: scaleY(0.2);
+  animation: pi-eq 0.8s ease-in-out infinite alternate;
+}
+.pi-eq span:nth-child(2) { animation-delay: -0.3s; }
+.pi-eq span:nth-child(3) { animation-delay: -0.55s; }
+.pi-eq span:nth-child(4) { animation-delay: -0.15s; }
+@keyframes pi-eq {
+  from { transform: scaleY(0.2); }
+  to { transform: scaleY(1); }
+}
+.pi-vis--type .pi-field { justify-content: space-between; }
+.pi-check {
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--main-color);
+  opacity: 0;
+  animation: pi-check var(--pi-loop) ease-out infinite;
+}
+@keyframes pi-check {
+  0%, 52% { opacity: 0; transform: scale(0.5); }
+  60%, 85% { opacity: 1; transform: none; }
+  100% { opacity: 0; }
+}
+.pi-vis--skip { flex-direction: column; gap: 6px; }
+.pi-bar {
+  width: 52px;
+  height: 4px;
+  border-radius: 2px;
+  background: color-mix(in srgb, var(--text-color) 14%, transparent);
+  overflow: hidden;
+}
+.pi-bar span {
+  display: block;
+  height: 100%;
+  background: var(--main-color);
+  animation: pi-unlock var(--pi-loop) ease-out infinite;
+}
+@keyframes pi-unlock {
+  0%, 22% { width: 20%; }
+  30%, 55% { width: 45%; }
+  63%, 92% { width: 80%; }
+  100% { width: 20%; }
+}
+.pi-skip {
+  font: 700 7px/1 var(--font);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  padding: 3px 7px;
+  border-radius: 4px;
+  border: 1px solid color-mix(in srgb, var(--text-color) 26%, transparent);
+  animation: pi-skip var(--pi-loop) ease-in-out infinite;
+}
+@keyframes pi-skip {
+  0%, 16%, 28%, 49%, 61%, 100% { transform: none; background: transparent; }
+  22%, 55% { transform: scale(0.9); background: color-mix(in srgb, var(--text-color) 14%, transparent); }
+}
+.pi-vis--race { flex-direction: column; gap: 7px; }
+.pi-lane {
+  position: relative;
+  width: 52px;
+  height: 2px;
+  border-radius: 1px;
+  background: color-mix(in srgb, var(--text-color) 14%, transparent);
+}
+.pi-runner {
+  position: absolute;
+  top: 50%;
+  left: 0;
+  width: 8px;
+  height: 8px;
+  margin-top: -4px;
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--text-color) 45%, transparent);
+  animation: pi-run-slow var(--pi-loop) ease-in-out infinite;
+}
+.pi-runner--win { animation-name: pi-run-win; }
+@keyframes pi-run-win {
+  0%, 8% { left: 0; }
+  55%, 88% { left: calc(100% - 8px); background: var(--main-color); box-shadow: 0 0 0 3px color-mix(in srgb, var(--main-color) 25%, transparent); }
+  100% { left: 0; }
+}
+@keyframes pi-run-slow {
+  0%, 8% { left: 0; }
+  70%, 88% { left: calc(70% - 8px); }
+  100% { left: 0; }
+}
 @media (prefers-reduced-motion: reduce) {
+  .pi-play, .pi-eq span, .pi-check, .pi-bar span, .pi-skip, .pi-runner { animation: none; }
+  .pi-eq span { transform: scaleY(0.6); }
+  .pi-check { opacity: 1; }
+  .pi-bar span { width: 45%; }
+  .pi-runner--win { left: calc(100% - 8px); background: var(--main-color); }
+  .pi-runner:not(.pi-runner--win) { left: calc(70% - 8px); }
   .pi-case--on, .pi-typed, .pi-disc { animation: none; }
   .pi-case--on { background: color-mix(in srgb, var(--main-color) 55%, transparent); transform: translateY(-3px); }
   .pi-typed { width: 5ch; }

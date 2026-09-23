@@ -1,51 +1,62 @@
 import { useEffect, useId, useRef } from "react";
-import { PauseIcon, PlayIcon } from "./icons.jsx";
+import { PlayIcon } from "./icons.jsx";
 import { APP_VERSION } from "../versionHistory.js";
-
-function HowtoPlayCtrl() {
-  return (
-    <span className="howto-ctrl howto-ctrl--play" aria-hidden="true">
-      <span className="guess-transport-switch is-paused">
-        <span className="guess-transport-thumb" />
-        <span className="guess-transport-slot guess-transport-slot--play">
-          <PlayIcon className="guess-transport-glyph" width="11" height="11" />
-        </span>
-        <span className="guess-transport-slot guess-transport-slot--pause">
-          <PauseIcon className="guess-transport-glyph" width="11" height="11" />
-        </span>
-      </span>
-    </span>
-  );
-}
-
-function HowtoSkipCtrl() {
-  return (
-    <span className="howto-ctrl howto-ctrl--skip" aria-hidden="true">
-      <span className="btn-label">skip</span>
-      <span className="btn-hint">+audio</span>
-    </span>
-  );
-}
 
 /** Shared how-to steps (first-run splash + ? fab). */
 export function PlayHowtoSteps({ race = true }) {
   return (
-    <ol className="play-howto-steps">
+    <ol className="play-howto-steps picker-intro-steps">
       <li>
-        <HowtoPlayCtrl />
-        Play a short snippet of a song.
+        <span className="pi-vis pi-vis--play" aria-hidden="true">
+          <span className="pi-play">
+            <PlayIcon width="8" height="8" />
+          </span>
+          <span className="pi-eq">
+            <span />
+            <span />
+            <span />
+            <span />
+          </span>
+        </span>
+        <span className="pi-text">
+          <b>Play</b> a short snippet
+        </span>
       </li>
       <li>
-        Type the <b>song title</b> (close spelling counts). Pick a suggestion
-        or keep typing. Artist is a small bonus.
+        <span className="pi-vis pi-vis--type" aria-hidden="true">
+          <span className="pi-field">
+            <span className="pi-typed">hello</span>
+            <span className="pi-check">✓</span>
+          </span>
+        </span>
+        <span className="pi-text">
+          <b>Type</b> the title, typos ok
+        </span>
       </li>
       <li>
-        <HowtoSkipCtrl />
-        Skip if you’re stuck — unlocks more audio.
+        <span className="pi-vis pi-vis--skip" aria-hidden="true">
+          <span className="pi-bar">
+            <span />
+          </span>
+          <span className="pi-skip">skip</span>
+        </span>
+        <span className="pi-text">
+          <b>Skip</b> to hear more
+        </span>
       </li>
       {race && (
         <li>
-          First person to nail the <b>title</b> wins the round.
+          <span className="pi-vis pi-vis--race" aria-hidden="true">
+            <span className="pi-lane">
+              <span className="pi-runner pi-runner--win" />
+            </span>
+            <span className="pi-lane">
+              <span className="pi-runner" />
+            </span>
+          </span>
+          <span className="pi-text">
+            First to the <b>title</b> wins
+          </span>
         </li>
       )}
     </ol>
