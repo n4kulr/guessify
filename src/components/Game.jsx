@@ -87,7 +87,6 @@ export default function Game({ playlist, me, onExit, onReplay, onboarding = fals
   const [outcome, setOutcome] = useState(null); // null | win | lose
   const [score, setScore] = useState(0);
   const [bonus, setBonus] = useState(0);
-  const [earnedPts, setEarnedPts] = useState(0);
   const [artistBonusTaken, setArtistBonusTaken] = useState(false);
   const [revealedArtist, setRevealedArtist] = useState(null);
   const [titleGuess, setTitleGuess] = useState("");
@@ -178,7 +177,6 @@ export default function Game({ playlist, me, onExit, onReplay, onboarding = fals
     setGuessNum(0);
     setOutcome(null);
     setBonus(0);
-    setEarnedPts(0);
     setArtistBonusTaken(false);
     setRevealedArtist(null);
     setCelebrate(false);
@@ -431,7 +429,6 @@ export default function Game({ playlist, me, onExit, onReplay, onboarding = fals
       const titlePts = Math.round(titlePointsForGuess(guessNum) * mult);
       const solveMs = Date.now() - roundStartedAt.current;
       setWinStreak(streak);
-      setEarnedPts(titlePts + artistPts + almostPaid);
       setScore((s) => s + titlePts);
       pushRoundResult({
         won: true,
@@ -456,9 +453,6 @@ export default function Game({ playlist, me, onExit, onReplay, onboarding = fals
         almostPts = ALMOST_POINTS;
         setAlmostPaid(almostPts);
         setScore((s) => s + almostPts);
-      }
-      if (artistPts || almostPts) {
-        setEarnedPts((p) => p + artistPts + almostPts);
       }
     }
   }
@@ -675,8 +669,6 @@ export default function Game({ playlist, me, onExit, onReplay, onboarding = fals
                         roundLog[roundIdx]?.wallMs ??
                         resolveRevealMs({ startedAt: roundStartedAt.current })
                       }
-                      pts={earnedPts}
-                      artistClaimed={artistBonusTaken}
                       almostPts={almostPaid}
                     />
                     <span className="vinyl-deck-title">
