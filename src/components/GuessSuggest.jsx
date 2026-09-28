@@ -1,7 +1,8 @@
 import { useEffect, useId, useRef, useState } from "react";
+import { asciiFold } from "../suggestRank.js";
 
 const MIN_CHARS = 2;
-const DEBOUNCE_MS = 220;
+const DEBOUNCE_MS = 120;
 
 // Text suggestions — fast. Covers are a separate request so typing stays snappy.
 const cache = new Map();
@@ -11,23 +12,17 @@ async function fetchSuggestions(kind, q, roundArtists) {
   const artistsKey = (roundArtists || []).join("\0").toLowerCase();
   const key = `${kind}:${q.toLowerCase()}:${artistsKey}`;
   if (cache.has(key)) return cache.get(key);
-  try {
-    const params = new URLSearchParams({
-      kind,
-      q,
+  const params = new URLSearchParams({ kind, q });
+  if (roundArtists?.length) params.set("artists", roundArtists.join(","));
+  const pending = fetch(`/api/suggest?${params}`)
+    .then((r) => (r.ok ? r.json() : Promise.reject()))
+    .then((data) => (Array.isArray(data?.items) ? data.items : []))
+    .catch(() => {
+      cache.delete(key);
+      return [];
     });
-    if (roundArtists?.length) {
-      params.set("artists", roundArtists.join(","));
-    }
-    const r = await fetch(`/api/suggest?${params}`);
-    if (!r.ok) return [];
-    const data = await r.json();
-    const items = Array.isArray(data?.items) ? data.items : [];
-    cache.set(key, items);
-    return items;
-  } catch {
-    return [];
-  }
+  cache.set(key, pending);
+  return pending;
 }
 
 async function fetchCovers(kind, q, items) {
@@ -68,7 +63,8 @@ export function useGuessSuggest({
   onPick,
   submitPick,
 }) {
-  const [items, setItems] = useState([]);
+  // `q` is the query these rows answer; newer keystrokes narrow them locally.
+  const [results, setResults] = useState({ q: "", items: [] });
   const [open, setOpen] = useState(false);
   const [active, setActive] = useState(-1);
   const listId = useId().replace(/:/g, "");
@@ -85,23 +81,30 @@ export function useGuessSuggest({
   const artistsKey = (roundArtists || []).join("\0");
 
   useEffect(() => {
+    setActive(-1);
     if (!enabled || q.length < MIN_CHARS) {
-      setItems([]);
-      setActive(-1);
+      setResults({ q: "", items: [] });
       return undefined;
     }
     const t = setTimeout(async () => {
       const found = await fetchSuggestions(kind, q, roundArtists);
       if (queryRef.current !== q) return;
-      setItems(found);
-      setActive(-1);
+      setResults({ q, items: found });
       void fetchCovers(kind, q, found).then((withCovers) => {
         if (queryRef.current !== q) return;
-        setItems(withCovers);
+        setResults({ q, items: withCovers });
       });
     }, DEBOUNCE_MS);
     return () => clearTimeout(t);
   }, [kind, q, enabled, artistsKey]);
+
+  // Fresh rows show as-is (they may be fuzzy matches); stale ones only while
+  // they still contain what's typed, so the list reacts on every keystroke.
+  const fq = asciiFold(q);
+  const items =
+    results.q === q
+      ? results.items
+      : results.items.filter((i) => asciiFold(i.name).includes(fq));
 
   const visible = enabled && open && items.length > 0;
 
