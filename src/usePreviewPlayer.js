@@ -5,7 +5,6 @@ import { pauseGuessifyNowPlaying, setGuessifyNowPlaying } from "./mediaSession.j
 import { markAudioWarm } from "./previewWarm.js";
 import {
   previewIsActive,
-  previewPipelineBroken,
   reloadAudioToStart,
   armCanPlay,
   shouldExtendToFull,
@@ -85,10 +84,6 @@ export function usePreviewPlayer() {
 
   pauseRef.current = pause;
 
-  const prime = useCallback(() => {
-    void outputRef.current?.resume();
-  }, []);
-
   useEffect(() => {
     const audio = newAudioShell();
     audioRef.current = audio;
@@ -106,27 +101,17 @@ export function usePreviewPlayer() {
     pauseListenerRef.current = onAudioPause;
     audio.addEventListener("pause", onAudioPause);
 
-    async function onVisibilityChange() {
-      if (document.hidden) {
-        if (previewIsActive(activeRefs())) pauseRef.current();
-        return;
-      }
-      // Await the resume before judging the pipeline: checking synchronously
-      // raced the state change and could condemn a context that was fine.
-      await outputRef.current?.resume();
-      if (previewPipelineBroken(audioRef.current, outputRef.current)) {
-        pauseRef.current();
-      }
+    function onVisibilityChange() {
+      if (document.hidden && previewIsActive(activeRefs())) pauseRef.current();
     }
 
     function onPageShow(e) {
       if (!e.persisted) return;
-      // bfcache restore — React may still show "playing" while Web Audio is dead.
+      // bfcache restore — React may still show "playing" for a dead element.
       const a = audioRef.current;
       if (previewIsActive(activeRefs()) || (a && !a.paused)) {
         pauseRef.current();
       }
-      void outputRef.current?.resume();
     }
 
     document.addEventListener("visibilitychange", onVisibilityChange);
@@ -166,10 +151,9 @@ export function usePreviewPlayer() {
 
   const play = useCallback(async (track, seconds, { onStop } = {}) => {
     setErrorMsg(null);
-    void outputRef.current?.resume();
 
     const playFull = seconds == null || seconds === Infinity;
-    let audio = audioRef.current;
+    const audio = audioRef.current;
     if (!audio) throw new Error("audio missing");
 
     // Kill the snippet cut before any await — otherwise the timer can pause
@@ -197,24 +181,6 @@ export function usePreviewPlayer() {
     clearEnded();
     onStopRef.current = onStop || null;
 
-    // iOS MediaElementSource: reusing the same element after a snippet
-    // (load/seek/play) doubles the opening second. Swap in a fresh <audio>
-    // on the same AudioContext — same pipeline as a first play, which is fine.
-    const output = outputRef.current;
-    if (output?.usesWebAudio?.() && currentUrlRef.current) {
-      const prev = audio;
-      const next = newAudioShell();
-      if (pauseListenerRef.current) {
-        prev.removeEventListener("pause", pauseListenerRef.current);
-      }
-      audio = output.swapMediaElement(next);
-      audioRef.current = audio;
-      if (pauseListenerRef.current) {
-        audio.addEventListener("pause", pauseListenerRef.current);
-      }
-      currentUrlRef.current = null;
-    }
-
     // Safari can tear down a backgrounded tab's media resource: the element
     // keeps the same src but drops back to HAVE_NOTHING. Reusing it then
     // "plays" nothing until a reload, so treat an emptied element as a new URL.
@@ -238,7 +204,7 @@ export function usePreviewPlayer() {
         throw new Error("audio load failed");
       }
     } else {
-      // Desktop reuse: same URL mid-clip — reload from cache (no Web Audio).
+      // Same URL mid-clip — reload from cache.
       try {
         await reloadAudioToStart(audio);
       } catch {
@@ -249,7 +215,6 @@ export function usePreviewPlayer() {
     }
 
     markAudioWarm(url);
-    await outputRef.current?.resume();
     try {
       await audio.play();
     } catch (e) {
@@ -257,19 +222,9 @@ export function usePreviewPlayer() {
       // AbortError whenever a play is interrupted by a pause or a load, and
       // playback can already be under way by the time we get here — so
       // calling play() again stacks a second start on top of the first, which
-      // is audible as an echo. Only recover when the element really is
-      // stopped; otherwise the rejection was cosmetic and we carry on.
-      if (!audio.paused) {
-        // Playing despite the rejection — nothing to recover.
-      } else if (outputRef.current?.isContextSuspended?.()) {
-        try {
-          await outputRef.current.resume();
-          await audio.play();
-        } catch {
-          setErrorMsg("Couldn't play preview — check autoplay / sound settings.");
-          throw e;
-        }
-      } else {
+      // is audible as an echo. Only fail when the element really is stopped;
+      // otherwise the rejection was cosmetic and we carry on.
+      if (audio.paused) {
         setErrorMsg("Couldn't play preview — check autoplay / sound settings.");
         throw e;
       }
@@ -290,7 +245,6 @@ export function usePreviewPlayer() {
     setErrorMsg,
     play,
     pause,
-    prime,
     audio: audioRef,
   };
 }

@@ -57,7 +57,7 @@ export default function GuestApp({ code }) {
   const [cueReady, setCueReady] = useState(false);
   /** After the first cue, keep the board up and spin the vinyl center instead. */
   const [boardReady, setBoardReady] = useState(false);
-  const { errorMsg, setErrorMsg, play, pause, prime } = usePreviewPlayer();
+  const { errorMsg, setErrorMsg, play, pause } = usePreviewPlayer();
   const [playBusy, setPlayBusy] = useState(false);
   const [localPlaying, setLocalPlaying] = useState(false);
   const lastTrackRef = useRef(null);
@@ -660,7 +660,6 @@ export default function GuestApp({ code }) {
             cueing={state?.phase === "play" && !cueReady}
             vinylTitle={canPlay && cueReady ? "play / pause · drag to scrub" : undefined}
             onTogglePlay={togglePlay}
-            onPrimeAudio={prime}
             onScrubStart={stopAudio}
           />
         </VinylDeck>

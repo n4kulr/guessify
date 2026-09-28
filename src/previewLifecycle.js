@@ -11,17 +11,6 @@ export function shouldExtendToFull(playFull, { paused, currentUrl, url } = {}) {
   return !!(playFull && !paused && currentUrl && currentUrl === url);
 }
 
-/**
- * iOS WebKit: a stalled AudioContext ("suspended", or WebKit's non-standard
- * "interrupted" after a tab switch / call) with the element not paused means a
- * silent "playing" — the graph carries all the sound and it isn't running.
- * Caller should pause and clear UI when this returns true.
- */
-export function previewPipelineBroken(audio, output) {
-  if (!audio || audio.paused) return false;
-  return output?.isContextSuspended?.() === true;
-}
-
 /** Close enough to t=0 that a restart is not needed. */
 const AT_START_EPS = 0.05;
 const HAVE_CURRENT_DATA = 2;

@@ -89,7 +89,7 @@ export default function HostParty({
       color: accentMatchingTheme(PLAYER_COLORS),
     });
   });
-  const { errorMsg, setErrorMsg, play, pause, prime } = usePreviewPlayer();
+  const { errorMsg, setErrorMsg, play, pause } = usePreviewPlayer();
   const [playBusy, setPlayBusy] = useState(false);
   const [localPlaying, setLocalPlaying] = useState(false);
   const lastTrackRef = useRef(null);
@@ -834,7 +834,6 @@ export default function HostParty({
           cueing={phase === "play" && !cueReady}
           vinylTitle={canPlay && cueReady ? "play / pause · drag to scrub" : undefined}
           onTogglePlay={togglePlay}
-          onPrimeAudio={prime}
           onScrubStart={stopAudio}
         />
       </VinylDeck>

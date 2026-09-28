@@ -5,7 +5,6 @@
 import assert from "node:assert/strict";
 import {
   previewIsActive,
-  previewPipelineBroken,
   reloadAudioToStart,
   waitUntilCanPlay,
   armCanPlay,
@@ -30,19 +29,6 @@ assert.equal(
 );
 assert.equal(
   shouldExtendToFull(true, { paused: false, currentUrl: "a", url: "b" }),
-  false
-);
-
-assert.equal(
-  previewPipelineBroken({ paused: false }, { isContextSuspended: () => true }),
-  true
-);
-assert.equal(
-  previewPipelineBroken({ paused: true }, { isContextSuspended: () => true }),
-  false
-);
-assert.equal(
-  previewPipelineBroken({ paused: false }, { isContextSuspended: () => false }),
   false
 );
 

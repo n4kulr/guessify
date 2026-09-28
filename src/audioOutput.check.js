@@ -1,47 +1,10 @@
 /**
- * Self-check: iOS path uses gain; desktop path uses element.volume.
+ * Self-check: volume + mute ride the plain element on every platform.
  * Run: node src/audioOutput.check.js
  */
 import assert from "node:assert/strict";
 
-const listeners = new Map();
-
-function stubWindow({ ios }) {
-  globalThis.window = {
-    AudioContext: class {
-      constructor() {
-        this.state = "running";
-        this.destination = {};
-        globalThis.__lastCtx = this;
-      }
-      createMediaElementSource() {
-        return {
-          connect() {},
-          disconnect() {
-            this.disconnected = true;
-          },
-        };
-      }
-      createGain() {
-        return { gain: { value: 1 }, connect() {} };
-      }
-      async resume() {
-        if (this.state === "closed") throw new Error("closed");
-        this.state = "running";
-      }
-    },
-    webkitAudioContext: undefined,
-    addEventListener(type, cb) {
-      if (!listeners.has(type)) listeners.set(type, new Set());
-      listeners.get(type).add(cb);
-    },
-    removeEventListener(type, cb) {
-      listeners.get(type)?.delete(cb);
-    },
-    dispatchEvent(e) {
-      for (const cb of listeners.get(e.type) || []) cb(e);
-    },
-  };
+function stubNavigator(ios) {
   // Node 24 exposes navigator as a getter-only global — defineProperty past it.
   Object.defineProperty(globalThis, "navigator", {
     configurable: true,
@@ -50,124 +13,61 @@ function stubWindow({ ios }) {
       ? { userAgent: "Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X)", platform: "iPhone", maxTouchPoints: 5 }
       : { userAgent: "Mozilla/5.0 (Macintosh; Intel Mac OS X) Chrome/120", platform: "MacIntel", maxTouchPoints: 0 },
   });
-  globalThis.localStorage = {
-    _m: new Map(),
-    getItem(k) {
-      return this._m.has(k) ? this._m.get(k) : null;
-    },
-    setItem(k, v) {
-      this._m.set(k, String(v));
-    },
-  };
 }
 
-stubWindow({ ios: true });
+const listeners = new Map();
+globalThis.window = {
+  addEventListener(type, cb) {
+    if (!listeners.has(type)) listeners.set(type, new Set());
+    listeners.get(type).add(cb);
+  },
+  removeEventListener(type, cb) {
+    listeners.get(type)?.delete(cb);
+  },
+  dispatchEvent(e) {
+    for (const cb of listeners.get(e.type) || []) cb(e);
+  },
+};
+globalThis.localStorage = {
+  _m: new Map(),
+  getItem(k) {
+    return this._m.has(k) ? this._m.get(k) : null;
+  },
+  setItem(k, v) {
+    this._m.set(k, String(v));
+  },
+};
+
 const { setVolume } = await import("./volume.js");
-const { attachVolumeControl, contextStalled } = await import("./audioOutput.js");
+const { attachVolumeControl, ignoresElementVolume } = await import("./audioOutput.js");
 
-// WebKit parks the context as "interrupted" (not in the spec) on a tab switch,
-// backgrounding or a call. Treating only "suspended" as stalled meant we never
-// resumed it, so the audio stayed silent until the player reloaded the page.
-assert.equal(contextStalled("running"), false);
-assert.equal(contextStalled("suspended"), true);
-assert.equal(contextStalled("interrupted"), true);
-assert.equal(contextStalled("closed"), false);
-assert.equal(contextStalled(undefined), false);
+stubNavigator(true);
+assert.equal(ignoresElementVolume(), true, "iPhone ignores element.volume");
+stubNavigator(false);
+assert.equal(ignoresElementVolume(), false, "desktop honours element.volume");
 
 {
   const audio = { volume: 0.5, muted: false, crossOrigin: null };
   const api = attachVolumeControl(audio);
-  assert.equal(audio.crossOrigin, "anonymous");
-  assert.equal(audio.volume, 1, "iOS: element volume locked at 1");
-  setVolume(0.25);
-  assert.equal(api.getLevel(), 0.25, "iOS: slider drives gain");
-  assert.equal(audio.volume, 1);
-
-  // The bug this guards: element.muted alone leaves gain untouched, so audio
-  // kept playing through the Web Audio graph on iOS after pressing mute.
-  api.setMuted(true);
-  assert.equal(api.getLevel(), 0, "iOS: mute drops the gain, not just the flag");
-  assert.equal(audio.muted, true);
-  setVolume(0.8); // slider moves while muted — must stay silent
-  assert.equal(api.getLevel(), 0, "iOS: muted survives a volume change");
-  api.setMuted(false);
-  assert.equal(api.getLevel(), 0.8, "iOS: unmute restores the current slider level");
-
-  // Fresh element on the same context — the iOS restart-without-glitch path.
-  assert.equal(api.usesWebAudio(), true);
-  const next = {
-    volume: 0.5,
-    muted: false,
-    crossOrigin: null,
-    preload: "auto",
-    playsInline: false,
-    pause() {
-      this.paused = true;
-    },
-    removeAttribute() {},
-    load() {},
-  };
-  const swapped = api.swapMediaElement(next);
-  assert.equal(swapped, next);
-  assert.equal(next.crossOrigin, "anonymous");
-  assert.equal(next.volume, 1);
-  assert.equal(api.getLevel(), 0.8, "iOS: gain survives an element swap");
-  api.setMuted(true);
-  assert.equal(next.muted, true);
-  assert.equal(api.getLevel(), 0, "iOS: mute still rides gain after swap");
-
-  api.detach();
-}
-
-// --- tab switch recovery -------------------------------------------------
-{
-  const audio = { volume: 0.5, muted: false, crossOrigin: null };
-  const api = attachVolumeControl(audio);
-  const ctx = globalThis.__lastCtx;
-
-  assert.equal(api.isContextSuspended(), false, "starts running");
-
-  // Backgrounding the tab, WebKit style.
-  ctx.state = "interrupted";
-  assert.equal(
-    api.isContextSuspended(),
-    true,
-    "an interrupted context must report as stalled — this is the bug that made "
-      + "audio die on tab switch until a refresh"
-  );
-  await api.resume();
-  assert.equal(ctx.state, "running", "resume() revives an interrupted context");
-  assert.equal(api.isContextSuspended(), false);
-
-  // The plain suspended path still works.
-  ctx.state = "suspended";
-  assert.equal(api.isContextSuspended(), true);
-  await api.resume();
-  assert.equal(ctx.state, "running");
-
-  // A closed context can't be revived — resume must not throw.
-  ctx.state = "closed";
-  assert.equal(api.isContextSuspended(), false, "closed is unrecoverable, not stalled");
-  await api.resume();
-  api.detach();
-}
-
-// Re-import won't re-bind needsGainFader — module already loaded with iOS navigator.
-// Desktop path: call apply via a fresh attach after flipping navigator, but the
-// module closed over nothing — needsGainFader reads navigator each call. Good.
-stubWindow({ ios: false });
-{
-  const audio = { volume: 0.5, muted: false, crossOrigin: null };
-  const api = attachVolumeControl(audio);
-  assert.equal(audio.crossOrigin, null, "desktop: no crossOrigin force");
+  assert.equal(audio.crossOrigin, null, "no CORS mode — nothing reads the samples");
   setVolume(0.4);
-  assert.equal(audio.volume, 0.4, "desktop: slider writes element.volume");
-  assert.equal(api.getLevel(), 0.4);
+  assert.equal(audio.volume, 0.4, "slider writes element.volume");
+  assert.equal(audio.muted, false);
+
+  // iOS ignores volume, so 0 has to mute or the toggle would be silent-fail.
+  setVolume(0);
+  assert.equal(audio.muted, true, "volume 0 mutes the element");
+  setVolume(0.7);
+  assert.equal(audio.muted, false, "raising volume unmutes");
+
   api.setMuted(true);
-  assert.equal(audio.muted, true, "desktop: mute sets the element flag");
-  assert.equal(audio.volume, 0, "desktop: mute also zeroes volume");
+  assert.equal(audio.muted, true);
+  assert.equal(audio.volume, 0);
+  setVolume(0.8); // slider moves while muted — must stay silent
+  assert.equal(audio.muted, true, "muted survives a volume change");
   api.setMuted(false);
-  assert.equal(audio.volume, 0.4, "desktop: unmute restores the slider level");
+  assert.equal(audio.muted, false);
+  assert.equal(audio.volume, 0.8, "unmute restores the current slider level");
   api.detach();
 }
 

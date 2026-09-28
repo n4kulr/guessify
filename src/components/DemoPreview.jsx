@@ -216,7 +216,6 @@ export default function DemoPreview() {
       }
       outputRef.current?.setMuted(mutedRef.current);
       try {
-        await outputRef.current?.resume();
         await audio.play();
       } catch {
         /* muted autoplay usually works; ignore blocks */
@@ -238,7 +237,6 @@ export default function DemoPreview() {
       pauseGuessifyNowPlaying();
       return;
     }
-    outputRef.current?.resume();
     a.play()
       .then(() => setGuessifyNowPlaying())
       .catch(() => {});

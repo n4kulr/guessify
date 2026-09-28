@@ -22,7 +22,6 @@ export default function GuessMedia({
   hideSpinNudge = false,
   vinylTitle,
   onTogglePlay,
-  onPrimeAudio,
   onScrubStart,
   onScrubEnd,
 }) {
@@ -78,7 +77,6 @@ export default function GuessMedia({
         enabled={interactive && !cueing}
         title={cueing ? "cueing the record…" : vinylTitle}
         onClick={live ? onTogglePlay : undefined}
-        onPrimeAudio={live ? onPrimeAudio : undefined}
         onScrubStart={onScrubStart}
         onScrubEnd={onScrubEnd}
       >

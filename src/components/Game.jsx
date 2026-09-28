@@ -111,7 +111,7 @@ export default function Game({ playlist, me, onExit, onReplay, onboarding = fals
   /** Onboarding: pencil cue on the vinyl until the first tap. */
   const [showVinylCoach, setShowVinylCoach] = useState(!!onboarding);
 
-  const { errorMsg, setErrorMsg, play, pause, prime } = usePreviewPlayer();
+  const { errorMsg, setErrorMsg, play, pause } = usePreviewPlayer();
   const roundStartedAt = useRef(Date.now());
 
   /**
@@ -705,7 +705,6 @@ export default function Game({ playlist, me, onExit, onReplay, onboarding = fals
                       : undefined
                   }
                   onTogglePlay={togglePlay}
-                  onPrimeAudio={prime}
                   onScrubStart={onVinylScrubStart}
                   onScrubEnd={onVinylScrubEnd}
                 />

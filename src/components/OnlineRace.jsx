@@ -252,7 +252,7 @@ export default function OnlineRace({ profile, onExit, raceMode: raceModeProp }) 
   const [timedPlaces, setTimedPlaces] = useState(null);
   const [solveTimes, setSolveTimes] = useState(null);
 
-  const { errorMsg, setErrorMsg, play, pause, prime } = usePreviewPlayer();
+  const { errorMsg, setErrorMsg, play, pause } = usePreviewPlayer();
   const rootRef = useRef(null);
   const skipWrapRef = useRef(null);
   const titleFieldRef = useRef(null);
@@ -1368,7 +1368,6 @@ export default function OnlineRace({ profile, onExit, raceMode: raceModeProp }) 
             cueing={phase === "play" && !cueReady}
             vinylTitle={cueReady ? "play / pause · drag to scrub" : undefined}
             onTogglePlay={togglePlay}
-            onPrimeAudio={prime}
             onScrubStart={stopAudio}
           />
         </VinylDeck>

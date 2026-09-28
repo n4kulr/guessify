@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { getVolume, setVolume, subscribeVolume } from "../volume.js";
+import { ignoresElementVolume } from "../audioOutput.js";
 import { MuteIcon, VolumeLowIcon, VolumeHighIcon } from "./icons.jsx";
 
 function SpeakerIcon({ level }) {
@@ -11,6 +12,8 @@ function SpeakerIcon({ level }) {
 export default function VolumeControl() {
   const [open, setOpen] = useState(false);
   const [value, setValue] = useState(() => getVolume());
+  // iOS ignores element volume — hardware buttons set level, we only mute.
+  const [muteOnly] = useState(ignoresElementVolume);
   const ref = useRef(null);
 
   useEffect(() => subscribeVolume(setValue), []);
@@ -25,6 +28,24 @@ export default function VolumeControl() {
 
   const level = value <= 0.001 ? 0 : value < 0.45 ? 1 : 2;
   const pct = Math.round(value * 100);
+
+  if (muteOnly) {
+    const silent = level === 0;
+    return (
+      <div className="volume-control">
+        <button
+          type="button"
+          className="volume-btn"
+          title={silent ? "unmute" : "mute"}
+          aria-label={silent ? "Unmute" : "Mute"}
+          aria-pressed={silent}
+          onClick={() => setVolume(silent ? 1 : 0)}
+        >
+          <SpeakerIcon level={silent ? 0 : 2} />
+        </button>
+      </div>
+    );
+  }
 
   return (
     <div className={`volume-control${open ? " is-open" : ""}`} ref={ref}>
