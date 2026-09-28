@@ -62,21 +62,21 @@ async function findPreview(title, artist, signal) {
     itunesSearch(queries[0], signal).catch(() => []),
     deezerSearch(queries[0], signal).catch(() => []),
   ]);
-  const firstApple = pickBest(firstItunes, wantTitle, wantArtist);
+  const firstApple = pickBest(firstItunes, wantTitle, wantArtist, title);
   if (firstApple?.previewUrl) return { ...firstApple, source: "itunes" };
-  const firstDz = pickBest(firstDeezer, wantTitle, wantArtist);
+  const firstDz = pickBest(firstDeezer, wantTitle, wantArtist, title);
   if (firstDz?.previewUrl) return { ...firstDz, source: "deezer" };
 
   // Remaining fallback queries stay sequential — they're the rare path.
   for (const term of queries.slice(1)) {
     const results = await itunesSearch(term, signal);
-    const pick = pickBest(results, wantTitle, wantArtist);
+    const pick = pickBest(results, wantTitle, wantArtist, title);
     if (pick?.previewUrl) return { ...pick, source: "itunes" };
   }
 
   for (const term of queries.slice(1)) {
     const results = await deezerSearch(term, signal);
-    const pick = pickBest(results, wantTitle, wantArtist);
+    const pick = pickBest(results, wantTitle, wantArtist, title);
     if (pick?.previewUrl) return { ...pick, source: "deezer" };
   }
   return null;
@@ -115,17 +115,19 @@ async function deezerSearch(term, signal) {
     }));
 }
 
-function pickBest(results, title, artist) {
+export function pickBest(results, title, artist, rawTitle = title) {
   const withPreview = results.filter((r) => r.previewUrl && r.trackName);
   if (!withPreview.length) return null;
 
+  const wantExact = strictKey(rawTitle);
   let best = null;
   let bestScore = 0;
   for (const r of withPreview) {
     const titleScore = scoreTitle(title, r.trackName);
     if (titleScore <= 0) continue;
 
-    let score = titleScore;
+    // Brackets are ignored above, so "Song (Live)" ties "Song"; the version asked for breaks it.
+    let score = titleScore + (strictKey(r.trackName) === wantExact ? 1 : 0);
     if (artist) {
       const artistScore = scoreArtist(artist, r.artistName || "");
       // Artist known → require a real artist match (stops random same-title covers).
@@ -197,6 +199,10 @@ function cleanForSearch(str = "") {
     .replace(/[^\w\s']/g, " ")
     .replace(/\s+/g, " ")
     .trim();
+}
+
+function strictKey(s = "") {
+  return String(s).toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
 }
 
 function normalizeLoose(s = "") {
