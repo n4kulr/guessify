@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import PlayerAvatar from "../multiplayer/PlayerAvatar.jsx";
 import ProfileEditor from "../multiplayer/ProfileEditor.jsx";
 import ThemeSwitcher from "./ThemeSwitcher.jsx";
-import { loadLocalProfile, saveLocalProfile } from "../localProfile.js";
+import { loadLocalProfile, saveLocalProfile, PROFILE_EVENT } from "../localProfile.js";
 
 /**
  * Topbar squircle: current Open Peep, opens look editor anytime.
@@ -21,11 +21,16 @@ export default function LookButton({ theme, themeMode, onTheme, onThemeMode }) {
     function onKey(e) {
       if (e.key === "Escape") setOpen(false);
     }
+    function onProfile() {
+      setDraft(loadLocalProfile());
+    }
     document.addEventListener("pointerdown", onDoc);
     window.addEventListener("keydown", onKey);
+    window.addEventListener(PROFILE_EVENT, onProfile);
     return () => {
       document.removeEventListener("pointerdown", onDoc);
       window.removeEventListener("keydown", onKey);
+      window.removeEventListener(PROFILE_EVENT, onProfile);
     };
   }, []);
 

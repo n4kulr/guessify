@@ -2,6 +2,8 @@ import { normalizeAvatar, randomAvatar } from "./multiplayer/constants.js";
 
 const KEY = "guessify-online-profile";
 const SET_KEY = "guessify-online-profile-set";
+/** Fired on window after every save so mounted views (topbar look) can refresh. */
+export const PROFILE_EVENT = "guessify-profile";
 
 /** Local nickname + peep for play-online (Spotify name can override the nickname). */
 export function loadLocalProfile() {
@@ -47,6 +49,7 @@ export function saveLocalProfile({ name, avatar }, { customized = false } = {}) 
   try {
     localStorage.setItem(KEY, JSON.stringify(next));
     if (customized) localStorage.setItem(SET_KEY, "1");
+    window.dispatchEvent(new Event(PROFILE_EVENT));
   } catch {
     /* ignore */
   }

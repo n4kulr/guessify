@@ -846,10 +846,12 @@ export default function OnlineRace({ profile, onExit, raceMode: raceModeProp }) 
       const artistAt = (9000 + (1 - skill) * 16000) * (0.9 + Math.random() * 0.45);
       const titleAt = (16000 + (1 - skill) * 24000) * (0.9 + Math.random() * 0.5);
 
-      // Skip up to full unlock so a human who maxes out still waits on others.
-      const skipCount = MAX_GUESSES - 1;
+      // Like a person: 1–3 skips, listening a while between each. The rest of
+      // the ladder only follows once you've maxed out (effect below).
+      const skipCount = 1 + Math.floor(Math.random() * 3);
+      let skipAt = 0;
       for (let s = 0; s < skipCount; s++) {
-        const skipAt = 1200 + s * (2400 + Math.random() * 2000) + Math.random() * 800;
+        skipAt += 6000 + Math.random() * 8000;
         const tSkip = setTimeout(() => {
           if (roundKeyRef.current !== key) return;
           if (phaseRef.current !== "play") return;
@@ -887,6 +889,25 @@ export default function OnlineRace({ profile, onExit, raceMode: raceModeProp }) 
     return clearTimers;
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [phase, roundIdx, track?.id]);
+
+  // You maxed your skips — bots trail up to full unlock so classic can end.
+  useEffect(() => {
+    if (phase !== "play" || myStep < MAX_GUESSES - 1) return;
+    const key = roundKeyRef.current;
+    for (const op of players.filter((p) => p.id !== youId && p.skill != null)) {
+      const left = MAX_GUESSES - 1 - (unlockByPlayer[op.id] ?? 0);
+      let at = 0;
+      for (let s = 0; s < left; s++) {
+        at += 1500 + Math.random() * 2500;
+        const t = setTimeout(() => {
+          if (roundKeyRef.current !== key || phaseRef.current !== "play") return;
+          bumpUnlock(op.id);
+        }, at);
+        timersRef.current.push(t);
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [phase, myStep]);
 
   // Timed wall clock — ends the round even if nobody locked in.
   useEffect(() => {
