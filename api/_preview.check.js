@@ -1,6 +1,6 @@
 /**
  * Self-check: preview picking prefers the exact version asked for.
- * Run: node api/preview.check.js
+ * Run: node api/_preview.check.js
  */
 import assert from "node:assert/strict";
 import { pickBest } from "./preview.js";
