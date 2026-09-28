@@ -176,6 +176,53 @@ export function randomAvatar() {
   };
 }
 
+/** Lobby name pools by archetype — mix lengths + styles so it doesn't read generated. */
+export const NAME_ARCHETYPES = {
+  compounds: [
+    "lampmoth", "dampsocks", "wetcardboard", "gravyboat", "softserve",
+    "tinfoilhat", "mosscovered", "quietstorm", "brickwall", "papercut",
+  ],
+  numbered: [
+    "kian04", "noodle07", "marlo23", "zaine17", "obie06",
+    "tam0k", "vex21", "rhys09", "juno12", "cass88",
+  ],
+  stylized: [
+    "kaii", "jvnior", "syyd", "mattr", "nikaa",
+    "roshhh", "drewww", "elll", "beniii", "aris_",
+  ],
+  ironic: [
+    "notdrake", "certifiedyapper", "localmenace", "mildlyhungry", "guyfromthebus",
+    "professionalliar", "tunnelvision", "spotifywrapped2019", "sorryimlate", "thirdplace",
+  ],
+  short: ["oz", "jnk", "vrm", "dux", "kro"],
+  underscore: ["_slugbait", "x_hollow", "bean_", "__rue", "low_res"],
+  caps: [
+    "SilentJoy", "PaperTiger", "BlueHourGlass", "NorthFacing", "TapeDeck",
+    "Vagrant", "MidnightRun", "GhostOfTuesday", "SlowBurn", "Ferro",
+  ],
+  camel: [
+    "ZaneRuns", "KiraPlays", "MattOnMic", "AceOfLows", "RyeBread",
+    "TheRealOtis", "JustNoahThings", "CallMeVee", "DevWithADream", "NotYourGuy",
+  ],
+  // Spaces / periods / birth years — strong “real person” signal. Cap 1–2 per lobby.
+  dad: [
+    "Greg_Sullivan", "David Holt", "Paul.Mercer", "AndrewJTan", "SteveWilkinson",
+    "MartinB", "Chris O'Dea", "RobertLeung", "TonyMcGrath", "Ian_Fraser",
+    "DaveM1968", "Karen_1972", "Mike74", "JenniferA1969", "Rick_1965",
+    "PeterK1971", "Sue1970", "GaryW66", "Lisa_M_1973", "BigMike62",
+    "GregFishes", "DadOfThree", "GolfDad74", "Coach_Reilly", "PapaBear1967",
+    "SundayCyclist", "HandymanHal", "Grillmaster_Ken", "BBQ_Bruce", "RetiredRon",
+  ],
+};
+
+/** One bot-pool name that fits a nickname field of `maxLength`. */
+export function randomBotName(maxLength = 16) {
+  const pool = Object.values(NAME_ARCHETYPES)
+    .flat()
+    .filter((n) => n.length <= maxLength);
+  return pool[randomInt(pool.length)];
+}
+
 export function normalizeAvatar(raw, fallbackColor = PLAYER_COLORS[0]) {
   const a = raw && typeof raw === "object" ? raw : {};
   // Migrate old eyes/mouth avatars → random peep

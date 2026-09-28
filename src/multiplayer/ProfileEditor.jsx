@@ -5,8 +5,11 @@ import {
   PEEP_COUNT,
   peepSrc,
   randomAvatar,
+  randomBotName,
   normalizeAvatar,
 } from "./constants.js";
+
+const NAME_MAX = 16;
 import {
   applyThemeForAccent,
   accentMatchingTheme,
@@ -159,8 +162,10 @@ export default function ProfileEditor({
 
   function randomize() {
     const next = randomAvatar();
+    const nextName = name.trim() ? name : randomBotName(NAME_MAX);
     setAvatar(next);
-    emit(name, next);
+    setName(nextName);
+    emit(nextName, next);
     syncThemeFromAccent(next.color);
     setMenu(null);
   }
@@ -173,7 +178,7 @@ export default function ProfileEditor({
           className="guess-input profile-name"
           placeholder="nickname…"
           value={name}
-          maxLength={16}
+          maxLength={NAME_MAX}
           onChange={(e) => onName(e.target.value)}
         />
         <div className="profile-actions">
