@@ -6,9 +6,5 @@ import react from "@vitejs/plugin-react";
 // use `vercel dev` (see README). Plain `vite` serves only the frontend.
 export default defineConfig({
   plugins: [react()],
-  server: {
-    port: 5173,
-    // Only used if you run a local API on :8888; harmless otherwise.
-    proxy: { "/api": "http://127.0.0.1:8888" },
-  },
+  server: { port: 5173 },
 });

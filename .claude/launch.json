@@ -5,7 +5,6 @@
       "name": "guessify-client",
       "runtimeExecutable": "npm",
       "runtimeArgs": ["run", "dev"],
-      "cwd": "client",
       "port": 5173
     }
   ]
