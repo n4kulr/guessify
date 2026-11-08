@@ -97,6 +97,17 @@ html[data-theme="lamia"] .lamia-backdrop {
 }
 .lamia-row--rev { animation-direction: reverse; margin-left: -12em; }
 .lamia-hot { color: color-mix(in srgb, var(--main-color) 13%, transparent); }
+.lamia-crayon-defs { position: absolute; }
+.lamia-doodle {
+  position: absolute;
+  overflow: visible;
+  fill: none;
+  stroke: color-mix(in srgb, var(--text-color) 14%, transparent);
+  stroke-width: 7;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.lamia-doodle--hot { stroke: color-mix(in srgb, var(--main-color) 26%, transparent); }
 .lamia-album {
   font-family: "Libre Baskerville", serif;
   font-style: italic;

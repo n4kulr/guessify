@@ -70,6 +70,36 @@ const ALBUMS = [
 
 const ROWS = 14;
 
+/** Hand-drawn doodle paths, 100×100 box, stroked through the crayon filter. */
+const DOODLES = {
+  star: "M50 8 L61 38 L93 39 L67 58 L77 90 L50 71 L23 90 L33 58 L7 39 L39 38 Z",
+  bang: "M50 10 C49 30 47 48 50 66 M50 82 L51 88",
+  sparkle: "M50 6 C53 36 64 47 94 50 C64 53 53 64 50 94 C47 64 36 53 6 50 C36 47 47 36 50 6 Z",
+  squiggle: "M6 55 C18 30 28 30 34 52 C40 74 52 74 58 50 C64 26 76 28 82 50 C86 62 92 62 96 54",
+  spiral: "M52 50 C52 44 60 44 60 50 C60 60 46 62 42 52 C36 38 56 30 66 40 C80 54 64 74 46 72 C24 70 22 40 36 28 C52 14 80 22 86 44",
+  heart: "M50 86 C22 64 8 46 16 28 C24 12 44 16 50 32 C56 16 76 12 84 28 C92 46 78 64 50 86 Z",
+};
+
+// Scattered round the edges (the middle fades out under the mask anyway).
+const DOODLE_SPOTS = [
+  ["star", 6, 12, 54, -14, true],
+  ["bang", 18, 70, 46, 8],
+  ["sparkle", 88, 16, 40, 0, true],
+  ["squiggle", 74, 84, 90, -6],
+  ["spiral", 4, 46, 60, 20],
+  ["heart", 92, 58, 42, 12, true],
+  ["bang", 84, 36, 38, -10, true],
+  ["star", 30, 90, 36, 22],
+  ["sparkle", 12, 88, 30, 0],
+  ["squiggle", 22, 6, 80, 4, true],
+  ["star", 64, 6, 32, 8],
+  ["bang", 96, 88, 34, 6],
+  ["sparkle", 46, 94, 26, 0, true],
+  ["spiral", 90, 4, 44, -18],
+  ["heart", 2, 74, 30, -16],
+  ["star", 56, 88, 24, -20, true],
+];
+
 // Each row starts at a different title so the wall doesn't read as stripes.
 function row(i) {
   const out = [];
@@ -221,6 +251,32 @@ export default function LamiaBackdrop({ onLamia }) {
         </div>
       )}
       <div className="lamia-backdrop" aria-hidden="true">
+        <svg className="lamia-crayon-defs" width="0" height="0">
+          {/* Wobbly edges + broken waxy fill, like crayon on rough paper. */}
+          <filter id="lamia-crayon" x="-20%" y="-20%" width="140%" height="140%">
+            <feTurbulence type="fractalNoise" baseFrequency="0.9" numOctaves="2" seed="4" result="grain" />
+            <feDisplacementMap in="SourceGraphic" in2="grain" scale="3.5" result="wobble" />
+            <feTurbulence type="fractalNoise" baseFrequency="1.6" numOctaves="1" seed="9" result="paper" />
+            <feColorMatrix in="paper" type="matrix" values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 -2.4 1.7" result="holes" />
+            <feComposite in="wobble" in2="holes" operator="in" />
+          </filter>
+        </svg>
+        {DOODLE_SPOTS.map(([shape, x, y, size, rot, hot], i) => (
+          <svg
+            key={i}
+            className={`lamia-doodle${hot ? " lamia-doodle--hot" : ""}`}
+            viewBox="0 0 100 100"
+            style={{
+              left: `${x}%`,
+              top: `${y}%`,
+              width: size,
+              height: size,
+              transform: `translate(-50%, -50%) rotate(${rot}deg)`,
+            }}
+          >
+            <path d={DOODLES[shape]} filter="url(#lamia-crayon)" />
+          </svg>
+        ))}
         <div className="lamia-wall">
           {Array.from({ length: ROWS }, (_, i) => (
             <div key={i} className={`lamia-row${i % 2 ? " lamia-row--rev" : ""}`}>
