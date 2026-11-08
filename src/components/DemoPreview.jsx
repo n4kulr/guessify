@@ -134,9 +134,104 @@ const ROUNDS = [
   },
 ];
 
+/** Lamia theme: the same demo, but songs from Lamia's BRAINROT playlist. */
+const LAMIA_ROUNDS = [
+  {
+    guesses: [
+      { title: "?", artist: "the strokes", titleOk: false, artistOk: false },
+      { title: "?", artist: "the last shadow puppets", titleOk: false, artistOk: false },
+      { title: "505", artist: "arctic monkeys", titleOk: false, artistOk: true },
+      { title: "do i wanna know?", artist: "arctic monkeys", titleOk: true, artistOk: true, win: true },
+    ],
+    answer: {
+      title: "Do I Wanna Know?",
+      artist: "Arctic Monkeys",
+      cover:
+        "https://is1-ssl.mzstatic.com/image/thumb/Music211/v4/69/9c/b5/699cb5d6-115c-ff73-9d26-e57ea4350d72/887828031795.png/300x300bb.jpg",
+    },
+  },
+  {
+    guesses: [
+      { title: "?", artist: "cage the elephant", titleOk: false, artistOk: false },
+      { title: "the less i know the better", artist: "tame impala", titleOk: false, artistOk: false },
+      { title: "fluorescent adolescent", artist: "arctic monkeys", titleOk: false, artistOk: true },
+      { title: "505", artist: "arctic monkeys", titleOk: true, artistOk: true, win: true },
+    ],
+    answer: {
+      title: "505",
+      artist: "Arctic Monkeys",
+      cover:
+        "https://is1-ssl.mzstatic.com/image/thumb/Music124/v4/82/90/14/829014ad-a301-62ab-bee6-f4cca4457411/mzi.hozudery.jpg/300x300bb.jpg",
+    },
+  },
+  {
+    guesses: [
+      { title: "?", artist: "the 1975", titleOk: false, artistOk: false },
+      { title: "?", artist: "the neighbourhood", titleOk: false, artistOk: false },
+      { title: "arabella", artist: "arctic monkeys", titleOk: false, artistOk: true },
+      { title: "r u mine?", artist: "arctic monkeys", titleOk: true, artistOk: true, win: true },
+    ],
+    answer: {
+      title: "R U Mine?",
+      artist: "Arctic Monkeys",
+      cover:
+        "https://is1-ssl.mzstatic.com/image/thumb/Music211/v4/69/9c/b5/699cb5d6-115c-ff73-9d26-e57ea4350d72/887828031795.png/300x300bb.jpg",
+    },
+  },
+  {
+    guesses: [
+      { title: "?", artist: "the strokes", titleOk: false, artistOk: false },
+      { title: "?", artist: "tame impala", titleOk: false, artistOk: false },
+      { title: "one for the road", artist: "arctic monkeys", titleOk: false, artistOk: true },
+      { title: "i wanna be yours", artist: "arctic monkeys", titleOk: false, artistOk: true },
+      { title: "knee socks", artist: "arctic monkeys", titleOk: true, artistOk: true, win: true },
+    ],
+    answer: {
+      title: "Knee Socks",
+      artist: "Arctic Monkeys",
+      cover:
+        "https://is1-ssl.mzstatic.com/image/thumb/Music211/v4/69/9c/b5/699cb5d6-115c-ff73-9d26-e57ea4350d72/887828031795.png/300x300bb.jpg",
+    },
+  },
+  {
+    guesses: [
+      { title: "?", artist: "the last shadow puppets", titleOk: false, artistOk: false },
+      { title: "cornerstone", artist: "arctic monkeys", titleOk: false, artistOk: true },
+      { title: "crying lightning", artist: "arctic monkeys", titleOk: true, artistOk: true, win: true },
+    ],
+    answer: {
+      title: "Crying Lightning",
+      artist: "Arctic Monkeys",
+      cover:
+        "https://is1-ssl.mzstatic.com/image/thumb/Music124/v4/4a/07/92/4a0792a5-03c9-10d8-a60c-94fa8bb6508a/mzi.nlrajrgr.jpg/300x300bb.jpg",
+    },
+  },
+  {
+    guesses: [
+      { title: "?", artist: "the neighbourhood", titleOk: false, artistOk: false },
+      { title: "sweater weather", artist: "the neighbourhood", titleOk: false, artistOk: false },
+      { title: "snap out of it", artist: "arctic monkeys", titleOk: false, artistOk: true },
+      { title: "i wanna be yours", artist: "arctic monkeys", titleOk: true, artistOk: true, win: true },
+    ],
+    answer: {
+      title: "I Wanna Be Yours",
+      artist: "Arctic Monkeys",
+      cover:
+        "https://is1-ssl.mzstatic.com/image/thumb/Music211/v4/69/9c/b5/699cb5d6-115c-ff73-9d26-e57ea4350d72/887828031795.png/300x300bb.jpg",
+    },
+  },
+];
+
 const STEPS = [2, 4, 7, 11, 16, 20];
 
+function isLamiaTheme() {
+  return typeof document !== "undefined" && document.documentElement.dataset.theme === "lamia";
+}
+
 export default function DemoPreview() {
+  /** Which script is playing — swaps only at a round boundary, never mid-round. */
+  const [lamia, setLamia] = useState(isLamiaTheme);
+  const rounds = lamia ? LAMIA_ROUNDS : ROUNDS;
   const [roundIdx, setRoundIdx] = useState(0);
   const [step, setStep] = useState(0); // 0..guesses.length (== solved)
   const [done, setDone] = useState(false);
@@ -162,7 +257,18 @@ export default function DemoPreview() {
     velocity: 0,
   });
 
-  const round = ROUNDS[roundIdx];
+  // Last *picked* theme — the theme menu's hover previews retint too, and
+  // shouldn't flip the script.
+  const pickedLamiaRef = useRef(isLamiaTheme());
+  useEffect(() => {
+    function onPicked() {
+      pickedLamiaRef.current = isLamiaTheme();
+    }
+    window.addEventListener("guessify:theme-picked", onPicked);
+    return () => window.removeEventListener("guessify:theme-picked", onPicked);
+  }, []);
+
+  const round = rounds[roundIdx];
   const script = round.guesses;
   const answer = round.answer;
 
@@ -170,7 +276,13 @@ export default function DemoPreview() {
     let t;
     if (done) {
       t = setTimeout(() => {
-        setRoundIdx((i) => (i + 1) % ROUNDS.length);
+        const nextLamia = pickedLamiaRef.current;
+        if (nextLamia !== lamia) {
+          setLamia(nextLamia);
+          setRoundIdx(0);
+        } else {
+          setRoundIdx((i) => (i + 1) % rounds.length);
+        }
         setStep(0);
         setDone(false);
       }, 3400);
@@ -182,7 +294,7 @@ export default function DemoPreview() {
       }, 1400);
     }
     return () => clearTimeout(t);
-  }, [step, done, script.length]);
+  }, [step, done, script.length, lamia, rounds.length]);
 
   useEffect(() => {
     if (!expanded) return;
@@ -263,11 +375,11 @@ export default function DemoPreview() {
   const priorScore = useMemo(() => {
     let sum = 0;
     for (let i = 0; i < roundIdx; i++) {
-      const artistPts = ROUNDS[i].guesses.some((g) => g.artistOk) ? ARTIST_BONUS : 0;
+      const artistPts = rounds[i].guesses.some((g) => g.artistOk) ? ARTIST_BONUS : 0;
       sum += TITLE_POINTS + artistPts;
     }
     return sum;
-  }, [roundIdx]);
+  }, [roundIdx, rounds]);
   const liveArtistPts = script.slice(0, step).some((g) => g.artistOk) ? ARTIST_BONUS : 0;
   const liveTitlePts = done ? TITLE_POINTS : 0;
   const score = priorScore + liveArtistPts + liveTitlePts;
@@ -442,7 +554,7 @@ export default function DemoPreview() {
           <div className="demo-grain" aria-hidden="true" />
           <div className="demo-scanlines" aria-hidden="true" />
           <div className="demo-head">
-            <span className="demo-playlist">liked-songs</span>
+            <span className="demo-playlist">{lamia ? "BRAINROT" : "liked-songs"}</span>
             <span className="demo-score">
               SCORE <b>{score}</b>
             </span>
