@@ -92,18 +92,18 @@ html[data-theme="lamia"] .lamia-backdrop {
   white-space: nowrap;
   font-family: "Caveat", cursive;
   font-size: clamp(22px, 2.6vw, 34px);
-  color: color-mix(in srgb, var(--text-color) 4%, transparent);
+  color: color-mix(in srgb, var(--text-color) 6%, transparent);
   animation: lamia-drift 140s linear infinite;
 }
 .lamia-row--rev { animation-direction: reverse; margin-left: -12em; }
-.lamia-hot { color: color-mix(in srgb, var(--main-color) 9%, transparent); }
+.lamia-hot { color: color-mix(in srgb, var(--main-color) 13%, transparent); }
 .lamia-album {
   font-family: "Libre Baskerville", serif;
   font-style: italic;
   font-size: 0.7em;
   align-self: center;
   letter-spacing: 0.04em;
-  color: color-mix(in srgb, var(--text-color) 5%, transparent);
+  color: color-mix(in srgb, var(--text-color) 7%, transparent);
 }
 @keyframes lamia-drift {
   from { transform: translateX(0); }
