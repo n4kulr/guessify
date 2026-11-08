@@ -3,7 +3,12 @@ import { useEffect, useMemo, useRef, useState } from "react";
 const SPLASH_NAME = "lamiaiscruingok";
 const CATS = ["🐈", "🐈‍⬛"];
 const CAT_COUNT = 34;
-const SPLASH_MS = 3400;
+const SPLASH_VIDEO = "/lamia/splash.mp4";
+const SPLASH_POSTER = "/lamia/splash-poster.jpg";
+/** The splash lasts as long as the video; these cover a video that can't play. */
+const SPLASH_MAX_MS = 15_000;
+const SPLASH_NO_VIDEO_MS = 3_000;
+const SPLASH_OUT_MS = 500;
 /** Survives the iOS Safari theme reload so the splash still plays after it. */
 const SPLASH_PENDING_KEY = "guessify-lamia-splash";
 
@@ -91,26 +96,33 @@ function row(i) {
  * `onLamia` fires alongside it — App uses it to replay the demo.
  */
 function useLamiaSplash(onLamia) {
+  /** false | "in" (showing) | "out" (sliding away) */
   const [show, setShow] = useState(false);
   const onLamiaRef = useRef(onLamia);
   onLamiaRef.current = onLamia;
+  const outTimer = useRef(0);
   const close = () => {
-    setShow(false);
+    setShow((cur) => (cur ? "out" : cur));
+    clearTimeout(outTimer.current);
+    outTimer.current = setTimeout(() => setShow(false), SPLASH_OUT_MS);
     try {
       sessionStorage.removeItem(SPLASH_PENDING_KEY);
     } catch {
       /* ignore */
     }
   };
+  const closeRef = useRef(close);
+  closeRef.current = close;
   useEffect(() => {
     const root = document.documentElement;
     let prev = root.dataset.theme;
     let timer;
     const play = () => {
-      setShow(true);
+      clearTimeout(outTimer.current);
+      setShow("in");
       onLamiaRef.current?.();
       clearTimeout(timer);
-      timer = setTimeout(close, SPLASH_MS);
+      timer = setTimeout(() => closeRef.current(), SPLASH_MAX_MS);
     };
     try {
       if (prev === "lamia" && sessionStorage.getItem(SPLASH_PENDING_KEY)) play();
@@ -135,9 +147,36 @@ function useLamiaSplash(onLamia) {
     return () => {
       window.removeEventListener("guessify:theme-picked", onPicked);
       clearTimeout(timer);
+      clearTimeout(outTimer.current);
     };
   }, []);
   return [show, close];
+}
+
+/** Plays with sound when the browser allows it, otherwise muted. Ends the splash. */
+function SplashVideo({ onDone }) {
+  const ref = useRef(null);
+  useEffect(() => {
+    const v = ref.current;
+    if (!v) return;
+    v.play().catch(() => {
+      v.muted = true;
+      v.play().catch(() => setTimeout(onDone, SPLASH_NO_VIDEO_MS));
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+  return (
+    <video
+      ref={ref}
+      className="lamia-splash-video"
+      src={SPLASH_VIDEO}
+      poster={SPLASH_POSTER}
+      playsInline
+      preload="auto"
+      onEnded={onDone}
+      onError={() => setTimeout(onDone, SPLASH_NO_VIDEO_MS)}
+    />
+  );
 }
 
 // Fresh random layout each splash so the rain never repeats.
@@ -147,7 +186,7 @@ function catRain() {
     cat: CATS[i % CATS.length],
     left: Math.random() * 100,
     size: 22 + Math.random() * 30,
-    delay: 0.3 + Math.random() * 1.8,
+    delay: 0.3 + Math.random() * 2.4,
     dur: 1.4 + Math.random() * 1.2,
     spin: (Math.random() < 0.5 ? -1 : 1) * (120 + Math.random() * 360),
   }));
@@ -159,7 +198,11 @@ export default function LamiaBackdrop({ onLamia }) {
   return (
     <>
       {splash && (
-        <div className="lamia-splash" onClick={closeSplash} role="status">
+        <div
+          className={`lamia-splash${splash === "out" ? " is-out" : ""}`}
+          onClick={closeSplash}
+          role="status"
+        >
           <div className="lamia-cats" aria-hidden="true">
             {cats.map((c) => (
               <span
@@ -176,13 +219,8 @@ export default function LamiaBackdrop({ onLamia }) {
               </span>
             ))}
           </div>
-          <div className="lamia-splash-name">
-            {[...SPLASH_NAME].map((ch, i) => (
-              <span key={i} style={{ animationDelay: `${0.55 + i * 0.06}s` }}>
-                {ch}
-              </span>
-            ))}
-          </div>
+          <div className="lamia-splash-name">{SPLASH_NAME}</div>
+          <SplashVideo onDone={closeSplash} />
         </div>
       )}
       <div className="lamia-backdrop" aria-hidden="true">

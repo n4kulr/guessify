@@ -117,37 +117,41 @@ html[data-theme="lamia"] .lamia-backdrop {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 14px;
+  gap: 22px;
   cursor: pointer;
   overflow: hidden;
-  background:
-    radial-gradient(
-      circle at 50% 50%,
-      color-mix(in srgb, var(--main-color) 24%, var(--bg-color)) 0%,
-      var(--bg-color) 65%
-    ),
-    var(--bg-color);
+  background: var(--bg-color);
   transform: translateY(-100%);
-  animation: lamia-splash-life 3.4s forwards;
+  animation: lamia-splash-in 0.55s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+/* Stays up until the video ends, then falls out the bottom. */
+.lamia-splash.is-out {
+  transform: none;
+  animation: lamia-splash-out 0.5s cubic-bezier(0.64, 0, 0.78, 0) forwards;
+}
+.lamia-splash-video {
+  position: relative;
+  display: block;
+  max-width: min(86vw, 420px);
+  max-height: min(62vh, 640px);
+  width: auto;
+  height: auto;
+  border-radius: 14px;
+  background: #000;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.5);
 }
 .lamia-splash-name {
   display: flex;
   position: relative;
   font-family: var(--font);
   font-weight: 700;
-  font-size: clamp(30px, 8.5vw, 96px);
+  font-size: clamp(28px, 7.5vw, 72px);
   letter-spacing: -0.02em;
   line-height: 1;
   color: var(--main-color);
   text-shadow:
     0 0 18px color-mix(in srgb, var(--main-color) 55%, transparent),
     0 0 60px color-mix(in srgb, var(--main-color) 30%, transparent);
-}
-.lamia-splash-name span {
-  display: inline-block;
-  opacity: 0;
-  transform: translateY(40px) scale(0.4) rotate(-12deg);
-  animation: lamia-letter 0.55s cubic-bezier(0.34, 1.7, 0.5, 1) forwards;
 }
 .lamia-cats {
   position: absolute;
@@ -162,35 +166,27 @@ html[data-theme="lamia"] .lamia-backdrop {
   opacity: 0;
   animation-name: lamia-cat-fall;
   animation-timing-function: cubic-bezier(0.45, 0, 0.8, 0.6);
-  animation-fill-mode: forwards;
+  animation-iteration-count: infinite;
 }
 @keyframes lamia-cat-fall {
   0% { opacity: 1; transform: translateY(0) rotate(0); }
   100% { opacity: 1; transform: translateY(calc(100vh + 120px)) rotate(var(--spin)); }
 }
-@keyframes lamia-letter {
-  to { opacity: 1; transform: none; }
+@keyframes lamia-splash-in {
+  from { transform: translateY(-100%); }
+  to { transform: translateY(0); }
 }
-@keyframes lamia-fade-up {
-  from { opacity: 0; transform: translateY(8px); }
-  to { opacity: 1; transform: none; }
+@keyframes lamia-splash-out {
+  from { transform: translateY(0); }
+  to { transform: translateY(100%); }
 }
-/* Drop in from the top, hold, fall out the bottom. */
-@keyframes lamia-splash-life {
-  0% { transform: translateY(-100%); animation-timing-function: cubic-bezier(0.22, 1, 0.36, 1); }
-  16% { transform: translateY(0); }
-  84% { transform: translateY(0); animation-timing-function: cubic-bezier(0.64, 0, 0.78, 0); }
-  100% { transform: translateY(100%); }
-}
-@keyframes lamia-splash-fade {
-  0%, 100% { opacity: 0; }
-  10%, 88% { opacity: 1; }
-}
+@keyframes lamia-fade-in { from { opacity: 0; } to { opacity: 1; } }
+@keyframes lamia-fade-out { from { opacity: 1; } to { opacity: 0; } }
 @media (prefers-reduced-motion: reduce) {
   .lamia-row { animation: none; }
-  .lamia-splash-name span { animation: lamia-fade-up 0.3s ease forwards; }
   .lamia-cats { display: none; }
-  .lamia-splash { transform: none; animation-name: lamia-splash-fade; }
+  .lamia-splash { transform: none; animation-name: lamia-fade-in; }
+  .lamia-splash.is-out { animation-name: lamia-fade-out; }
 }
 
 /* ---------------- layout ---------------- */
