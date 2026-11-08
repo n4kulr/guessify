@@ -40,7 +40,9 @@ export default function ThemeSwitcher({
   useEffect(() => () => clearTimeout(flashTimer.current), []);
 
   function pick(key) {
-    applyTheme(key, { safariReload: isLandingPath(), mode });
+    // Lamia's splash plays a song off this tap; the Safari tint reload would
+    // throw the tap away (and the song with it), so lamia skips it.
+    applyTheme(key, { safariReload: isLandingPath() && key !== "lamia", mode });
     onChange(key);
     setOpen(false);
 

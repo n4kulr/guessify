@@ -35,7 +35,7 @@ export default function VolumeControl() {
       <div className="volume-control">
         <button
           type="button"
-          className="volume-btn"
+          className={`volume-btn${silent ? " is-muted" : ""}`}
           title={silent ? "unmute" : "mute"}
           aria-label={silent ? "Unmute" : "Mute"}
           aria-pressed={silent}
@@ -67,7 +67,7 @@ export default function VolumeControl() {
       </div>
       <button
         type="button"
-        className="volume-btn"
+        className={`volume-btn${level === 0 ? " is-muted" : ""}`}
         title={level === 0 ? "unmute" : "volume"}
         aria-expanded={open}
         aria-label={`Volume ${pct}%`}

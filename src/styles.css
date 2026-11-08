@@ -98,18 +98,21 @@ html[data-theme="lamia"] .lamia-backdrop {
 .lamia-row--rev { animation-direction: reverse; margin-left: -12em; }
 .lamia-hot { color: color-mix(in srgb, var(--main-color) 13%, transparent); }
 .lamia-pencil-defs { position: absolute; }
-/* Sized like a word in the row and coloured like the titles around it. */
-.lamia-doodle {
+/* Scribbled between titles, coloured like the words around them. */
+.lamia-doodles {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25em;
   flex: none;
   align-self: center;
-  width: 1em;
-  height: 1em;
+}
+.lamia-doodle {
+  flex: none;
   overflow: visible;
   fill: none;
   /* Grain eats about half the stroke, so start a touch stronger than the text. */
   color: color-mix(in srgb, var(--text-color) 11%, transparent);
   stroke: currentColor;
-  stroke-width: 5;
   stroke-linecap: round;
   stroke-linejoin: round;
 }
@@ -147,22 +150,34 @@ html[data-theme="lamia"] .lamia-backdrop {
   transform: none;
   animation: lamia-splash-out 0.5s cubic-bezier(0.64, 0, 0.78, 0) forwards;
 }
+/* Name sits just above the middle; the GIF hangs below it. */
 .lamia-splash-gif {
-  position: relative;
+  position: absolute;
+  left: 50%;
+  top: calc(38% + 0.5 * var(--lamia-name-size) + 40px);
+  transform: translateX(-50%);
   display: block;
-  width: min(72vw, 48vh, 380px);
+  width: min(72vw, 42vh, 360px);
   aspect-ratio: 1;
   object-fit: fill;
   border-radius: 14px;
   background: #000;
   box-shadow: 0 12px 40px rgba(0, 0, 0, 0.5);
 }
+.lamia-splash {
+  --lamia-name-size: clamp(32px, 9vw, 88px);
+}
 .lamia-splash-name {
   display: flex;
-  position: relative;
+  justify-content: center;
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 38%;
+  transform: translateY(-50%);
   font-family: var(--font);
   font-weight: 700;
-  font-size: clamp(32px, 9vw, 88px);
+  font-size: var(--lamia-name-size);
   letter-spacing: -0.02em;
   line-height: 1;
   color: var(--main-color);
@@ -261,6 +276,25 @@ html[data-theme="lamia"] .lamia-backdrop {
 .volume-btn:hover,
 .volume-control.is-open .volume-btn {
   color: var(--text-color);
+}
+/* Muted is easy to forget (it silences every clip) — red, with a glow that
+   flickers on now and then like a dying neon sign. */
+.volume-btn.is-muted,
+.volume-btn.is-muted:hover {
+  color: var(--error-color);
+  animation: volume-muted-flicker 7s linear infinite;
+}
+@keyframes volume-muted-flicker {
+  0%, 84%, 100% { filter: none; opacity: 1; }
+  86% { filter: drop-shadow(0 0 6px var(--error-color)); opacity: 1; }
+  87% { filter: none; opacity: 0.55; }
+  88% { filter: drop-shadow(0 0 8px var(--error-color)); opacity: 1; }
+  90% { filter: drop-shadow(0 0 3px var(--error-color)); opacity: 0.8; }
+  92% { filter: drop-shadow(0 0 10px var(--error-color)); opacity: 1; }
+  95% { filter: none; opacity: 1; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .volume-btn.is-muted { animation: none; }
 }
 .theme-mode-ico {
   display: block;
