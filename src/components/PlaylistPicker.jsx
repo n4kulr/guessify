@@ -79,7 +79,8 @@ const CHART_PH_EXAMPLES = [
   "gemini rights",
 ];
 
-export default function PlaylistPicker({ onPick, needsLogin = false }) {
+/** `allowFrenzy` adds a Frenzy (endless rounds) button beside Put in Player — solo only. */
+export default function PlaylistPicker({ onPick, needsLogin = false, allowFrenzy = false }) {
   const [data, setData] = useState(null); // { playlists, liked }
   const [error, setError] = useState(null);
   const [ownerUnavailable, setOwnerUnavailable] = useState(false);
@@ -223,7 +224,7 @@ export default function PlaylistPicker({ onPick, needsLogin = false }) {
     clearTimeout(hoverTimerRef.current);
   }
 
-  async function chooseYours(p) {
+  async function chooseYours(p, { frenzy = false } = {}) {
     if (!p.owned) return;
     setLoadingId(p.id);
     setNote(null);
@@ -234,14 +235,14 @@ export default function PlaylistPicker({ onPick, needsLogin = false }) {
         setLoadingId(null);
         return;
       }
-      onPick(d);
+      onPick(d, { frenzy });
     } catch (err) {
       setNote(err.message || "Couldn't load that playlist. Try another.");
       setLoadingId(null);
     }
   }
 
-  async function chooseChart(tag, { artist = false } = {}) {
+  async function chooseChart(tag, { artist = false, frenzy = false } = {}) {
     const clean = String(tag || "").trim();
     if (!clean) return;
     const id = `chart:${artist ? "a:" : ""}${clean.toLowerCase()}`;
@@ -263,7 +264,7 @@ export default function PlaylistPicker({ onPick, needsLogin = false }) {
         setLoadingId(null);
         return;
       }
-      onPick(d);
+      onPick(d, { frenzy });
     } catch (err) {
       setNote(err.message || "Couldn't load that chart. Try another pick.");
       setLoadingId(null);
@@ -366,11 +367,11 @@ export default function PlaylistPicker({ onPick, needsLogin = false }) {
     },
   });
 
-  function confirmChartPreview() {
+  function confirmChartPreview(_pl, { frenzy = false } = {}) {
     if (!chartPreview) return;
     const d = chartPreview;
     setChartPreview(null);
-    onPick(d);
+    onPick(d, { frenzy });
   }
 
   async function buildStackMix(layers) {
@@ -484,9 +485,9 @@ export default function PlaylistPicker({ onPick, needsLogin = false }) {
     }
   }
 
-  function putStackInPlayer(playlist) {
+  function putStackInPlayer(playlist, { frenzy = false } = {}) {
     if (!playlist || playlist.playableCount < 2) return;
-    onPick(playlist);
+    onPick(playlist, { frenzy });
   }
 
   function slugBits(names) {
@@ -566,6 +567,9 @@ export default function PlaylistPicker({ onPick, needsLogin = false }) {
               playlists={yours}
               loadingId={loadingId}
               onChoose={chooseYours}
+              onFrenzy={
+                allowFrenzy ? (p) => chooseYours(p, { frenzy: true }) : undefined
+              }
             />
           ) : (
             <>
@@ -690,6 +694,9 @@ export default function PlaylistPicker({ onPick, needsLogin = false }) {
         packs={CHART_PACKS}
         loadingId={loadingId}
         onChoose={chooseChart}
+        onFrenzy={
+          allowFrenzy ? (tag) => chooseChart(tag, { frenzy: true }) : undefined
+        }
       />
 
       <ChartCdStack
@@ -700,12 +707,20 @@ export default function PlaylistPicker({ onPick, needsLogin = false }) {
         onAdd={addStackLayer}
         onPutBack={() => setStackInsertOpen(false)}
         onPutInPlayer={putStackInPlayer}
+        onFrenzy={
+          allowFrenzy ? (mix) => putStackInPlayer(mix, { frenzy: true }) : undefined
+        }
       />
 
       {chartPreview && (
         <ChartPreviewDialog
           playlist={chartPreview}
           onConfirm={confirmChartPreview}
+          onFrenzy={
+            allowFrenzy
+              ? (pl) => confirmChartPreview(pl, { frenzy: true })
+              : undefined
+          }
           onCancel={() => setChartPreview(null)}
         />
       )}

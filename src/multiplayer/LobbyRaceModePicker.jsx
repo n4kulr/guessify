@@ -1,8 +1,8 @@
-import { ClassicModeIcon, TimedModeIcon } from "./RaceModeIcons.jsx";
+import { ClassicModeIcon, TimedModeIcon, FrenzyModeIcon } from "./RaceModeIcons.jsx";
 import { normalizeRaceMode } from "./constants.js";
 
 /**
- * Classic / Timed lobby control. Host can flip; guests see the same UI read-only.
+ * Classic / Timed / Frenzy lobby control. Host can flip; guests see the same UI read-only.
  */
 export default function LobbyRaceModePicker({
   mode = "classic",
@@ -53,6 +53,23 @@ export default function LobbyRaceModePicker({
               45 seconds for everyone
               <br />
               guesses revealed at the end
+            </span>
+          </span>
+        </button>
+        <button
+          type="button"
+          className={`lobby-race-mode-btn${active === "frenzy" ? " is-active" : ""}`}
+          aria-pressed={active === "frenzy"}
+          disabled={!canEdit}
+          onClick={() => pick("frenzy")}
+        >
+          <FrenzyModeIcon size={22} />
+          <span className="lobby-race-mode-copy">
+            <span className="lobby-race-mode-title">Frenzy</span>
+            <span className="lobby-race-mode-blurb">
+              classic rules, endless rounds
+              <br />
+              host stops it whenever
             </span>
           </span>
         </button>

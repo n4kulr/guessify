@@ -33,3 +33,17 @@ export function TimedModeIcon({ size = 22 }) {
     </svg>
   );
 }
+
+export function FrenzyModeIcon({ size = 22 }) {
+  return (
+    <svg
+      className="race-mode-icon"
+      viewBox="0 0 24 24"
+      width={size}
+      height={size}
+      aria-hidden="true"
+    >
+      <path fill="currentColor" d="M13.5 2 4 13.5h6.5L9 22l10-12.5h-6.6L13.5 2z" />
+    </svg>
+  );
+}

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 const SPLASH_NAME = "lamiaiscruingok";
 const CATS = ["🐈", "🐈‍⬛"];
@@ -8,37 +8,49 @@ const SPLASH_MS = 3400;
 const SPLASH_PENDING_KEY = "guessify-lamia-splash";
 
 /**
- * Lamia theme backdrop: Arctic Monkeys song and album titles scrawled faintly
- * behind the app. Always mounted; CSS shows it only on html[data-theme="lamia"],
+ * Lamia theme backdrop: Arctic Monkeys song titles (from Lamia's playlist) and
+ * album names scrawled faintly behind the app. Always mounted; CSS shows it only on html[data-theme="lamia"],
  * so every applyTheme path (menu, accent, profile) toggles it for free.
  */
 const TITLES = [
   "do i wanna know?",
   "r u mine?",
-  "505",
-  "arabella",
-  "mardy bum",
-  "fluorescent adolescent",
-  "why'd you only call me when you're high?",
-  "i bet you look good on the dancefloor",
-  "crying lightning",
-  "cornerstone",
-  "brianstorm",
+  "one for the road",
   "no. 1 party anthem",
+  "fireside",
+  "why'd you only call me when you're high?",
   "snap out of it",
   "knee socks",
-  "four out of five",
-  "star treatment",
-  "body paint",
-  "there'd better be a mirrorball",
-  "a certain romance",
-  "fake tales of san francisco",
-  "when the sun goes down",
+  "i wanna be yours",
+  "dance little liar",
+  "pretty visitors",
+  "potion approaching",
+  "crying lightning",
+  "dangerous animals",
+  "the jeweller's hands",
+  "brianstorm",
+  "balaclava",
+  "do me a favour",
+  "505",
+  "old yellow bricks",
+  "fluorescent adolescent",
+  "if you were there, beware",
   "teddy picker",
-  "piledriver waltz",
+  "d is for dangerous",
+  "tranquility base hotel & casino",
+  "four out of five",
+  "there'd better be a mirrorball",
+  "sculptures of anything goes",
+  "jet skis on the moat",
+  "body paint",
+  "the car",
+  "big ideas",
+  "hello you",
+  "catapult",
+  "cigarette smoker fiona",
   "suck it and see",
-  "secret door",
-  "the hellcat spangled shalalala",
+  "the death ramps",
+  "stop the world i wanna get off with you",
 ];
 
 const ALBUMS = [
@@ -73,9 +85,14 @@ function row(i) {
   return out;
 }
 
-/** Splash when the theme flips *to* lamia (not when a saved lamia loads). */
-function useLamiaSplash() {
+/**
+ * Splash when the theme flips *to* lamia (not when a saved lamia loads).
+ * `onLamia` fires alongside it — App uses it to replay the demo.
+ */
+function useLamiaSplash(onLamia) {
   const [show, setShow] = useState(false);
+  const onLamiaRef = useRef(onLamia);
+  onLamiaRef.current = onLamia;
   const close = () => {
     setShow(false);
     try {
@@ -90,6 +107,7 @@ function useLamiaSplash() {
     let timer;
     const play = () => {
       setShow(true);
+      onLamiaRef.current?.();
       clearTimeout(timer);
       timer = setTimeout(close, SPLASH_MS);
     };
@@ -132,8 +150,8 @@ function catRain() {
   }));
 }
 
-export default function LamiaBackdrop() {
-  const [splash, closeSplash] = useLamiaSplash();
+export default function LamiaBackdrop({ onLamia }) {
+  const [splash, closeSplash] = useLamiaSplash(onLamia);
   const cats = useMemo(() => (splash ? catRain() : []), [splash]);
   return (
     <>
@@ -172,7 +190,6 @@ export default function LamiaBackdrop() {
             </div>
           ))}
         </div>
-        <div className="lamia-stamp">sheffield · est. 2002</div>
       </div>
     </>
   );

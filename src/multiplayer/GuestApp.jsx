@@ -578,6 +578,7 @@ export default function GuestApp({ code }) {
   const track = state.track;
   const spinning = localPlaying && (state.phase === "play" || state.phase === "reveal");
   const timed = state.raceMode === "timed";
+  const frenzy = state.raceMode === "frenzy";
 
   function submitGuess(overrides = {}) {
     // Title locks after a correct timed solve; artist bonus still scores live.
@@ -603,7 +604,9 @@ export default function GuestApp({ code }) {
         <div className="now-playing">
           <span className="np-playlist">{state.playlistName}</span>
           <span className="np-round">
-            record {state.roundIdx + 1} / {state.roundCount}
+            {frenzy
+              ? `record ${state.roundIdx + 1} · frenzy`
+              : `record ${state.roundIdx + 1} / ${state.roundCount}`}
           </span>
         </div>
 
@@ -772,7 +775,7 @@ export default function GuestApp({ code }) {
                     disabled={iVotedNext}
                   >
                     <span className="btn-label">
-                      {state.roundIdx + 1 >= state.roundCount ? (
+                      {!frenzy && state.roundIdx + 1 >= state.roundCount ? (
                         "see results"
                       ) : (
                         <>

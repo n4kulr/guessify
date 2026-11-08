@@ -105,19 +105,6 @@ html[data-theme="lamia"] .lamia-backdrop {
   letter-spacing: 0.04em;
   color: color-mix(in srgb, var(--text-color) 9%, transparent);
 }
-.lamia-stamp {
-  position: absolute;
-  right: 18px;
-  bottom: calc(14px + env(safe-area-inset-bottom, 0px));
-  font-family: "IBM Plex Mono", monospace;
-  font-size: 11px;
-  letter-spacing: 0.18em;
-  text-transform: uppercase;
-  padding: 4px 8px;
-  border-radius: 6px;
-  background: var(--bg-color);
-  color: color-mix(in srgb, var(--text-color) 22%, transparent);
-}
 @keyframes lamia-drift {
   from { transform: translateX(0); }
   to { transform: translateX(-25%); }
@@ -652,6 +639,7 @@ button.footer-privacy:hover {
   width: 100%;
   max-width: none;
   background: color-mix(in srgb, var(--text-color) 12%, var(--sub-alt-color));
+  color: var(--text-color);
 }
 .theme-switcher--inline .theme-menu {
   position: static;
@@ -3021,6 +3009,18 @@ button.footer-privacy:hover {
 }
 .cd-insert-play:disabled,
 .cd-insert-back:disabled { opacity: 0.55; cursor: wait; }
+/* Frenzy sits right beside Put in Player as its outlined twin. */
+.cd-insert-actions:has(.cd-insert-frenzy) { justify-content: flex-end; gap: 8px; }
+.cd-insert-actions:has(.cd-insert-frenzy) .cd-insert-back { margin-right: auto; }
+.cd-insert-play.cd-insert-frenzy {
+  background: transparent;
+  color: var(--cd-ink);
+  box-shadow: none;
+}
+.cd-insert-play.cd-insert-frenzy:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--cd-ink) 12%, transparent);
+  color: var(--cd-ink);
+}
 
 @media (max-width: 720px) {
   .shelf-row {
@@ -4071,13 +4071,15 @@ button.footer-privacy:hover {
 /* .btn-share is the reveal row's left slab — same geometry as skip so the row
    height, and so the card height, is identical either side of the reveal. */
 .btn-skip,
-.btn-share {
+.btn-share,
+.btn-frenzy-stop {
   background: var(--bg-color);
   color: var(--text-color);
   box-shadow: 0 4px 0 var(--sub-color);
 }
 .btn-skip:hover,
-.btn-share:hover {
+.btn-share:hover,
+.btn-frenzy-stop:hover {
   background: var(--bg-color);
   color: var(--text-color);
   filter: brightness(1.12);
@@ -4085,7 +4087,8 @@ button.footer-privacy:hover {
   box-shadow: 0 6px 0 var(--sub-color);
 }
 .btn-skip:active,
-.btn-share:active {
+.btn-share:active,
+.btn-frenzy-stop:active {
   transform: translateY(3px);
   box-shadow: 0 1px 0 var(--sub-color);
 }
@@ -4964,14 +4967,28 @@ button.footer-privacy:hover {
   align-items: center;
   gap: 6px;
 }
+/* Panels behind these are --sub-alt-color, same as .btn — lift + outline
+   so randomize / icon / accent read as buttons. */
+.profile-actions .btn {
+  --btn-lift: color-mix(in srgb, var(--text-color) 12%, var(--sub-alt-color));
+  background: var(--btn-lift);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--text-color) 10%, transparent);
+}
+.profile-actions .btn:hover { background: var(--main-color); }
+/* Share the row so nothing leaves a dead gap on the right. */
+.profile-actions > .btn,
+.profile-icon-accent { flex: 1 1 auto; }
+.profile-icon-accent > div { flex: 1 1 0; }
+.profile-actions .btn { justify-content: center; }
+.profile-icon-accent .btn { width: 100%; }
 .profile-icon-btn.open,
 .profile-accent-btn.open {
-  border-color: var(--main-color);
+  box-shadow: inset 0 0 0 1px var(--main-color);
   color: var(--main-color);
 }
 .profile-icon-dot {
   flex: none;
-  --smiley-cut: var(--sub-alt-color);
+  --smiley-cut: var(--btn-lift, var(--sub-alt-color));
 }
 .profile-icon-btn:hover .profile-icon-dot {
   --smiley-cut: var(--main-color);

@@ -33,10 +33,10 @@ import { attachKeyboardSounds } from "./keyboardSounds.js";
 import { attachButtonSounds } from "./buttonSounds.js";
 import { primePlaylistPreviews } from "./previewWarm.js";
 import {
-  hasSeenOnboarding,
   markOnboardingSeen,
   clearOnboardingSeen,
   loadOnboardingPlaylist,
+  LAMIA_DEMO,
 } from "./onboarding.js";
 
 function joinCodeFromPath() {
@@ -88,11 +88,15 @@ export default function App() {
   const [privacyOpen, setPrivacyOpen] = useState(false);
   const [versionOpen, setVersionOpen] = useState(false);
   const [raceModePrompt, setRaceModePrompt] = useState(null); // null | "online"
-  const [raceMode, setRaceMode] = useState("classic"); // classic | timed
-  /** undefined = still checking · null = skip · playlist = run demo Game */
-  const [demoPlaylist, setDemoPlaylist] = useState(() =>
-    joinCodeFromPath() || hasSeenOnboarding() ? null : undefined
-  );
+  const [raceMode, setRaceMode] = useState("classic"); // classic | timed | frenzy
+  /** Solo run picked with the picker's Frenzy button — endless rounds. */
+  const [soloFrenzy, setSoloFrenzy] = useState(false);
+  /**
+   * undefined = still checking · null = skip · playlist = run demo Game.
+   * First-visit Blinding Lights demo is off for now — only lamia (Knee Socks)
+   * and the debug "replay onboarding" action start one.
+   */
+  const [demoPlaylist, setDemoPlaylist] = useState(null);
   // Capture ?fast=1 before history seeding strips the query.
   useRef(isFastTest());
 
@@ -129,6 +133,17 @@ export default function App() {
   function finishOnboarding() {
     markOnboardingSeen();
     setDemoPlaylist(null);
+  }
+
+  // Picking lamia replays the demo with Knee Socks — only from the landing,
+  // home or picker screens, never mid-game, party, online or a join link.
+  function startLamiaDemo() {
+    if (joinCode || playlist || mode === "online" || demoPlaylist !== null) return;
+    loadOnboardingPlaylist(LAMIA_DEMO)
+      .then((pl) => setDemoPlaylist((cur) => (cur === null ? pl : cur)))
+      .catch(() => {
+        /* no preview → just keep the theme */
+      });
   }
 
   useEffect(() => {
@@ -517,8 +532,9 @@ export default function App() {
     replaceNav("pick", "multi");
   }
 
-  function onPlaylistPicked(pl) {
+  function onPlaylistPicked(pl, { frenzy = false } = {}) {
     setPlaylist(pl);
+    setSoloFrenzy(frenzy && mode !== "multi");
     setPicking(false);
     if (mode === "multi") {
       const code = makeRoomCode();
@@ -658,7 +674,7 @@ export default function App() {
 
   return (
     <div className="app">
-      <LamiaBackdrop />
+      <LamiaBackdrop onLamia={startLamiaDemo} />
       <header className={`topbar${onLanding ? " topbar--landing" : ""}`}>
         <button className="logo" onClick={goHome} title="home">
           <span className="logo-disc" aria-hidden="true" />
@@ -739,6 +755,7 @@ export default function App() {
             key={homeNonce}
             onPick={onPlaylistPicked}
             needsLogin={status === "loggedOut"}
+            allowFrenzy={mode !== "multi"}
           />
         )}
 
@@ -752,6 +769,7 @@ export default function App() {
               me={me}
               onExit={leaveGame}
               onReplay={rematchSolo}
+              frenzy={soloFrenzy}
             />
           )}
 

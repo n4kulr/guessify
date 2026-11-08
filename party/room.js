@@ -21,6 +21,7 @@ import {
   allPlayersMaxUnlocked,
   TIMED_ROUND_MS,
   normalizeRaceMode,
+  shuffle,
 } from "../src/multiplayer/constants.js";
 import { titleHintMask } from "../src/titleHint.js";
 import { resolveItunesPreview } from "./itunesPreview.js";
@@ -225,6 +226,9 @@ export class Room extends Server {
         break;
       case "next":
         await this.handleNext(sender);
+        break;
+      case "endFrenzy":
+        this.handleEndFrenzy(sender);
         break;
       case "rejoin":
         this.handleRejoin(msg, sender);
@@ -544,10 +548,48 @@ export class Room extends Server {
       this.state.raceMode === "timed"
         ? this.state.roundStartedAt + TIMED_ROUND_MS
         : null;
+    this.topUpFrenzy();
     await this.resolveCurrentPreview();
     this.broadcastState();
     await this.persist();
     if (this.state.raceMode === "timed") this.scheduleTimedRoundEnd();
+  }
+
+  /**
+   * Frenzy has no round cap: keep a couple of rounds dealt ahead (so preview
+   * prefetch still works), pulling spares first, then reshuffling played songs.
+   */
+  topUpFrenzy() {
+    if (!this.state || this.state.raceMode !== "frenzy") return;
+    if (!Array.isArray(this.state.spareTracks)) this.state.spareTracks = [];
+    const want = this.state.roundIdx + 3;
+    while (this.state.tracks.length < want) {
+      if (!this.state.spareTracks.length) {
+        // Every distinct song dealt so far, reshuffled.
+        const byId = new Map();
+        for (const t of this.state.tracks) if (t?.id) byId.set(t.id, t);
+        if (!byId.size) return;
+        this.state.spareTracks = shuffle([...byId.values()]).map((t) => ({ ...t }));
+      }
+      // Never queue the same song twice in a row.
+      const lastId = this.state.tracks[this.state.tracks.length - 1]?.id;
+      let k = this.state.spareTracks.findIndex((t) => t?.id !== lastId);
+      if (k < 0) k = 0;
+      this.state.tracks.push(this.state.spareTracks.splice(k, 1)[0]);
+    }
+  }
+
+  /** Host stops a frenzy from the reveal — straight to the results screen. */
+  handleEndFrenzy(sender) {
+    if (!this.state || this.state.raceMode !== "frenzy") return;
+    if (this.state.phase !== "reveal") return;
+    if (!this.isHost(sender) && !this.playerFor(sender)?.isHost) return;
+    this.state.phase = "over";
+    this.state.previewUrl = null;
+    this.state.previewArt = null;
+    this.state.nextVotes = {};
+    this.broadcastState();
+    void this.persist();
   }
 
   handleGuess(msg, sender) {
@@ -833,6 +875,7 @@ export class Room extends Server {
 
   async advanceAfterReveal() {
     if (!this.state || this.state.phase !== "reveal") return;
+    this.topUpFrenzy();
 
     if (this.state.roundIdx + 1 >= this.state.tracks.length) {
       this.state.phase = "over";
@@ -845,6 +888,7 @@ export class Room extends Server {
     }
 
     this.state.roundIdx += 1;
+    this.topUpFrenzy();
     this.state.unlockByPlayer = {};
     this.state.guesses = [];
     this.state.nextVotes = {};
@@ -904,6 +948,8 @@ export class Room extends Server {
     // Same idea as solo replaceDeadTrack: keep the round, swap spares, or drop
     // the slot if nothing in the playlist has a preview.
     for (let guard = 0; guard < ROUND_COUNT + 8; guard++) {
+      // A dropped dead slot in frenzy gets refilled instead of ending the run.
+      this.topUpFrenzy();
       if (!this.state.tracks.length) {
         this.finishUnplayableGame();
         return;

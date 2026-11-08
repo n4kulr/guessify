@@ -24,11 +24,15 @@ export function clearOnboardingSeen() {
   }
 }
 
-/** One-track demo playlist: Blinding Lights via /api/preview. */
-export async function loadOnboardingPlaylist() {
+export const DEFAULT_DEMO = { id: "onboarding-blinding-lights", title: "Blinding Lights", artist: "The Weeknd" };
+/** Replayed when someone switches to the lamia theme. */
+export const LAMIA_DEMO = { id: "onboarding-knee-socks", title: "Knee Socks", artist: "Arctic Monkeys" };
+
+/** One-track demo playlist via /api/preview (Blinding Lights unless told otherwise). */
+export async function loadOnboardingPlaylist(song = DEFAULT_DEMO) {
   const qs = new URLSearchParams({
-    title: "Blinding Lights",
-    artist: "The Weeknd",
+    title: song.title,
+    artist: song.artist,
   });
   const res = await fetch(`/api/preview?${qs}`);
   const data = await res.json().catch(() => ({}));
@@ -39,7 +43,7 @@ export async function loadOnboardingPlaylist() {
     ? String(data.artworkUrl).replace("100x100", "600x600")
     : null;
   return {
-    id: "onboarding-blinding-lights",
+    id: song.id,
     name: "Quick demo",
     owner: "guessify",
     cover,
@@ -47,9 +51,9 @@ export async function loadOnboardingPlaylist() {
     playableCount: 1,
     tracks: [
       {
-        id: "onboarding-blinding-lights",
-        name: data.trackName || "Blinding Lights",
-        artists: [data.artistName || "The Weeknd"],
+        id: song.id,
+        name: data.trackName || song.title,
+        artists: [data.artistName || song.artist],
         previewUrl: data.previewUrl,
         cover,
       },

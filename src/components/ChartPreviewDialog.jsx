@@ -4,7 +4,7 @@ import { useEffect, useId } from "react";
  * Spotlight + paper-slip preview after a free-text chart search.
  * Shell matches join/host customizer; insert matches CD genre paper.
  */
-export default function ChartPreviewDialog({ playlist, onConfirm, onCancel }) {
+export default function ChartPreviewDialog({ playlist, onConfirm, onCancel, onFrenzy }) {
   const titleId = useId();
   const tracks = Array.isArray(playlist?.tracks) ? playlist.tracks : [];
   const name = playlist?.name || "Chart";
@@ -81,6 +81,16 @@ export default function ChartPreviewDialog({ playlist, onConfirm, onCancel }) {
             >
               ► Put in Player
             </button>
+            {onFrenzy && (
+              <button
+                type="button"
+                className="cd-insert-play cd-insert-frenzy"
+                onClick={() => onFrenzy(playlist)}
+                title="endless rounds until you stop"
+              >
+                ⚡ Frenzy
+              </button>
+            )}
           </div>
         </div>
       </div>

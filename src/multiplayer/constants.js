@@ -95,8 +95,9 @@ export function timedTitlePoints(titlePts, placeIndex = 0) {
   return Math.max(0, Math.floor(Number(titlePts) || 0) - place * TIMED_PLACE_STEP);
 }
 
+/** classic | timed | frenzy. Frenzy plays classic rules with no round cap. */
 export function normalizeRaceMode(mode) {
-  return mode === "timed" ? "timed" : "classic";
+  return mode === "timed" || mode === "frenzy" ? mode : "classic";
 }
 
 /** Timed: artist lock is per player. Classic: first claim reveals for everyone. */

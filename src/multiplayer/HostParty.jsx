@@ -387,6 +387,7 @@ export default function HostParty({
   const phase = state?.phase || "lobby";
   const spinning = localPlaying && (phase === "play" || phase === "reveal");
   const timed = (state?.raceMode || raceMode) === "timed";
+  const frenzy = (state?.raceMode || raceMode) === "frenzy";
   const revealed = phase === "reveal";
   const youWon =
     !!(playerId && state?.solveTimes?.[playerId] != null) ||
@@ -777,7 +778,9 @@ export default function HostParty({
       <div className="now-playing">
         <span className="np-playlist">{state.playlistName}</span>
         <span className="np-round">
-          record {state.roundIdx + 1} / {state.roundCount}
+          {frenzy
+            ? `record ${state.roundIdx + 1} · frenzy`
+            : `record ${state.roundIdx + 1} / ${state.roundCount}`}
         </span>
       </div>
 
@@ -939,6 +942,16 @@ export default function HostParty({
                   <span className="btn-label">share</span>
                   <span className="btn-hint">image</span>
                 </button>
+                {frenzy && (
+                  <button
+                    type="button"
+                    className="btn btn-frenzy-stop"
+                    onClick={() => send({ type: "endFrenzy" })}
+                  >
+                    <span className="btn-label">stop</span>
+                    <span className="btn-hint">results</span>
+                  </button>
+                )}
                 <button
                   type="button"
                   className="btn btn-play"
@@ -946,7 +959,7 @@ export default function HostParty({
                   disabled={iVotedNext}
                 >
                   <span className="btn-label">
-                    {state.roundIdx + 1 >= state.roundCount ? (
+                    {!frenzy && state.roundIdx + 1 >= state.roundCount ? (
                       "see results"
                     ) : (
                       <>

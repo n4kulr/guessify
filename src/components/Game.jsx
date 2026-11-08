@@ -52,16 +52,25 @@ import {
   ROUND_MAX_POINTS,
   normalizeAvatar,
   randomAvatar,
+  shuffle,
 } from "../multiplayer/constants.js";
 
 const YOU_ID = "you";
 
-export default function Game({ playlist, me, onExit, onReplay, onboarding = false }) {
+export default function Game({
+  playlist,
+  me,
+  onExit,
+  onReplay,
+  onboarding = false,
+  frenzy = false,
+}) {
   // Already shuffled by App (see soloPool) — reshuffling here would decouple
   // the rounds we play from the previews it warmed.
   const pool = useMemo(() => playlist.tracks || [], [playlist]);
+  // Frenzy deals the whole pool and tops up as it runs low (see nextRound).
   const [rounds, setRounds] = useState(() =>
-    pool.slice(0, Math.min(ROUND_COUNT, pool.length))
+    frenzy ? pool : pool.slice(0, Math.min(ROUND_COUNT, pool.length))
   );
   const usedIdsRef = useRef(new Set(rounds.map((t) => t.id).filter(Boolean)));
   const replacingRef = useRef(false);
@@ -491,10 +500,31 @@ export default function Game({ playlist, me, onExit, onReplay, onboarding = fals
     warmShareCover(track?.cover);
   }, [phase, resolved, roundIdx]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  /** Frenzy ran through the pool — reshuffle it, never repeating the last song. */
+  function refillFrenzy() {
+    const lastId = rounds[rounds.length - 1]?.id;
+    let more = shuffle(pool);
+    if (more.length > 1 && more[0]?.id === lastId) more = [...more.slice(1), more[0]];
+    // Stale previewUrls get re-warmed by the cue effect like any other round.
+    setRounds((rs) => [...rs, ...more]);
+  }
+
+  /** Frenzy only: stop the run and show the wrap. */
+  function endFrenzy() {
+    stopAudio();
+    setErrorMsg(null);
+    if (!roundLog.length) {
+      onExit?.();
+      return;
+    }
+    setPhase("over");
+  }
+
   function nextRound() {
     stopAudio();
     setErrorMsg(null);
-    if (roundIdx + 1 >= rounds.length) {
+    if (frenzy && roundIdx + 2 >= rounds.length) refillFrenzy();
+    if (!frenzy && roundIdx + 1 >= rounds.length) {
       if (onboarding) {
         onExit?.();
         return;
@@ -536,8 +566,10 @@ export default function Game({ playlist, me, onExit, onReplay, onboarding = fals
   useEffect(() => {
     if (onboarding) return;
     if (phase !== "over") return;
-    const id = playlist?.id || playlist?.name || "solo";
-    const name = playlist?.name || "Solo";
+    // Frenzy scores aren't comparable to 5-round runs — keep a separate best.
+    const baseId = playlist?.id || playlist?.name || "solo";
+    const id = frenzy ? `${baseId}:frenzy` : baseId;
+    const name = `${playlist?.name || "Solo"}${frenzy ? " · frenzy" : ""}`;
     setPlaylistBests(recordPlaylistScore(id, name, score));
   }, [phase, onboarding]); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -546,7 +578,8 @@ export default function Game({ playlist, me, onExit, onReplay, onboarding = fals
     [phase, roundLog, score]
   );
 
-  const maxScore = rounds.length * ROUND_MAX_POINTS;
+  const maxScore =
+    (frenzy ? Math.max(1, roundLog.length) : rounds.length) * ROUND_MAX_POINTS;
   const spinning = (playing || celebrate) && !scrubbing;
 
   function endFast() {
@@ -633,7 +666,9 @@ export default function Game({ playlist, me, onExit, onReplay, onboarding = fals
             </button>
           )}
           <div className="scoreboard">
-            <span className="scoreboard-label">{onboarding ? "demo" : "solo"}</span>
+            <span className="scoreboard-label">
+              {onboarding ? "demo" : frenzy ? "frenzy" : "solo"}
+            </span>
             <span className="scoreboard-value">{playlist.name}</span>
           </div>
         </div>
@@ -642,7 +677,9 @@ export default function Game({ playlist, me, onExit, onReplay, onboarding = fals
           <div className="now-playing">
             {/* Playlist name already sits in the scoreboard top-right. */}
             <span className="np-round">
-              record {roundIdx + 1} / {rounds.length}
+              {frenzy
+                ? `record ${roundIdx + 1} · frenzy`
+                : `record ${roundIdx + 1} / ${rounds.length}`}
             </span>
           </div>
         )}
@@ -822,9 +859,15 @@ export default function Game({ playlist, me, onExit, onReplay, onboarding = fals
                           <span className="btn-hint">image</span>
                         </button>
                       )}
+                      {frenzy && (
+                        <button className="btn btn-frenzy-stop" onClick={endFrenzy}>
+                          <span className="btn-label">stop</span>
+                          <span className="btn-hint">results</span>
+                        </button>
+                      )}
                       <button className="btn btn-play" onClick={nextRound}>
                         <span className="btn-label">
-                          {roundIdx + 1 >= rounds.length ? (
+                          {!frenzy && roundIdx + 1 >= rounds.length ? (
                             onboarding ? (
                               "continue"
                             ) : (
