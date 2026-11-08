@@ -142,7 +142,7 @@ export const PLAYER_COLORS = [
   "#ff7a90", // bento
   "#bd93f9", // dracula
   "#88c0d0", // nord
-  "#f66e0d", // carbon
+  "#f66e0d", // lamia
   "#f5c2e7", // catppuccin
   "#ebbcba", // rosé pine
   "#e9d5c6", // olivia

@@ -4,6 +4,7 @@ import Home from "./components/Home.jsx";
 import PlaylistPicker from "./components/PlaylistPicker.jsx";
 import Game from "./components/Game.jsx";
 import ThemeSwitcher from "./components/ThemeSwitcher.jsx";
+import LamiaBackdrop from "./components/LamiaBackdrop.jsx";
 import LookButton from "./components/LookButton.jsx";
 import VolumeControl from "./components/VolumeControl.jsx";
 import FabDock from "./components/FabDock.jsx";
@@ -657,6 +658,7 @@ export default function App() {
 
   return (
     <div className="app">
+      <LamiaBackdrop />
       <header className={`topbar${onLanding ? " topbar--landing" : ""}`}>
         <button className="logo" onClick={goHome} title="home">
           <span className="logo-disc" aria-hidden="true" />
