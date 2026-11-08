@@ -129,13 +129,12 @@ html[data-theme="lamia"] .lamia-backdrop {
   transform: none;
   animation: lamia-splash-out 0.5s cubic-bezier(0.64, 0, 0.78, 0) forwards;
 }
-.lamia-splash-video {
+.lamia-splash-gif {
   position: relative;
   display: block;
-  max-width: min(86vw, 420px);
-  max-height: min(62vh, 640px);
-  width: auto;
-  height: auto;
+  width: min(72vw, 48vh, 380px);
+  aspect-ratio: 1;
+  object-fit: fill;
   border-radius: 14px;
   background: #000;
   box-shadow: 0 12px 40px rgba(0, 0, 0, 0.5);
@@ -145,7 +144,7 @@ html[data-theme="lamia"] .lamia-backdrop {
   position: relative;
   font-family: var(--font);
   font-weight: 700;
-  font-size: clamp(28px, 7.5vw, 72px);
+  font-size: clamp(32px, 9vw, 88px);
   letter-spacing: -0.02em;
   line-height: 1;
   color: var(--main-color);

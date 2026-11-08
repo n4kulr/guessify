@@ -95,6 +95,9 @@ export function timedTitlePoints(titlePts, placeIndex = 0) {
   return Math.max(0, Math.floor(Number(titlePts) || 0) - place * TIMED_PLACE_STEP);
 }
 
+/** Frenzy is hidden until the party server with its round logic is deployed. */
+export const FRENZY_ENABLED = false;
+
 /** classic | timed | frenzy. Frenzy plays classic rules with no round cap. */
 export function normalizeRaceMode(mode) {
   return mode === "timed" || mode === "frenzy" ? mode : "classic";

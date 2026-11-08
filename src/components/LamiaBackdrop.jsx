@@ -3,11 +3,12 @@ import { useEffect, useMemo, useRef, useState } from "react";
 const SPLASH_NAME = "lamiaiscruingok";
 const CATS = ["🐈", "🐈‍⬛"];
 const CAT_COUNT = 34;
-const SPLASH_VIDEO = "/lamia/splash.mp4";
-const SPLASH_POSTER = "/lamia/splash-poster.jpg";
-/** The splash lasts as long as the video; these cover a video that can't play. */
+const SPLASH_GIF = "/lamia/splash.gif";
+/** One loop of the GIF — the splash lasts exactly this long once it's loaded. */
+const SPLASH_GIF_MS = 6_670;
+/** Covers a GIF that never loads. */
 const SPLASH_MAX_MS = 15_000;
-const SPLASH_NO_VIDEO_MS = 3_000;
+const SPLASH_NO_GIF_MS = 3_000;
 const SPLASH_OUT_MS = 500;
 /** Survives the iOS Safari theme reload so the splash still plays after it. */
 const SPLASH_PENDING_KEY = "guessify-lamia-splash";
@@ -153,28 +154,24 @@ function useLamiaSplash(onLamia) {
   return [show, close];
 }
 
-/** Plays with sound when the browser allows it, otherwise muted. Ends the splash. */
-function SplashVideo({ onDone }) {
-  const ref = useRef(null);
-  useEffect(() => {
-    const v = ref.current;
-    if (!v) return;
-    v.play().catch(() => {
-      v.muted = true;
-      v.play().catch(() => setTimeout(onDone, SPLASH_NO_VIDEO_MS));
-    });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+/** A GIF, not a video — iOS won't autoplay video here. Ends the splash after one loop. */
+function SplashGif({ onDone }) {
+  const timer = useRef(0);
+  useEffect(() => () => clearTimeout(timer.current), []);
   return (
-    <video
-      ref={ref}
-      className="lamia-splash-video"
-      src={SPLASH_VIDEO}
-      poster={SPLASH_POSTER}
-      playsInline
-      preload="auto"
-      onEnded={onDone}
-      onError={() => setTimeout(onDone, SPLASH_NO_VIDEO_MS)}
+    <img
+      className="lamia-splash-gif"
+      src={SPLASH_GIF}
+      alt=""
+      draggable={false}
+      onLoad={() => {
+        clearTimeout(timer.current);
+        timer.current = setTimeout(onDone, SPLASH_GIF_MS);
+      }}
+      onError={() => {
+        clearTimeout(timer.current);
+        timer.current = setTimeout(onDone, SPLASH_NO_GIF_MS);
+      }}
     />
   );
 }
@@ -220,7 +217,7 @@ export default function LamiaBackdrop({ onLamia }) {
             ))}
           </div>
           <div className="lamia-splash-name">{SPLASH_NAME}</div>
-          <SplashVideo onDone={closeSplash} />
+          <SplashGif onDone={closeSplash} />
         </div>
       )}
       <div className="lamia-backdrop" aria-hidden="true">

@@ -26,7 +26,7 @@ import PlayHowto, {
   HOWTO_KEY,
   PICKER_TOUR_KEY,
 } from "./components/PlayHowto.jsx";
-import { makeRoomCode, normalizeRaceMode, shuffle, ROUND_COUNT } from "./multiplayer/constants.js";
+import { makeRoomCode, normalizeRaceMode, shuffle, ROUND_COUNT, FRENZY_ENABLED } from "./multiplayer/constants.js";
 import { loadLocalProfile, saveLocalProfile, hasSavedLocalProfile } from "./localProfile.js";
 import { loadTheme, DEFAULT_THEME, currentThemeMode } from "./themes.js";
 import { attachKeyboardSounds } from "./keyboardSounds.js";
@@ -755,7 +755,7 @@ export default function App() {
             key={homeNonce}
             onPick={onPlaylistPicked}
             needsLogin={status === "loggedOut"}
-            allowFrenzy={mode !== "multi"}
+            allowFrenzy={FRENZY_ENABLED && mode !== "multi"}
           />
         )}
 
