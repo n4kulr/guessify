@@ -86,7 +86,8 @@ function row(i) {
 }
 
 /**
- * Splash when the theme flips *to* lamia (not when a saved lamia loads).
+ * Splash when someone picks lamia (not on hover previews or when a saved
+ * lamia loads).
  * `onLamia` fires alongside it — App uses it to replay the demo.
  */
 function useLamiaSplash(onLamia) {
@@ -116,7 +117,9 @@ function useLamiaSplash(onLamia) {
     } catch {
       /* ignore */
     }
-    const obs = new MutationObserver(() => {
+    // Only real picks (theme menu click, accent change) dispatch this — menu
+    // hover previews retint too, and must not set off the splash.
+    function onPicked() {
       const next = root.dataset.theme;
       if (next === "lamia" && prev !== "lamia") {
         try {
@@ -127,10 +130,10 @@ function useLamiaSplash(onLamia) {
         play();
       }
       prev = next;
-    });
-    obs.observe(root, { attributes: true, attributeFilter: ["data-theme"] });
+    }
+    window.addEventListener("guessify:theme-picked", onPicked);
     return () => {
-      obs.disconnect();
+      window.removeEventListener("guessify:theme-picked", onPicked);
       clearTimeout(timer);
     };
   }, []);
