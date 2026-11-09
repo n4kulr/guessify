@@ -3,7 +3,7 @@ import { useDragScroll } from "../useDragScroll.js";
 import { spineMeta } from "../cdSpineMeta.js";
 
 /** Top-down CD tray — slim jewel-case spines, scroll for more; insert opens to the right. */
-export default function ChartCdSpindle({ packs, loadingId, onChoose, onFrenzy }) {
+export default function ChartCdSpindle({ packs, loadingId, onChoose }) {
   const busy = loadingId !== null;
   const [picked, setPicked] = useState(null); // pack tag
   const scrollRef = useRef(null);
@@ -55,11 +55,6 @@ export default function ChartCdSpindle({ packs, loadingId, onChoose, onFrenzy })
   function confirmPlay() {
     if (!pickedPack || busy) return;
     onChoose(pickedPack.tag);
-  }
-
-  function confirmFrenzy() {
-    if (!pickedPack || busy) return;
-    onFrenzy(pickedPack.tag);
   }
 
   const panelClass = ["cd-panel", panelOpen ? "is-open" : ""]
@@ -206,17 +201,6 @@ export default function ChartCdSpindle({ packs, loadingId, onChoose, onFrenzy })
               >
                 ► Put in Player
               </button>
-              {onFrenzy && (
-                <button
-                  type="button"
-                  className="cd-insert-play cd-insert-frenzy"
-                  onClick={confirmFrenzy}
-                  disabled={busy}
-                  title="endless rounds until you stop"
-                >
-                  ⚡ Frenzy
-                </button>
-              )}
             </div>
           </div>
         ) : null}

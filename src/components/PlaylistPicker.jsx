@@ -3,6 +3,7 @@ import ChartCdSpindle from "./ChartCdSpindle.jsx";
 import ChartCdStack from "./ChartCdStack.jsx";
 import ChartPreviewDialog from "./ChartPreviewDialog.jsx";
 import PlaylistCdShelf from "./PlaylistCdShelf.jsx";
+import { FrenzyModeIcon } from "../multiplayer/RaceModeIcons.jsx";
 import { shakeEl } from "../fx.js";
 import { primePlaylistLookups } from "../previewWarm.js";
 import { useTypewriterPh } from "../useTypewriterPh.js";
@@ -79,7 +80,7 @@ const CHART_PH_EXAMPLES = [
   "gemini rights",
 ];
 
-/** `allowFrenzy` adds a Frenzy (endless rounds) button beside Put in Player — solo only. */
+/** `allowFrenzy` adds a ⚡ toggle beside the CD toggle: the next pick plays endless rounds (solo only). */
 export default function PlaylistPicker({ onPick, needsLogin = false, allowFrenzy = false }) {
   const [data, setData] = useState(null); // { playlists, liked }
   const [error, setError] = useState(null);
@@ -100,6 +101,8 @@ export default function PlaylistPicker({ onPick, needsLogin = false, allowFrenzy
   const [stackInsertOpen, setStackInsertOpen] = useState(false);
   const [stackBusy, setStackBusy] = useState(false);
   const [yoursView, setYoursView] = useState("cds"); // cds | list
+  /** ⚡ armed: whatever gets picked next runs as an endless Frenzy. */
+  const [frenzyArmed, setFrenzyArmed] = useState(false);
   const [showLoginModal, setShowLoginModal] = useState(false);
   const loginModalTitleId = useId();
   const chartFieldRef = useRef(null);
@@ -109,6 +112,15 @@ export default function PlaylistPicker({ onPick, needsLogin = false, allowFrenzy
   useEffect(() => {
     return () => clearTimeout(chartErrorTimer.current);
   }, []);
+
+  /** Every pick goes through here so the ⚡ toggle applies to all of them. */
+  function pickPlaylist(playlist) {
+    let frenzy = false;
+    if (allowFrenzy && frenzyArmed) {
+      frenzy = true;
+    }
+    onPick(playlist, { frenzy });
+  }
 
   function closeIntro() {
     markPickerTourSeen();
@@ -224,7 +236,7 @@ export default function PlaylistPicker({ onPick, needsLogin = false, allowFrenzy
     clearTimeout(hoverTimerRef.current);
   }
 
-  async function chooseYours(p, { frenzy = false } = {}) {
+  async function chooseYours(p) {
     if (!p.owned) return;
     setLoadingId(p.id);
     setNote(null);
@@ -235,14 +247,14 @@ export default function PlaylistPicker({ onPick, needsLogin = false, allowFrenzy
         setLoadingId(null);
         return;
       }
-      onPick(d, { frenzy });
+      pickPlaylist(d);
     } catch (err) {
       setNote(err.message || "Couldn't load that playlist. Try another.");
       setLoadingId(null);
     }
   }
 
-  async function chooseChart(tag, { artist = false, frenzy = false } = {}) {
+  async function chooseChart(tag, { artist = false } = {}) {
     const clean = String(tag || "").trim();
     if (!clean) return;
     const id = `chart:${artist ? "a:" : ""}${clean.toLowerCase()}`;
@@ -264,7 +276,7 @@ export default function PlaylistPicker({ onPick, needsLogin = false, allowFrenzy
         setLoadingId(null);
         return;
       }
-      onPick(d, { frenzy });
+      pickPlaylist(d);
     } catch (err) {
       setNote(err.message || "Couldn't load that chart. Try another pick.");
       setLoadingId(null);
@@ -367,11 +379,11 @@ export default function PlaylistPicker({ onPick, needsLogin = false, allowFrenzy
     },
   });
 
-  function confirmChartPreview(_pl, { frenzy = false } = {}) {
+  function confirmChartPreview() {
     if (!chartPreview) return;
     const d = chartPreview;
     setChartPreview(null);
-    onPick(d, { frenzy });
+    pickPlaylist(d);
   }
 
   async function buildStackMix(layers) {
@@ -485,9 +497,9 @@ export default function PlaylistPicker({ onPick, needsLogin = false, allowFrenzy
     }
   }
 
-  function putStackInPlayer(playlist, { frenzy = false } = {}) {
+  function putStackInPlayer(playlist) {
     if (!playlist || playlist.playableCount < 2) return;
-    onPick(playlist, { frenzy });
+    pickPlaylist(playlist);
   }
 
   function slugBits(names) {
@@ -526,6 +538,18 @@ export default function PlaylistPicker({ onPick, needsLogin = false, allowFrenzy
         />
       )}
       <div className="picker-heading">
+        {allowFrenzy && (
+          <button
+            type="button"
+            className="view-toggle frenzy-toggle"
+            aria-pressed={frenzyArmed}
+            aria-label="Frenzy: next pick plays endless rounds"
+            title="Frenzy: endless rounds"
+            onClick={() => setFrenzyArmed((armed) => !armed)}
+          >
+            <FrenzyModeIcon size={11} />
+          </button>
+        )}
         {yours.length > 0 && (
           <button
             type="button"
@@ -567,9 +591,6 @@ export default function PlaylistPicker({ onPick, needsLogin = false, allowFrenzy
               playlists={yours}
               loadingId={loadingId}
               onChoose={chooseYours}
-              onFrenzy={
-                allowFrenzy ? (p) => chooseYours(p, { frenzy: true }) : undefined
-              }
             />
           ) : (
             <>
@@ -694,9 +715,6 @@ export default function PlaylistPicker({ onPick, needsLogin = false, allowFrenzy
         packs={CHART_PACKS}
         loadingId={loadingId}
         onChoose={chooseChart}
-        onFrenzy={
-          allowFrenzy ? (tag) => chooseChart(tag, { frenzy: true }) : undefined
-        }
       />
 
       <ChartCdStack
@@ -707,20 +725,12 @@ export default function PlaylistPicker({ onPick, needsLogin = false, allowFrenzy
         onAdd={addStackLayer}
         onPutBack={() => setStackInsertOpen(false)}
         onPutInPlayer={putStackInPlayer}
-        onFrenzy={
-          allowFrenzy ? (mix) => putStackInPlayer(mix, { frenzy: true }) : undefined
-        }
       />
 
       {chartPreview && (
         <ChartPreviewDialog
           playlist={chartPreview}
           onConfirm={confirmChartPreview}
-          onFrenzy={
-            allowFrenzy
-              ? (pl) => confirmChartPreview(pl, { frenzy: true })
-              : undefined
-          }
           onCancel={() => setChartPreview(null)}
         />
       )}

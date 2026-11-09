@@ -37,7 +37,7 @@ function topArtists(tracks, limit = 24) {
 }
 
 /** Horizontal jewel-case shelf for Spotify playlists (covers face out). */
-export default function PlaylistCdShelf({ playlists, loadingId, onChoose, onFrenzy }) {
+export default function PlaylistCdShelf({ playlists, loadingId, onChoose }) {
   const busy = loadingId !== null;
   const [picked, setPicked] = useState(null);
   const [preview, setPreview] = useState(null); // { artists, loading }
@@ -129,11 +129,6 @@ export default function PlaylistCdShelf({ playlists, loadingId, onChoose, onFren
   function confirmPlay() {
     if (!pickedPlaylist || busy) return;
     onChoose(pickedPlaylist);
-  }
-
-  function confirmFrenzy() {
-    if (!pickedPlaylist || busy) return;
-    onFrenzy(pickedPlaylist);
   }
 
   const panelClass = ["shelf-panel", panelOpen ? "is-open" : ""]
@@ -251,17 +246,6 @@ export default function PlaylistCdShelf({ playlists, loadingId, onChoose, onFren
               >
                 {loadingId === pickedPlaylist.id ? "…" : "► Put in Player"}
               </button>
-              {onFrenzy && (
-                <button
-                  type="button"
-                  className="cd-insert-play cd-insert-frenzy"
-                  onClick={confirmFrenzy}
-                  disabled={busy}
-                  title="endless rounds until you stop"
-                >
-                  ⚡ Frenzy
-                </button>
-              )}
             </div>
           </div>
         ) : null}

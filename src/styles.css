@@ -1859,6 +1859,18 @@ button.footer-privacy:hover {
   color: var(--sub-color);
   border-color: color-mix(in srgb, var(--text-color) 38%, transparent);
 }
+/* ⚡ armed: lit so it's obvious the next pick is a Frenzy run. */
+.frenzy-toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+/* Icon is one line of the CD label tall, so both chips match. */
+.frenzy-toggle .race-mode-icon { display: block; width: 1.2em; height: 1.2em; }
+.frenzy-toggle[aria-pressed="true"] {
+  color: var(--main-color);
+  border-color: currentColor;
+}
 .picker-section-title {
   font-size: 26px;
   font-weight: 700;
@@ -3056,18 +3068,6 @@ button.footer-privacy:hover {
 }
 .cd-insert-play:disabled,
 .cd-insert-back:disabled { opacity: 0.55; cursor: wait; }
-/* Frenzy sits right beside Put in Player as its outlined twin. */
-.cd-insert-actions:has(.cd-insert-frenzy) { justify-content: flex-end; gap: 8px; }
-.cd-insert-actions:has(.cd-insert-frenzy) .cd-insert-back { margin-right: auto; }
-.cd-insert-play.cd-insert-frenzy {
-  background: transparent;
-  color: var(--cd-ink);
-  box-shadow: none;
-}
-.cd-insert-play.cd-insert-frenzy:hover:not(:disabled) {
-  background: color-mix(in srgb, var(--cd-ink) 12%, transparent);
-  color: var(--cd-ink);
-}
 
 @media (max-width: 720px) {
   .shelf-row {

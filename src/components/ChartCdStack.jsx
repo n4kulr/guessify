@@ -15,7 +15,6 @@ export default function ChartCdStack({
   onAdd,
   onPutBack,
   onPutInPlayer,
-  onFrenzy,
 }) {
   const busy = stackBusy;
   const [stackQuery, setStackQuery] = useState("");
@@ -243,17 +242,6 @@ export default function ChartCdStack({
                 >
                   ► Put in Player
                 </button>
-                {onFrenzy && (
-                  <button
-                    type="button"
-                    className="cd-insert-play cd-insert-frenzy"
-                    onClick={() => canPlay && onFrenzy(mix)}
-                    disabled={!canPlay}
-                    title="endless rounds until you stop"
-                  >
-                    ⚡ Frenzy
-                  </button>
-                )}
               </div>
             </div>
           ) : null}

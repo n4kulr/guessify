@@ -95,8 +95,8 @@ export function timedTitlePoints(titlePts, placeIndex = 0) {
   return Math.max(0, Math.floor(Number(titlePts) || 0) - place * TIMED_PLACE_STEP);
 }
 
-/** Frenzy is hidden until the party server with its round logic is deployed. */
-export const FRENZY_ENABLED = false;
+/** Frenzy: endless rounds — a lobby race mode, and the ⚡ toggle in the solo picker. */
+export const FRENZY_ENABLED = true;
 
 /** classic | timed | frenzy. Frenzy plays classic rules with no round cap. */
 export function normalizeRaceMode(mode) {
