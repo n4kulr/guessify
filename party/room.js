@@ -23,6 +23,12 @@ import {
   normalizeRaceMode,
   shuffle,
 } from "../src/multiplayer/constants.js";
+import {
+  ROOM_PHASE,
+  canEnterPhase,
+  isAnswerRevealed,
+  freshRoundFields,
+} from "../src/multiplayer/roomPhase.js";
 import { titleHintMask } from "../src/titleHint.js";
 import { resolveItunesPreview } from "./itunesPreview.js";
 import { dealPartyTracks } from "../src/deadPreview.js";
@@ -62,10 +68,50 @@ export class Room extends Server {
     }, delay);
   }
 
+  /**
+   * The only place `state.phase` changes. Moves not listed in
+   * ROOM_TRANSITIONS (src/multiplayer/roomPhase.js) are refused and logged,
+   * so a stray handler can't wedge the room in an impossible state.
+   */
+  enterPhase(nextPhase) {
+    const currentPhase = this.state.phase;
+    if (!canEnterPhase(currentPhase, nextPhase)) {
+      console.warn(`room ${this.name}: refused phase ${currentPhase} → ${nextPhase}`);
+      return false;
+    }
+    this.state.phase = nextPhase;
+    return true;
+  }
+
+  /** lobby → play or reveal → play: wipe per-round fields, start the clock. */
+  beginRound() {
+    if (!this.enterPhase(ROOM_PHASE.PLAY)) return false;
+    Object.assign(this.state, freshRoundFields(this.state.raceMode));
+    return true;
+  }
+
+  /** → over, from any path (last round, host ends frenzy, nothing playable). */
+  endGame() {
+    if (!this.enterPhase(ROOM_PHASE.OVER)) return false;
+    this.clearTimedRoundTimer();
+    this.state.previewUrl = null;
+    this.state.previewArt = null;
+    this.state.nextVotes = {};
+    this.state.roundEndsAt = null;
+    return true;
+  }
+
+  /** Timer only runs while a timed round is actually in play. */
+  maybeScheduleTimedRoundEnd() {
+    if (this.state.phase !== ROOM_PHASE.PLAY) return;
+    if (this.state.raceMode !== "timed") return;
+    this.scheduleTimedRoundEnd();
+  }
+
   maybeFinishTimedIfPastDue() {
     if (!this.state) return;
     if (this.state.raceMode !== "timed") return;
-    if (this.state.phase !== "play") return;
+    if (this.state.phase !== ROOM_PHASE.PLAY) return;
     if (!this.state.roundEndsAt || Date.now() < this.state.roundEndsAt) return;
     this.finishTimedRound();
   }
@@ -89,9 +135,7 @@ export class Room extends Server {
       if (!this.state.roundSolves) this.state.roundSolves = {};
       if (!Array.isArray(this.state.spareTracks)) this.state.spareTracks = [];
       this.maybeFinishTimedIfPastDue();
-      if (this.state.phase === "play" && this.state.raceMode === "timed") {
-        this.scheduleTimedRoundEnd();
-      }
+      this.maybeScheduleTimedRoundEnd();
       await this.scheduleLeaveAlarm();
     }
   }
@@ -249,7 +293,7 @@ export class Room extends Server {
 
   /** Host can flip classic/timed while waiting in lobby. */
   handleRaceMode(msg, sender) {
-    if (!this.state || this.state.phase !== "lobby") return;
+    if (!this.state || this.state.phase !== ROOM_PHASE.LOBBY) return;
     const player = this.playerFor(sender);
     // Prefer conn-id host seat; fall back to roster flag (reconnect lag).
     if (!this.isHost(sender) && !player?.isHost) return;
@@ -325,7 +369,7 @@ export class Room extends Server {
         tracks: dealt.tracks,
         spareTracks: dealt.spareTracks,
         players: [hostPlayer],
-        phase: "lobby", // lobby | play | reveal | over
+        phase: ROOM_PHASE.LOBBY, // moves: see ROOM_TRANSITIONS
         raceMode: normalizeRaceMode(msg.raceMode),
         roundIdx: 0,
         unlockByPlayer: {},
@@ -390,14 +434,14 @@ export class Room extends Server {
     }
     if (msg.tracks?.length) {
       // Only replace tracks while still in lobby.
-      if (this.state.phase === "lobby") {
+      if (this.state.phase === ROOM_PHASE.LOBBY) {
         const dealt = dealPartyTracks(msg.tracks, ROUND_COUNT);
         this.state.tracks = dealt.tracks;
         this.state.spareTracks = dealt.spareTracks;
         this.state.playlistName = msg.playlistName || this.state.playlistName;
       }
     }
-    if (this.state.phase === "lobby" && msg.raceMode != null) {
+    if (this.state.phase === ROOM_PHASE.LOBBY && msg.raceMode != null) {
       this.state.raceMode = normalizeRaceMode(msg.raceMode);
     }
 
@@ -413,7 +457,7 @@ export class Room extends Server {
       sender.send(JSON.stringify({ type: "error", error: "Room not ready yet — wait for the host." }));
       return;
     }
-    if (this.state.phase === "over") {
+    if (this.state.phase === ROOM_PHASE.OVER) {
       sender.send(JSON.stringify({ type: "error", error: "This party is over." }));
       return;
     }
@@ -460,7 +504,7 @@ export class Room extends Server {
   }
 
   handleProfile(msg, sender) {
-    if (!this.state || this.state.phase === "over") return;
+    if (!this.state || this.state.phase === ROOM_PHASE.OVER) return;
     const player = this.playerFor(sender);
     if (!player) return;
 
@@ -518,7 +562,7 @@ export class Room extends Server {
 
   async handleStart(msg, sender) {
     if (!this.isHost(sender) && !this.playerFor(sender)?.isHost) return;
-    if (!this.state || this.state.phase !== "lobby") return;
+    if (!this.state || this.state.phase !== ROOM_PHASE.LOBBY) return;
     if (this.state.players.filter((p) => p.connected).length < 1) {
       sender.send(JSON.stringify({ type: "error", error: "Need at least one player." }));
       return;
@@ -527,32 +571,14 @@ export class Room extends Server {
     if (msg?.raceMode != null) {
       this.state.raceMode = normalizeRaceMode(msg.raceMode);
     }
-    this.state.phase = "play";
     this.state.roundIdx = 0;
-    this.state.unlockByPlayer = {};
-    this.state.guesses = [];
-    this.state.nextVotes = {};
-    this.state.outcome = null;
-    this.state.winnerId = null;
-    this.state.bonus = 0;
-    this.state.earnedPts = 0;
-    this.state.revealedArtist = null;
-    this.state.artistClaimedBy = null;
-    this.state.artistByPlayer = {};
     this.state.roundResults = [];
-    this.state.roundSolves = {};
-    this.state.timedPlaces = null;
-    this.state.solveTimes = null;
-    this.state.roundStartedAt = Date.now();
-    this.state.roundEndsAt =
-      this.state.raceMode === "timed"
-        ? this.state.roundStartedAt + TIMED_ROUND_MS
-        : null;
+    this.beginRound();
     this.topUpFrenzy();
     await this.resolveCurrentPreview();
     this.broadcastState();
     await this.persist();
-    if (this.state.raceMode === "timed") this.scheduleTimedRoundEnd();
+    this.maybeScheduleTimedRoundEnd();
   }
 
   /**
@@ -582,18 +608,15 @@ export class Room extends Server {
   /** Host stops a frenzy from the reveal — straight to the results screen. */
   handleEndFrenzy(sender) {
     if (!this.state || this.state.raceMode !== "frenzy") return;
-    if (this.state.phase !== "reveal") return;
+    if (this.state.phase !== ROOM_PHASE.REVEAL) return;
     if (!this.isHost(sender) && !this.playerFor(sender)?.isHost) return;
-    this.state.phase = "over";
-    this.state.previewUrl = null;
-    this.state.previewArt = null;
-    this.state.nextVotes = {};
+    this.endGame();
     this.broadcastState();
     void this.persist();
   }
 
   handleGuess(msg, sender) {
-    if (!this.state || this.state.phase !== "play") return;
+    if (!this.state || this.state.phase !== ROOM_PHASE.PLAY) return;
     const player = this.playerFor(sender);
     if (!player) {
       sender.send(JSON.stringify({ type: "error", error: "Join the race first." }));
@@ -694,7 +717,7 @@ export class Room extends Server {
       this.state.earnedPts = titlePts + artistPts;
       this.state.winnerId = player.id;
       this.state.outcome = "win";
-      this.state.phase = "reveal";
+      this.enterPhase(ROOM_PHASE.REVEAL);
       this.state.nextVotes = {};
       this.state.roundEndsAt = null;
       this.state.solveTimes = { [player.id]: wallMs };
@@ -713,7 +736,7 @@ export class Room extends Server {
   }
 
   maybeFinishTimedIfAllSolved() {
-    if (!this.state || this.state.raceMode !== "timed" || this.state.phase !== "play") {
+    if (!this.state || this.state.raceMode !== "timed" || this.state.phase !== ROOM_PHASE.PLAY) {
       return;
     }
     const active = this.state.players.filter(
@@ -727,7 +750,7 @@ export class Room extends Server {
   }
 
   finishTimedRound() {
-    if (!this.state || this.state.phase !== "play") return;
+    if (!this.state || this.state.phase !== ROOM_PHASE.PLAY) return;
     if (this.state.raceMode !== "timed") return;
     this.clearTimedRoundTimer();
 
@@ -767,21 +790,21 @@ export class Room extends Server {
       this.state.outcome = "win";
       this.state.earnedPts = places[0].titlePts;
       this.state.bonus = 0;
-      this.state.phase = "reveal";
+      this.enterPhase(ROOM_PHASE.REVEAL);
       this.pushRoundResult();
     } else {
       this.state.winnerId = null;
       this.state.outcome = "lose";
       this.state.earnedPts = 0;
       this.state.bonus = 0;
-      this.state.phase = "reveal";
+      this.enterPhase(ROOM_PHASE.REVEAL);
     }
     this.broadcastState();
     void this.persist();
   }
 
   handleSkip(sender) {
-    if (!this.state || this.state.phase !== "play") return;
+    if (!this.state || this.state.phase !== ROOM_PHASE.PLAY) return;
     const player = this.playerFor(sender);
     if (!player) {
       sender.send(JSON.stringify({ type: "error", error: "Join the race first." }));
@@ -815,7 +838,7 @@ export class Room extends Server {
       this.state.winnerId = null;
       this.state.earnedPts = 0;
       this.state.bonus = 0;
-      this.state.phase = "reveal";
+      this.enterPhase(ROOM_PHASE.REVEAL);
       this.state.nextVotes = {};
       this.state.solveTimes = null;
       // Miss — omit from roundResults (stats ignore songs nobody got).
@@ -827,7 +850,7 @@ export class Room extends Server {
 
   /** Private title mask — only to the requester, never the raw title. */
   handleHint(sender) {
-    if (!this.state || this.state.phase !== "play") return;
+    if (!this.state || this.state.phase !== ROOM_PHASE.PLAY) return;
     const player = this.playerFor(sender);
     if (!player) {
       sender.send(JSON.stringify({ type: "error", error: "Join the race first." }));
@@ -846,7 +869,7 @@ export class Room extends Server {
   }
 
   async handleNext(sender) {
-    if (!this.state || this.state.phase !== "reveal") return;
+    if (!this.state || this.state.phase !== ROOM_PHASE.REVEAL) return;
     const player = this.playerFor(sender);
     if (!player) {
       sender.send(JSON.stringify({ type: "error", error: "Join the race first." }));
@@ -874,14 +897,11 @@ export class Room extends Server {
   }
 
   async advanceAfterReveal() {
-    if (!this.state || this.state.phase !== "reveal") return;
+    if (!this.state || this.state.phase !== ROOM_PHASE.REVEAL) return;
     this.topUpFrenzy();
 
     if (this.state.roundIdx + 1 >= this.state.tracks.length) {
-      this.state.phase = "over";
-      this.state.previewUrl = null;
-      this.state.previewArt = null;
-      this.state.nextVotes = {};
+      this.endGame();
       this.broadcastState();
       await this.persist();
       return;
@@ -889,29 +909,11 @@ export class Room extends Server {
 
     this.state.roundIdx += 1;
     this.topUpFrenzy();
-    this.state.unlockByPlayer = {};
-    this.state.guesses = [];
-    this.state.nextVotes = {};
-    this.state.outcome = null;
-    this.state.winnerId = null;
-    this.state.bonus = 0;
-    this.state.earnedPts = 0;
-    this.state.revealedArtist = null;
-    this.state.artistClaimedBy = null;
-    this.state.artistByPlayer = {};
-    this.state.roundSolves = {};
-    this.state.timedPlaces = null;
-    this.state.solveTimes = null;
-    this.state.phase = "play";
-    this.state.roundStartedAt = Date.now();
-    this.state.roundEndsAt =
-      this.state.raceMode === "timed"
-        ? this.state.roundStartedAt + TIMED_ROUND_MS
-        : null;
+    this.beginRound();
     await this.resolveCurrentPreview();
     this.broadcastState();
     await this.persist();
-    if (this.state.raceMode === "timed") this.scheduleTimedRoundEnd();
+    this.maybeScheduleTimedRoundEnd();
   }
 
   /** Record a solved round for end-game compare (misses are skipped). */
@@ -1021,12 +1023,7 @@ export class Room extends Server {
 
   finishUnplayableGame() {
     if (!this.state) return;
-    this.clearTimedRoundTimer();
-    this.state.phase = "over";
-    this.state.previewUrl = null;
-    this.state.previewArt = null;
-    this.state.nextVotes = {};
-    this.state.roundEndsAt = null;
+    this.endGame();
   }
 
   async prefetchNextPreview() {
@@ -1062,8 +1059,7 @@ export class Room extends Server {
     const t = this.state.tracks[this.state.roundIdx];
     if (!t) return null;
     const previewUrl = this.state.previewUrl || t.previewUrl || null;
-    const revealed = this.state.phase === "reveal" || this.state.phase === "over";
-    if (revealed) {
+    if (isAnswerRevealed(this.state.phase)) {
       return {
         id: t.id,
         name: t.name,
@@ -1083,7 +1079,7 @@ export class Room extends Server {
   }
 
   snapshot() {
-    if (!this.state) return { phase: "empty" };
+    if (!this.state) return { phase: ROOM_PHASE.EMPTY };
     return {
       phase: this.state.phase,
       playlistName: this.state.playlistName,
@@ -1137,7 +1133,7 @@ export class Room extends Server {
 
   broadcastState() {
     const snap = this.snapshot();
-    if (snap.phase !== "play" || snap.raceMode !== "timed") {
+    if (snap.phase !== ROOM_PHASE.PLAY || snap.raceMode !== "timed") {
       this.broadcast(JSON.stringify({ type: "state", state: snap }));
       return;
     }
